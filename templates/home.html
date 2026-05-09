@@ -1,0 +1,62 @@
+{% extends "base.html" %}
+
+{% block title %}Home — Course 506 Week 5{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-md-9">
+
+        <div class="text-center my-4">
+            <h1 class="display-5 mb-3">Course 506 — Week 5 Skeleton</h1>
+            <p class="lead text-muted">
+                Flask + Postgres + SQLModel + Bootstrap, with your S3 site on board.
+            </p>
+        </div>
+
+        <div class="row g-4">
+            <div class="col-md-6">
+                <div class="card h-100">
+                    <div class="card-body">
+                        <h5 class="card-title">Your S3 site</h5>
+                        <p class="card-text">
+                            Whatever you've synced from your S3 bucket lives here.
+                            Run <code>aws s3 sync</code> from the README, then click below.
+                        </p>
+                        <a href="{{ url_for('site_home') }}" class="btn btn-primary">
+                            View My Site
+                        </a>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-6">
+                <div class="card h-100">
+                    <div class="card-body">
+                        <h5 class="card-title">About this skeleton</h5>
+                        <p class="card-text">
+                            Project overview, team members, planned endpoints, and schema.
+                            Each team replaces the placeholder content with their own.
+                        </p>
+                        <a href="{{ url_for('about') }}" class="btn btn-outline-primary">
+                            About page
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        {% if user %}
+        <div class="alert alert-success mt-4 mb-0">
+            You're logged in as <strong>{{ user.username }}</strong>. The auth flow uses
+            real Flask sessions backed by a Postgres <code>users</code> table.
+        </div>
+        {% else %}
+        <div class="alert alert-light border mt-4 mb-0 text-muted">
+            Not logged in. Use the navbar to <a href="{{ url_for('login') }}">log in</a>
+            or <a href="{{ url_for('register') }}">register</a> — the auth flow uses real
+            Flask sessions backed by a Postgres <code>users</code> table.
+        </div>
+        {% endif %}
+
+    </div>
+</div>
+{% endblock %}

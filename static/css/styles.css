@@ -1,0 +1,13 @@
+/* Course 506 Week 5 Skeleton — minimal custom styles.
+   Bootstrap handles the bulk of layout and components. Add team-specific
+   styling here as your project grows. */
+
+body {
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+}
+
+main {
+    flex: 1;
+}

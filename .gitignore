@@ -1,0 +1,16 @@
+__pycache__/
+*.py[cod]
+*$py.class
+*.egg-info/
+.pytest_cache/
+.venv/
+venv/
+.env
+*.db
+.DS_Store
+.idea/
+.vscode/
+
+# S3-synced content is each student's own; don't commit
+S3_content/*
+!S3_content/.gitkeep
