@@ -14,3 +14,4 @@ venv/
 # S3-synced content is each student's own; don't commit
 S3_content/*
 !S3_content/.gitkeep
+.venv
