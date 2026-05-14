@@ -97,7 +97,7 @@ def test_week6_demo_register_search_detail_scale_plan_delete(client):
 
     plan = client.post(
         "/mealplan",
-        data={"day_of_week": "2", "recipe_id": str(rid), "servings": "2"},
+        data={"day_of_week": "1", "recipe_id": str(rid), "servings": "2"},
         follow_redirects=False,
     )
     assert plan.status_code == 302
@@ -107,7 +107,7 @@ def test_week6_demo_register_search_detail_scale_plan_delete(client):
     assert board.status_code == 200
     assert str(rid).encode() in board.data
 
-    clear = client.delete(f"/mealplan/{2}")
+    clear = client.delete(f"/mealplan/{1}")
     assert clear.status_code == 302
 
     board_after = client.get("/mealplan")
