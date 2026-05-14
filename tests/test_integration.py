@@ -39,7 +39,7 @@ def client():
 
 @responses.activate
 def test_week6_demo_register_search_detail_scale_plan_delete(client):
-    """ Mirrors CONTRACTS.md §8 — full-stack smoke with deterministic Edamam mock."""
+    """Full-stack smoke aligned with CONTRACTS.md §8 (mocked Edamam)."""
     responses.add(
         responses.GET,
         _EDAMAM_RE,
@@ -107,7 +107,7 @@ def test_week6_demo_register_search_detail_scale_plan_delete(client):
     assert board.status_code == 200
     assert str(rid).encode() in board.data
 
-    clear = client.delete(f"/mealplan/{1}")
+    clear = client.delete("/mealplan/1")
     assert clear.status_code == 302
 
     board_after = client.get("/mealplan")
