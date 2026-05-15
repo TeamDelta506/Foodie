@@ -12,17 +12,122 @@ S3_content/. Login, register, logout, and about are Flask-rendered routes.
 
 This file is meant to be readable top-to-bottom. No Blueprints, no app factory,
 no advanced Flask patterns. Just enough to teach the architecture.
+
+---------------------------------------------------------------------------
+CONTRACTS.md (Week 6) — route ownership vs. what lives in this file
+---------------------------------------------------------------------------
+- Section 3 defines **required URL behavior** (search, detail, scale JSON,
+  meal plan, nutrition JSON, etc.). The contract cares that those paths behave
+  as specified, not which teammate's PR introduced the first draft.
+- Section 7 assigns **Sam** to own **Edamam + requests**, the Week 6 server
+  routes in this file, and ``tests/test_server_edamam_routes.py``. **Justin**
+  owns SQLModel tables for recipes/ingredients/mealplans; **Asia** owns
+  templates and static assets.
+
+**Handoff:** Demo data, ``POST /recipes/scale``, branded ``HTTPException``
+pages, and meal-plan GET/suggest stubs were added so templates and tests can
+run. That overlaps Sam's lane for **implementation**—**coordinate on merge**
+(or let Sam supersede in a follow-up). Blocks below marked **SAM:** are the
+intended replace points: Edamam (section 5), DB upsert by ``api_id``, timeouts
+and error-to-flash mapping on search, ``POST /mealplan``, ``DELETE /mealplan/<day>``,
+``GET /nutrition/<id>``, and swapping demo helpers for real SQLModel queries
+once Justin's schema is available.
 """
 
 import os
 from datetime import datetime, timezone
 from pathlib import Path
+from types import SimpleNamespace
+
 from flask import (
     Flask, render_template, request, redirect, url_for, session, flash, g,
-    send_from_directory, abort,
+    send_from_directory, abort, jsonify,
 )
 from sqlmodel import SQLModel, Field, Session, create_engine, select
+from werkzeug.exceptions import HTTPException
 from werkzeug.security import generate_password_hash, check_password_hash
+
+# ---------------------------------------------------------------------------
+# DEMO: in-memory sample recipes for UI preview (search cards + detail + meal
+# plan typeahead). Remove once the team serves real rows from `recipes`.
+# Set DEMO_MOCK_RECIPES_ENABLED = False to hide demos without deleting code.
+#
+# Mock images: files in static/img/demo/ (served at /static/img/demo/...).
+# ---------------------------------------------------------------------------
+DEMO_MOCK_RECIPES_ENABLED = True
+
+_IMG_BOWL = "/static/img/demo/bowl.jpg"
+_IMG_SALMON = "/static/img/demo/salmon.jpg"
+
+
+def _demo_recipe_summaries():
+    """Minimal rows for Discover cards + meal-plan typeahead source (until DB)."""
+    return [
+        SimpleNamespace(id=1, name="Garden grain bowl", image_url=_IMG_BOWL, calories=420.0),
+        SimpleNamespace(id=2, name="Citrus herb salmon", image_url=_IMG_SALMON, calories=560.0),
+    ]
+
+
+def _demo_recipe_detail(recipe_id: int):
+    """Full recipe + ingredients for /recipes/<id> preview. Returns (recipe, ingredients)."""
+    demos = {
+        1: (
+            SimpleNamespace(
+                id=1,
+                name="Garden grain bowl",
+                image_url=_IMG_BOWL,
+                default_servings=2,
+                calories=420.0,
+                protein=18.0,
+                carbs=55.0,
+                fat=12.0,
+            ),
+            [
+                SimpleNamespace(name="Quinoa", quantity=1.0, unit="cup"),
+                SimpleNamespace(name="Kale", quantity=2.0, unit="cup"),
+                SimpleNamespace(name="Lemon juice", quantity=2.0, unit="tbsp"),
+            ],
+        ),
+        2: (
+            SimpleNamespace(
+                id=2,
+                name="Citrus herb salmon",
+                image_url=_IMG_SALMON,
+                default_servings=4,
+                calories=560.0,
+                protein=48.0,
+                carbs=8.0,
+                fat=32.0,
+            ),
+            [
+                SimpleNamespace(name="Salmon fillet", quantity=1.5, unit="lb"),
+                SimpleNamespace(name="Fresh dill", quantity=2.0, unit="tbsp"),
+                SimpleNamespace(name="Orange zest", quantity=1.0, unit="tsp"),
+            ],
+        ),
+    }
+    return demos.get(recipe_id, (None, []))
+
+
+def _scale_recipe_ingredients(recipe_id: int, target_servings: int):
+    """Return (recipe, scaled_ingredient_dicts) or (None, None) if recipe unknown.
+
+    SAM: Replace body with DB-backed ingredients + CONTRACTS.md §3 scale math
+    (factor = target_servings / default_servings; round quantities server-side).
+    """
+    recipe, ingredients = _demo_recipe_detail(recipe_id)
+    if recipe is None:
+        return None, None
+    default = float(recipe.default_servings)
+    if default <= 0:
+        return None, None
+    factor = target_servings / default
+    scaled = []
+    for ing in ingredients:
+        qty = round(float(ing.quantity) * factor, 2)
+        scaled.append({"name": ing.name, "quantity": qty, "unit": ing.unit})
+    return recipe, scaled
+
 
 # ---------------------------------------------------------------------------
 # Application setup
@@ -80,9 +185,9 @@ def close_db_session(exception=None):
         db_session.close()
 
 
-# Make `user` available in every Flask-rendered template (login page, register
-# page, about page, placeholder). Static files served from S3_content/ don't
-# go through templates, so this only affects Jinja2-rendered pages.
+# Make `user` available in every Flask-rendered template (login, register,
+# about, recipes, meal plan). Static files served from S3_content/ don't use
+# Jinja2, so this only affects Flask-rendered pages.
 @app.context_processor
 def inject_user():
     user = None
@@ -92,15 +197,58 @@ def inject_user():
     return {"user": user}
 
 
+@app.errorhandler(HTTPException)
+def handle_http_exception(e: HTTPException):
+    """Branded HTML for HTTP errors (404, 403, 405, 5xx, …) using the same shell as home.
+
+    Not listed under Sam’s route table in CONTRACTS.md §7 — shared app UX.
+    SAM: If JSON-only routes must return JSON errors instead of HTML for some
+    paths, register a narrower handler or check ``request.is_json`` / Accept
+    here and delegate before rendering ``error.html``.
+    """
+    code = e.code or 500
+    desc = (e.description or "").strip()
+
+    if code == 404:
+        page_title = "Page not found — Foodie"
+        heading = "We can't find that page"
+        lead = "The address may be mistyped, or the recipe or page may no longer be here."
+    elif code == 403:
+        page_title = "Access denied — Foodie"
+        heading = "You can't open this"
+        lead = desc or "You don't have permission to view this resource. Try signing in with a different account."
+    elif code == 405:
+        page_title = "Method not allowed — Foodie"
+        heading = "That action isn't supported here"
+        lead = desc or "Use the navigation or buttons on a Foodie page instead of this address."
+    elif code >= 500:
+        page_title = "Something went wrong — Foodie"
+        heading = "Server hiccup"
+        lead = "Please try again in a moment. If the problem continues, come back later."
+    else:
+        page_title = "Request problem — Foodie"
+        heading = "We couldn't complete that request"
+        lead = desc or "Try going back, or use the shortcuts below."
+
+    return (
+        render_template(
+            "error.html",
+            page_title=page_title,
+            error_code=code,
+            error_heading=heading,
+            error_lead=lead,
+        ),
+        code,
+    )
+
+
 # ---------------------------------------------------------------------------
-# Routes — your S3 static site
+# Routes — optional synced static site under /site/
 #
-# Your S3 site lives at /site/. Populate the S3_content/ folder by running:
-#   aws s3 sync s3://<your-bucket>/ S3_content/
-# from the repo root. Then click "My Site" in the navbar.
+# Populate S3_content/ with:  aws s3 sync s3://<your-bucket>/ S3_content/
+# If index.html is missing, /site/ redirects to the Foodie home page.
 #
-# The home page is Flask-rendered and acts as the entry point: it has the
-# navbar (Login/Register/About/My Site) and a brief landing message.
+# The Flask home page is the primary entry: recipes, meal plan, about, auth.
 # ---------------------------------------------------------------------------
 
 @app.route("/")
@@ -112,8 +260,7 @@ def home():
 def site_home():
     index_path = S3_CONTENT_DIR / "index.html"
     if not index_path.exists():
-        # Friendly placeholder when the student hasn't synced yet.
-        return render_template("placeholder.html"), 200
+        return redirect(url_for("home"))
     return send_from_directory(S3_CONTENT_DIR, "index.html")
 
 
@@ -196,6 +343,148 @@ def about():
     # Each team replaces this content with their own About page (see
     # the assignment instructions in README.md).
     return render_template("about.html")
+
+
+# ---------------------------------------------------------------------------
+# Week 6 — Recipes & meal plan (CONTRACTS.md §3)
+#
+# SAM (per §7): You own production behavior here — Edamam ``requests`` (§5),
+# timeouts, error → flash codes on search, DB upsert by ``api_id``, and any
+# routes still stubbed elsewhere (e.g. ``POST /mealplan``, ``DELETE /mealplan/<day>``,
+# ``GET /nutrition/<id>``). The blocks below are scaffolding so Asia’s templates
+# and coordinator tests can run until your integration lands; replace demo
+# branches rather than deleting template contracts.
+# ---------------------------------------------------------------------------
+
+
+@app.route("/recipes/search")
+def recipes_search():
+    """SAM: Edamam search + upsert (§3, §5); map timeout/rate_limit/upstream_* to flash."""
+    q = (request.args.get("q") or "").strip()
+    recipes = []
+    if DEMO_MOCK_RECIPES_ENABLED and not q and not recipes:
+        recipes = _demo_recipe_summaries()
+    return render_template(
+        "recipes_search.html",
+        title="Discover recipes",
+        q=q,
+        recipes=recipes,
+        search_error=None,
+        show_demo_banner=DEMO_MOCK_RECIPES_ENABLED and bool(recipes) and not q,
+    )
+
+
+@app.route("/recipes/<int:recipe_id>")
+def recipe_detail(recipe_id: int):
+    """SAM: Load cached recipe by ``recipes.id``; unknown id → 404 (CONTRACTS.md §3)."""
+    recipe, ingredients = None, []
+    demo_preview = False
+    if DEMO_MOCK_RECIPES_ENABLED:
+        recipe, ingredients = _demo_recipe_detail(recipe_id)
+        demo_preview = recipe is not None
+    return render_template(
+        "recipe_detail.html",
+        title=(recipe.name if recipe else "Recipe"),
+        recipe=recipe,
+        ingredients=ingredients,
+        demo_preview=demo_preview,
+    )
+
+
+@app.route("/recipes/scale", methods=["POST"])
+def recipes_scale():
+    """CONTRACTS.md §3 ``POST /recipes/scale`` — JSON scale (auth: session today).
+
+    SAM: Keep request/response envelope; read default_servings + ingredients from
+    DB (Justin schema), not ``_scale_recipe_ingredients`` / demo dict.
+    """
+    if "user_id" not in session:
+        return redirect(url_for("login"))
+
+    if not request.is_json:
+        return (
+            jsonify(error="bad_request", message="Expected Content-Type: application/json"),
+            400,
+        )
+
+    payload = request.get_json(silent=True)
+    if not isinstance(payload, dict):
+        return jsonify(error="bad_request", message="Invalid JSON body"), 400
+
+    if "recipe_id" not in payload or "target_servings" not in payload:
+        return (
+            jsonify(error="bad_request", message="Missing recipe_id or target_servings"),
+            400,
+        )
+
+    try:
+        recipe_id = int(payload["recipe_id"])
+        target_servings = int(payload["target_servings"])
+    except (TypeError, ValueError):
+        return (
+            jsonify(error="bad_request", message="recipe_id and target_servings must be integers"),
+            400,
+        )
+
+    if target_servings <= 0:
+        return jsonify(error="bad_request", message="target_servings must be greater than zero"), 400
+
+    if not DEMO_MOCK_RECIPES_ENABLED:
+        return jsonify(error="not_found", message="Recipe not found"), 404
+
+    recipe, ingredients = _scale_recipe_ingredients(recipe_id, target_servings)
+    if recipe is None:
+        return jsonify(error="not_found", message="Recipe not found"), 404
+
+    return jsonify(
+        recipe_id=recipe.id,
+        target_servings=target_servings,
+        default_servings=recipe.default_servings,
+        ingredients=ingredients,
+    )
+
+
+@app.route("/mealplan", methods=["GET"])
+def mealplan():
+    """SAM: Add ``POST`` on this path (upsert §3); pass ``planned`` dict keyed by weekday."""
+    if "user_id" not in session:
+        return redirect(url_for("login"))
+    return render_template(
+        "mealplan.html",
+        title="Meal plan",
+        planned={},
+    )
+
+
+def _mealplan_suggest_source_rows():
+    """Recipes considered for meal-plan typeahead. Sam: query `recipes` with LIMIT + ILIKE."""
+    if DEMO_MOCK_RECIPES_ENABLED:
+        return _demo_recipe_summaries()
+    return []
+
+
+@app.route("/mealplan/recipe-suggest")
+def mealplan_recipe_suggest():
+    """SAM: Keep JSON shape; source rows from ``recipes`` (ILIKE), not demo list."""
+    """JSON for meal-plan recipe picker (scalable: swap source for DB / Edamam cache)."""
+    if "user_id" not in session:
+        return jsonify(recipes=[]), 401
+    q_raw = (request.args.get("q") or "").strip()
+    q = q_raw.lower()
+    rows = _mealplan_suggest_source_rows()
+    if not q:
+        pick = rows[:20]
+    else:
+        pick = [r for r in rows if q in r.name.lower() or q_raw == str(r.id)][:20]
+    out = [
+        {
+            "id": r.id,
+            "name": r.name,
+            "image_url": getattr(r, "image_url", None) or "",
+        }
+        for r in pick
+    ]
+    return jsonify(recipes=out)
 
 
 # ---------------------------------------------------------------------------

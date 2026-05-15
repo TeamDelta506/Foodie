@@ -3,58 +3,82 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>{{ title or "Course 506 — Week 5 Skeleton" }}</title>
+    <title>{% block title %}Foodie{% endblock %}</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="{{ url_for('static', filename='css/styles.css') }}">
 </head>
-<body>
-    <nav class="navbar navbar-expand-lg navbar-dark bg-dark">
+<body class="foodie-app d-flex flex-column min-vh-100">
+    <nav class="navbar navbar-expand-lg navbar-dark navbar-foodie sticky-top">
         <div class="container">
-            <a class="navbar-brand" href="{{ url_for('home') }}">Skeleton</a>
-            <ul class="navbar-nav ms-auto">
-                <li class="nav-item">
-                    <a class="nav-link" href="{{ url_for('site_home') }}">My Site</a>
-                </li>
-                <li class="nav-item">
-                    <a class="nav-link" href="{{ url_for('about') }}">About</a>
-                </li>
-                {% if user %}
-                <li class="nav-item">
-                    <span class="nav-link">Hello, {{ user.username }}</span>
-                </li>
-                <li class="nav-item">
-                    <form method="POST" action="{{ url_for('logout') }}" class="d-inline">
-                        <button type="submit" class="btn btn-link nav-link">Log out</button>
-                    </form>
-                </li>
-                {% else %}
-                <li class="nav-item">
-                    <a class="nav-link" href="{{ url_for('login') }}">Log in</a>
-                </li>
-                <li class="nav-item">
-                    <a class="nav-link" href="{{ url_for('register') }}">Register</a>
-                </li>
-                {% endif %}
-            </ul>
+            <a class="navbar-brand" href="{{ url_for('home') }}">Foodie</a>
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#foodieNav"
+                    aria-controls="foodieNav" aria-expanded="false" aria-label="Toggle navigation">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            <div class="collapse navbar-collapse foodie-nav-collapse w-100 mt-2 mt-lg-0" id="foodieNav">
+                <ul class="navbar-nav foodie-nav-main mb-2 mb-lg-0 me-lg-auto text-center text-lg-start">
+                    <li class="nav-item">
+                        <a class="nav-link" href="{{ url_for('recipes_search') }}">Discover recipes</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="{{ url_for('about') }}">About</a>
+                    </li>
+                    {% if user %}
+                    <li class="nav-item">
+                        <a class="nav-link" href="{{ url_for('mealplan') }}">Meal plan</a>
+                    </li>
+                    {% endif %}
+                </ul>
+                <ul class="navbar-nav foodie-nav-account ms-lg-auto align-items-lg-center text-center text-lg-end">
+                    {% if user %}
+                    <li class="nav-item">
+                        <span class="nav-link py-lg-2 mb-0">Hi, <span class="fw-semibold">{{ user.username }}</span></span>
+                    </li>
+                    <li class="nav-item">
+                        <form method="POST" action="{{ url_for('logout') }}" class="d-inline">
+                            <button type="submit" class="btn btn-link nav-link">Log out</button>
+                        </form>
+                    </li>
+                    {% else %}
+                    <li class="nav-item">
+                        <a class="nav-link" href="{{ url_for('login') }}">Log in</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="{{ url_for('register') }}">Register</a>
+                    </li>
+                    {% endif %}
+                </ul>
+            </div>
         </div>
     </nav>
 
-    <main class="container my-4">
-        {% with messages = get_flashed_messages() %}
-            {% if messages %}
-                {% for message in messages %}
-                <div class="alert alert-warning">{{ message }}</div>
-                {% endfor %}
-            {% endif %}
-        {% endwith %}
+    {% block hero %}{% endblock %}
 
-        {% block content %}{% endblock %}
+    <main class="foodie-main flex-grow-1">
+        <div class="container my-4">
+            {% with messages = get_flashed_messages() %}
+                {% if messages %}
+                    {% for message in messages %}
+                    <div class="alert alert-warning alert-dismissible fade show" role="alert">
+                        {{ message }}
+                        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                    </div>
+                    {% endfor %}
+                {% endif %}
+            {% endwith %}
+
+            {% block content %}{% endblock %}
+        </div>
     </main>
 
-    <footer class="container text-center text-muted small my-4">
-        Course 506 Week 5 Skeleton
+    <footer class="foodie-footer mt-auto py-4">
+        <div class="container text-center small text-muted">
+            <p class="mb-1 fw-semibold text-secondary">Foodie</p>
+            <p class="mb-0">Recipe scaler and meal planner — eat well, plan simply.</p>
+        </div>
     </footer>
 
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
     <script src="{{ url_for('static', filename='js/forms.js') }}"></script>
 </body>
 </html>
