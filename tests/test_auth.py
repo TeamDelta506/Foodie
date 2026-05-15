@@ -108,6 +108,6 @@ def test_login_redirects_home_with_session(client):
     assert response.status_code == 302
     assert response.location.endswith("/")
 
-    # Session is set
+    # Flask-Login stores the authenticated user id under '_user_id'
     with client.session_transaction() as sess:
-        assert "user_id" in sess
+        assert "_user_id" in sess
