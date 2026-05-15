@@ -1,0 +1,71 @@
+{% extends "base.html" %}
+
+{% block title %}Discover recipes — Foodie{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-lg-10 mx-auto">
+        <h1 class="h2 foodie-page-heading mb-2">Discover recipes</h1>
+        <p class="foodie-lead-muted mb-4">
+            Search the recipe catalog. Results are cached for scaling and meal planning.
+        </p>
+
+        {% if show_demo_banner %}
+        <div class="alert foodie-hint shadow-sm small mb-4" role="note">
+            <strong>Preview mode:</strong> sample recipes below are for UI review only. Remove demo data in <code>app.py</code> when the Edamam cache is live.
+        </div>
+        {% endif %}
+
+        {% if search_error %}
+        <div class="alert alert-warning" role="alert">
+            {{ search_error }}
+        </div>
+        {% endif %}
+
+        <form method="get" action="{{ url_for('recipes_search') }}" class="foodie-card mb-4">
+            <div class="card-body p-4">
+                <label for="recipe-search-q" class="form-label fw-semibold">Search</label>
+                <div class="input-group">
+                    <input type="search" class="form-control form-control-lg" id="recipe-search-q" name="q"
+                           value="{{ q or '' }}" placeholder="e.g. lentil soup, salmon bowl" autocomplete="off">
+                    <button type="submit" class="btn btn-foodie-primary btn-lg px-4">Search</button>
+                </div>
+            </div>
+        </form>
+
+        {% if recipes %}
+        <div class="row row-cols-1 row-cols-md-2 g-4">
+            {% for r in recipes %}
+            <div class="col d-flex">
+                <a href="{{ url_for('recipe_detail', recipe_id=r.id) }}"
+                   class="foodie-recipe-card text-decoration-none text-reset w-100 d-flex flex-column"
+                   aria-label="{{ r.name }}">
+                    <div class="foodie-recipe-card-media flex-shrink-0">
+                        {% if r.image_url %}
+                        <img src="{{ r.image_url }}" class="foodie-recipe-card-img" alt="" width="800" height="600" loading="lazy">
+                        {% else %}
+                        <div class="foodie-recipe-card-img d-flex align-items-center justify-content-center text-muted small" role="img" aria-label="No image">No image</div>
+                        {% endif %}
+                        {% if r.calories is not none %}
+                        <span class="foodie-cal-pill">{{ '%.0f'|format(r.calories) }} kcal</span>
+                        {% endif %}
+                    </div>
+                    <div class="foodie-recipe-card-body flex-grow-1 d-flex align-items-center">
+                        <h3 class="h5 mb-0 foodie-recipe-card-title">{{ r.name }}</h3>
+                    </div>
+                </a>
+            </div>
+            {% endfor %}
+        </div>
+        {% elif q %}
+        <div class="alert alert-light border foodie-card-muted" role="status">
+            No recipes matched your search. Try different keywords or check back later.
+        </div>
+        {% else %}
+        <div class="alert border foodie-hint shadow-sm mb-0" role="status">
+            Enter a search term to find recipes.
+        </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}

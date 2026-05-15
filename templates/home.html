@@ -1,62 +1,83 @@
 {% extends "base.html" %}
 
-{% block title %}Home — Course 506 Week 5{% endblock %}
+{% block title %}Home — Foodie{% endblock %}
+
+{% block hero %}
+<section class="foodie-hero text-center text-white mb-0" aria-labelledby="foodie-hero-heading">
+    <div class="foodie-hero-bg" style="background-image: url('{{ url_for('static', filename='img/hero-image.jpg') }}');" aria-hidden="true"></div>
+    <div class="foodie-hero-scrim" aria-hidden="true"></div>
+    <div class="container foodie-hero-inner py-5">
+        <div class="foodie-hero-glass col-lg-9 mx-auto rounded-4 px-3 px-md-5 py-4 py-md-5">
+            <p class="foodie-hero-leaf mb-2" aria-hidden="true">&#127807;</p>
+            <h1 id="foodie-hero-heading" class="display-5 fw-bold mb-3">Plan meals. Scale recipes. Stay nourished.</h1>
+            <p class="lead mx-auto mb-4 col-lg-10 mb-lg-4">
+                Foodie helps you discover recipes, adjust servings without guesswork, and map one meal per day across your week.
+            </p>
+            <div class="d-flex flex-wrap justify-content-center gap-2">
+                <a href="{{ url_for('recipes_search') }}" class="btn btn-lg btn-light text-success fw-semibold px-4 shadow-sm">Search recipes</a>
+                {% if user %}
+                <a href="{{ url_for('mealplan') }}" class="btn btn-lg btn-outline-light px-4">Open meal plan</a>
+                {% else %}
+                <a href="{{ url_for('register') }}" class="btn btn-lg btn-outline-light px-4">Create account</a>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</section>
+{% endblock %}
 
 {% block content %}
-<div class="row justify-content-center">
-    <div class="col-md-9">
-
-        <div class="text-center my-4">
-            <h1 class="display-5 mb-3">Course 506 — Week 5 Skeleton</h1>
-            <p class="lead text-muted">
-                Flask + Postgres + SQLModel + Bootstrap, with your S3 site on board.
-            </p>
-        </div>
-
+<div class="row justify-content-center g-4 pt-2">
+    <div class="col-lg-10">
+        <h2 class="h4 foodie-page-heading text-center mb-4">Start here</h2>
         <div class="row g-4">
-            <div class="col-md-6">
-                <div class="card h-100">
-                    <div class="card-body">
-                        <h5 class="card-title">Your S3 site</h5>
-                        <p class="card-text">
-                            Whatever you've synced from your S3 bucket lives here.
-                            Run <code>aws s3 sync</code> from the README, then click below.
-                        </p>
-                        <a href="{{ url_for('site_home') }}" class="btn btn-primary">
-                            View My Site
-                        </a>
-                    </div>
-                </div>
+            <div class="col-md-4">
+                <article class="foodie-tile p-4 d-flex flex-column">
+                    <div class="foodie-tile-icon mb-3" aria-hidden="true">&#128269;</div>
+                    <h3 class="h5 foodie-tile-title">Discover</h3>
+                    <p class="foodie-lead-muted small flex-grow-1">
+                        Browse Edamam-backed recipes, then open a dish for ingredients and nutrition.
+                    </p>
+                    <a href="{{ url_for('recipes_search') }}" class="btn btn-foodie-primary mt-2">Go to search</a>
+                </article>
             </div>
-            <div class="col-md-6">
-                <div class="card h-100">
-                    <div class="card-body">
-                        <h5 class="card-title">About this skeleton</h5>
-                        <p class="card-text">
-                            Project overview, team members, planned endpoints, and schema.
-                            Each team replaces the placeholder content with their own.
-                        </p>
-                        <a href="{{ url_for('about') }}" class="btn btn-outline-primary">
-                            About page
-                        </a>
-                    </div>
-                </div>
+            <div class="col-md-4">
+                <article class="foodie-tile p-4 d-flex flex-column">
+                    <div class="foodie-tile-icon mb-3" aria-hidden="true">&#128197;</div>
+                    <h3 class="h5 foodie-tile-title">Meal plan</h3>
+                    <p class="foodie-lead-muted small flex-grow-1">
+                        Assign one recipe per weekday. Log in to build and view your week at a glance.
+                    </p>
+                    {% if user %}
+                    <a href="{{ url_for('mealplan') }}" class="btn btn-foodie-primary mt-2">Open planner</a>
+                    {% else %}
+                    <a href="{{ url_for('login') }}" class="btn btn-foodie-outline mt-2">Log in to plan</a>
+                    {% endif %}
+                </article>
+            </div>
+            <div class="col-md-4">
+                <article class="foodie-tile p-4 d-flex flex-column">
+                    <div class="foodie-tile-icon mb-3" aria-hidden="true">&#128218;</div>
+                    <h3 class="h5 foodie-tile-title">About the app</h3>
+                    <p class="foodie-lead-muted small flex-grow-1">
+                        Team, APIs, and how Foodie fits together for Course 506.
+                    </p>
+                    <a href="{{ url_for('about') }}" class="btn btn-foodie-outline mt-2">Read about</a>
+                </article>
             </div>
         </div>
 
         {% if user %}
-        <div class="alert alert-success mt-4 mb-0">
-            You're logged in as <strong>{{ user.username }}</strong>. The auth flow uses
-            real Flask sessions backed by a Postgres <code>users</code> table.
+        <div class="alert alert-success mt-4 mb-0 border-0 shadow-sm" role="status">
+            Signed in as <strong>{{ user.username }}</strong>. Your meal plan and scaling tools use your session.
         </div>
         {% else %}
-        <div class="alert alert-light border mt-4 mb-0 text-muted">
-            Not logged in. Use the navbar to <a href="{{ url_for('login') }}">log in</a>
-            or <a href="{{ url_for('register') }}">register</a> — the auth flow uses real
-            Flask sessions backed by a Postgres <code>users</code> table.
+        <div class="foodie-card p-4 mt-4 text-center">
+            <p class="mb-2 foodie-lead-muted">New here? Create an account to save portions to your weekly plan.</p>
+            <a href="{{ url_for('register') }}" class="btn btn-foodie-primary me-2">Register</a>
+            <a href="{{ url_for('login') }}" class="btn btn-foodie-outline">Log in</a>
         </div>
         {% endif %}
-
     </div>
 </div>
 {% endblock %}
