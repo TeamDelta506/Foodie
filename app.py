@@ -422,6 +422,11 @@ def about():
     return render_template("about.html")
 
 
+def _edamam_configured() -> bool:
+    """True when server-side Edamam credentials are set (shared by all users)."""
+    return bool(os.environ.get("EDAMAM_APP_ID") and os.environ.get("EDAMAM_APP_KEY"))
+
+
 # ---------------------------------------------------------------------------
 # Week 6 — Recipes & meal plan (CONTRACTS.md §3)
 #
@@ -442,79 +447,93 @@ def recipes_search():
     search_error = None
     
     if q:
-        try:
-            # Call Edamam API with 4-second timeout per contract
-            params = {
-                "type": "public",
-                "q": q,
-                "app_id": os.environ.get("EDAMAM_APP_ID"),
-                "app_key": os.environ.get("EDAMAM_APP_KEY"),
-            }
-            response = requests.get(
-                "https://api.edamam.com/api/recipes/v2",
-                params=params,
-                timeout=4
+        if not _edamam_configured():
+            flash(
+                "Recipe search is not configured on this server. "
+                "Set EDAMAM_APP_ID and EDAMAM_APP_KEY in .env (see README Team setup).",
+                "warning",
             )
-            
-            if response.status_code == 429:
-                flash("Rate limit reached. Please try again later.", "warning")
-                search_error = "rate_limited"
-            elif response.status_code >= 200 and response.status_code < 300:
-                data = response.json()
-                hits = data.get("hits", [])
-                
-                # Upsert recipes into DB
-                db = get_db_session()
-                for hit in hits:
-                    recipe_data = hit.get("recipe", {})
-                    api_id = recipe_data.get("uri", "")
-                    
-                    if not api_id:
-                        continue
-                    
-                    # Check if recipe already exists
-                    existing = db.exec(
-                        select(Recipe).where(Recipe.api_id == api_id)
-                    ).first()
-                    
-                    if existing:
-                        recipe = existing
-                    else:
-                        # Create new recipe
-                        recipe = Recipe(
-                            api_id=api_id,
-                            name=recipe_data.get("label", "Unknown"),
-                            image_url=recipe_data.get("image"),
-                            calories=recipe_data.get("calories"),
-                            protein=recipe_data.get("totalNutrients", {}).get("PROCNT", {}).get("quantity"),
-                            carbs=recipe_data.get("totalNutrients", {}).get("CHOCDF", {}).get("quantity"),
-                            fat=recipe_data.get("totalNutrients", {}).get("FAT", {}).get("quantity"),
-                            default_servings=int(recipe_data.get("yield", 1) or 1),
-                        )
-                        db.add(recipe)
-                    
-                    recipes.append(recipe)
-                
-                if existing or recipes:
-                    db.commit()
-                    
-            else:
-                logger.error(f"Upstream error from Edamam: {response.status_code}")
-                flash("Error searching recipes. Please try again.", "error")
+            search_error = "not_configured"
+        else:
+            try:
+                # Call Edamam API with 4-second timeout per contract
+                params = {
+                    "type": "public",
+                    "q": q,
+                    "app_id": os.environ.get("EDAMAM_APP_ID"),
+                    "app_key": os.environ.get("EDAMAM_APP_KEY"),
+                }
+                response = requests.get(
+                    "https://api.edamam.com/api/recipes/v2",
+                    params=params,
+                    timeout=4,
+                )
+
+                if response.status_code == 429:
+                    flash("Rate limit reached. Please try again later.", "warning")
+                    search_error = "rate_limited"
+                elif response.status_code >= 200 and response.status_code < 300:
+                    data = response.json()
+                    hits = data.get("hits", [])
+
+                    # Upsert recipes into DB
+                    db = get_db_session()
+                    for hit in hits:
+                        recipe_data = hit.get("recipe", {})
+                        api_id = recipe_data.get("uri", "")
+
+                        if not api_id:
+                            continue
+
+                        # Check if recipe already exists
+                        existing = db.exec(
+                            select(Recipe).where(Recipe.api_id == api_id)
+                        ).first()
+
+                        if existing:
+                            recipe = existing
+                        else:
+                            # Create new recipe
+                            recipe = Recipe(
+                                api_id=api_id,
+                                name=recipe_data.get("label", "Unknown"),
+                                image_url=recipe_data.get("image"),
+                                calories=recipe_data.get("calories"),
+                                protein=recipe_data.get("totalNutrients", {})
+                                .get("PROCNT", {})
+                                .get("quantity"),
+                                carbs=recipe_data.get("totalNutrients", {})
+                                .get("CHOCDF", {})
+                                .get("quantity"),
+                                fat=recipe_data.get("totalNutrients", {})
+                                .get("FAT", {})
+                                .get("quantity"),
+                                default_servings=int(recipe_data.get("yield", 1) or 1),
+                            )
+                            db.add(recipe)
+
+                        recipes.append(recipe)
+
+                    if existing or recipes:
+                        db.commit()
+
+                else:
+                    logger.error(f"Upstream error from Edamam: {response.status_code}")
+                    flash("Error searching recipes. Please try again.", "error")
+                    search_error = "upstream_error"
+
+            except ReadTimeout:
+                flash("Request timed out. Please try again.", "error")
+                search_error = "timeout"
+                logger.warning(f"Edamam request timeout for query: {q}")
+            except RequestException as e:
+                logger.exception(f"Upstream error from Edamam: {e}")
+                flash("Error connecting to recipe service.", "error")
                 search_error = "upstream_error"
-                
-        except ReadTimeout:
-            flash("Request timed out. Please try again.", "error")
-            search_error = "timeout"
-            logger.warning(f"Edamam request timeout for query: {q}")
-        except RequestException as e:
-            logger.exception(f"Upstream error from Edamam: {e}")
-            flash("Error connecting to recipe service.", "error")
-            search_error = "upstream_error"
-        except Exception as e:
-            logger.exception(f"Error parsing Edamam response: {e}")
-            flash("Error processing recipe data.", "error")
-            search_error = "upstream_invalid"
+            except Exception as e:
+                logger.exception(f"Error parsing Edamam response: {e}")
+                flash("Error processing recipe data.", "error")
+                search_error = "upstream_invalid"
     elif DEMO_MOCK_RECIPES_ENABLED:
         recipes = _demo_recipe_summaries()
     

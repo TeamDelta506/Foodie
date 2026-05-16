@@ -19,8 +19,8 @@ services:
       DATABASE_URL: postgresql://app:app@db:5432/app
       SECRET_KEY: dev-secret-not-for-production
     env_file:
-      # Optional override file; gitignored. The defaults above work
-      # for development. See .env.example for the template.
+      # Optional override file; gitignored. Copy .env.example → .env and set
+      # EDAMAM_APP_ID / EDAMAM_APP_KEY for recipe search (see README Team setup).
       - path: .env
         required: false
     depends_on:
