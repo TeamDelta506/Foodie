@@ -11,13 +11,15 @@ Route ownership per CONTRACTS.md §7:
 
 import logging
 import os
+import random
+import uuid
 from datetime import datetime, timezone
 from pathlib import Path
 
 import requests as http
 from flask import (
     Flask, render_template, request, redirect, url_for, flash, g,
-    send_from_directory, abort, jsonify,
+    send_from_directory, abort, jsonify, session,
 )
 from flask_login import (
     LoginManager, UserMixin, login_user, logout_user, current_user,
@@ -25,7 +27,7 @@ from flask_login import (
 )
 from sqlalchemy import (
     Column, DateTime, Integer, SmallInteger, ForeignKey,
-    CheckConstraint, UniqueConstraint, event as sa_event, func,
+    CheckConstraint, UniqueConstraint, event as sa_event, func, text,
 )
 from sqlmodel import SQLModel, Field, Session, create_engine, select
 from werkzeug.exceptions import HTTPException
@@ -50,10 +52,29 @@ EDAMAM_APP_KEY = os.environ.get("EDAMAM_APP_KEY", "")
 EDAMAM_BASE    = "https://api.edamam.com/api/recipes/v2"
 EDAMAM_TIMEOUT = 4  # seconds per CONTRACTS.md §5
 
+FEATURED_RECIPE_COUNT = 10
+POPULAR_SEARCH_TERMS = (
+    "chicken", "pasta", "salad", "soup", "salmon",
+    "rice", "beef", "vegetarian", "breakfast", "tacos",
+)
+
 
 def _edamam_configured() -> bool:
     """True when server-side Edamam credentials are set (shared by all users)."""
     return bool(os.environ.get("EDAMAM_APP_ID") and os.environ.get("EDAMAM_APP_KEY"))
+
+
+def _edamam_account_user() -> str:
+    """Stable per-browser/user id — required by Edamam Recipe Search API v2."""
+    if current_user.is_authenticated:
+        return f"foodie-user-{current_user.id}"
+    if "_edamam_uid" not in session:
+        session["_edamam_uid"] = uuid.uuid4().hex[:12]
+    return f"foodie-guest-{session['_edamam_uid']}"
+
+
+def _edamam_request_headers() -> dict[str, str]:
+    return {"Edamam-Account-User": _edamam_account_user()}
 
 
 _DEMO_IMG_BOWL   = "/static/img/demo/bowl.jpg"
@@ -143,16 +164,25 @@ class MealPlan(SQLModel, table=True):
 
 
 # ---------------------------------------------------------------------------
-# Demo seed — real DB rows inserted after table creation so tests and local
-# preview have working recipes without a live Edamam key.
-#
-# Six recipe rows (ids 1–6) are seeded explicitly so the first real Edamam
-# upsert gets id=7, preventing str(rid)="7" from colliding with
-# data-day="0"–"6" in the mealplan template and breaking the integration
-# test's "not in board_after" assertion.
+# Demo seed — two fully working sample recipes (images + ingredients) for
+# offline backup when Edamam is unavailable. Placeholder rows were removed.
 # ---------------------------------------------------------------------------
 
 _NOW = lambda: datetime.now(timezone.utc)  # noqa: E731
+
+
+def _sync_recipes_id_sequence(connection) -> None:
+    """Explicit demo ids leave Postgres serial low; bump before Edamam inserts."""
+    if connection.dialect.name != "postgresql":
+        return
+    connection.execute(
+        text(
+            "SELECT setval("
+            "pg_get_serial_sequence('recipes', 'id'), "
+            "(SELECT COALESCE(MAX(id), 1) FROM recipes)"
+            ")"
+        )
+    )
 
 
 @sa_event.listens_for(Recipe.__table__, "after_create")
@@ -170,21 +200,26 @@ def _seed_demo_recipes(target, connection, **kwargs):
                 "image_url": _DEMO_IMG_SALMON, "calories": 560.0, "protein": 48.0,
                 "carbs": 8.0, "fat": 32.0, "default_servings": 4, "created_at": _NOW(),
             },
-            # Placeholders push auto-increment past data-day range (0–6)
-            {"id": 3, "api_id": "demo.p3", "name": "Demo placeholder 3", "image_url": None,
-             "calories": 300.0, "protein": 10.0, "carbs": 40.0, "fat": 10.0,
-             "default_servings": 1, "created_at": _NOW()},
-            {"id": 4, "api_id": "demo.p4", "name": "Demo placeholder 4", "image_url": None,
-             "calories": 350.0, "protein": 12.0, "carbs": 45.0, "fat": 11.0,
-             "default_servings": 1, "created_at": _NOW()},
-            {"id": 5, "api_id": "demo.p5", "name": "Demo placeholder 5", "image_url": None,
-             "calories": 380.0, "protein": 14.0, "carbs": 48.0, "fat": 13.0,
-             "default_servings": 1, "created_at": _NOW()},
-            {"id": 6, "api_id": "demo.p6", "name": "Demo placeholder 6", "image_url": None,
-             "calories": 410.0, "protein": 16.0, "carbs": 52.0, "fat": 14.0,
-             "default_servings": 1, "created_at": _NOW()},
         ],
     )
+    _sync_recipes_id_sequence(connection)
+
+
+def _purge_legacy_placeholder_demos() -> None:
+    """Drop old demo.p* rows from databases created before placeholder removal."""
+    with Session(engine) as db:
+        legacy = db.exec(
+            select(Recipe).where(Recipe.api_id.like("demo.p%"))  # type: ignore[arg-type]
+        ).all()
+        if not legacy:
+            return
+        for recipe in legacy:
+            for plan in db.exec(
+                select(MealPlan).where(MealPlan.recipe_id == recipe.id)
+            ).all():
+                db.delete(plan)
+            db.delete(recipe)
+        db.commit()
 
 
 @sa_event.listens_for(Ingredient.__table__, "after_create")
@@ -223,6 +258,13 @@ def _parse_and_upsert_hit(hit: dict, db: Session) -> "Recipe | None":
     if existing:
         return existing
 
+    images = recipe_data.get("images") or {}
+    image_url = (
+        (images.get("SMALL") or {}).get("url")
+        or (images.get("THUMBNAIL") or {}).get("url")
+        or recipe_data.get("image")
+    )
+
     def _macro(key: str) -> "float | None":
         n = (recipe_data.get("totalNutrients") or {}).get(key, {})
         qty = n.get("quantity")
@@ -231,7 +273,7 @@ def _parse_and_upsert_hit(hit: dict, db: Session) -> "Recipe | None":
     recipe = Recipe(
         api_id=api_id,
         name=name,
-        image_url=recipe_data.get("image"),
+        image_url=image_url,
         calories=recipe_data.get("calories"),
         protein=_macro("PROCNT"),
         carbs=_macro("CHOCDF"),
@@ -247,6 +289,82 @@ def _parse_and_upsert_hit(hit: dict, db: Session) -> "Recipe | None":
     db.commit()
 
     return recipe
+
+
+def _count_non_demo_recipes(db: Session) -> int:
+    row = db.exec(
+        select(func.count()).select_from(Recipe).where(Recipe.api_id.not_like("demo.p%"))  # type: ignore[arg-type]
+    ).one()
+    return int(row)
+
+
+def _featured_recipes(db: Session, limit: int = FEATURED_RECIPE_COUNT) -> list[Recipe]:
+    """Random sample of cached real recipes (excludes Week 5/6 demo rows)."""
+    stmt = (
+        select(Recipe)
+        .where(Recipe.api_id.not_like("demo.p%"))  # type: ignore[arg-type]
+        .order_by(func.random())
+        .limit(limit)
+    )
+    return list(db.exec(stmt).all())
+
+
+def _bootstrap_featured_recipes(db: Session) -> str | None:
+    """One Edamam call per session to seed popular dishes when the cache is thin."""
+    if _count_non_demo_recipes(db) >= FEATURED_RECIPE_COUNT:
+        return None
+    if not _edamam_configured() or session.get("_featured_bootstrap_done"):
+        return None
+
+    session["_featured_bootstrap_done"] = True
+    term = random.choice(POPULAR_SEARCH_TERMS)
+    _, err = _edamam_search_recipes(term, db)
+    return err
+
+
+def _edamam_search_recipes(q: str, db: Session) -> tuple[list[Recipe], str | None]:
+    """Call Edamam for `q`, upsert hits, return recipes and optional error code."""
+    try:
+        resp = http.get(
+            EDAMAM_BASE,
+            params={
+                "type": "public",
+                "q": q,
+                "app_id": EDAMAM_APP_ID,
+                "app_key": EDAMAM_APP_KEY,
+            },
+            headers=_edamam_request_headers(),
+            timeout=EDAMAM_TIMEOUT,
+        )
+    except http.exceptions.ReadTimeout:
+        return [], "timeout"
+    except http.exceptions.RequestException:
+        logger.exception("Edamam request failed")
+        return [], "upstream_error"
+
+    if resp.status_code == 429 or (
+        not resp.ok and "usage" in (resp.text or "").lower()
+    ):
+        return [], "rate_limited"
+    if not resp.ok:
+        if resp.status_code in (401, 403):
+            logger.error("Edamam auth error %s — check API keys", resp.status_code)
+        else:
+            logger.error("Edamam upstream error: HTTP %s", resp.status_code)
+        return [], "upstream_error"
+
+    try:
+        hits = resp.json().get("hits", [])
+    except (ValueError, KeyError, AttributeError):
+        logger.exception("Could not parse Edamam response")
+        return [], "upstream_invalid"
+
+    recipes: list[Recipe] = []
+    for hit in hits:
+        recipe = _parse_and_upsert_hit(hit, db)
+        if recipe is not None:
+            recipes.append(recipe)
+    return recipes, None
 
 
 # ---------------------------------------------------------------------------
@@ -420,6 +538,8 @@ def recipes_search():
     q            = (request.args.get("q") or "").strip()
     recipes      = []
     search_error = None
+    featured     = False
+    db           = get_db_session()
 
     if q:
         if not _edamam_configured():
@@ -430,48 +550,30 @@ def recipes_search():
             )
             search_error = "not_configured"
         else:
-            try:
-                resp = http.get(
-                    EDAMAM_BASE,
-                    params={"type": "public", "q": q,
-                            "app_id": EDAMAM_APP_ID, "app_key": EDAMAM_APP_KEY},
-                    timeout=EDAMAM_TIMEOUT,
+            recipes, search_error = _edamam_search_recipes(q, db)
+            if search_error == "timeout":
+                flash("Recipe search timeout — please try again.")
+            elif search_error == "rate_limited":
+                flash(
+                    "Edamam usage limit reached for this app. "
+                    "Wait until your quota resets (often the next day), then try again. "
+                    "Popular picks below use recipes already cached on this server.",
+                    "warning",
                 )
-
-                if resp.status_code == 429:
-                    flash("Recipe search is rate limited — please try again in a moment.")
-                    search_error = "rate_limited"
-                elif not resp.ok:
-                    if resp.status_code in (401, 403):
-                        logger.error("Edamam auth error %s — check API keys", resp.status_code)
-                    else:
-                        logger.error("Edamam upstream error: HTTP %s", resp.status_code)
-                    flash("The recipe service returned an error. Please try again shortly.")
-                    search_error = "upstream_error"
-                else:
-                    try:
-                        hits = resp.json().get("hits", [])
-                        db = get_db_session()
-                        for hit in hits:
-                            recipe = _parse_and_upsert_hit(hit, db)
-                            if recipe is not None:
-                                recipes.append(recipe)
-                    except (ValueError, KeyError, AttributeError):
-                        logger.exception("Could not parse Edamam response")
-                        flash("Could not read recipe results. Please try again.")
-                        search_error = "upstream_invalid"
-
-            except http.exceptions.ReadTimeout:
-                flash("Recipe search timed out. Please try again.")
-                search_error = "timeout"
-            except http.exceptions.RequestException:
-                logger.exception("Edamam request failed")
-                flash("Could not reach the recipe service. Please try again.")
-                search_error = "upstream_error"
-
+            elif search_error == "upstream_error":
+                flash("The recipe service returned an error. Please try again shortly.")
+            elif search_error == "upstream_invalid":
+                flash("Could not read recipe results. Please try again.")
     else:
-        db = get_db_session()
-        recipes = db.exec(select(Recipe).limit(20)).all()
+        featured = True
+        bootstrap_err = _bootstrap_featured_recipes(db)
+        if bootstrap_err == "rate_limited":
+            flash(
+                "Edamam usage limit reached — showing cached popular recipes only. "
+                "Try a new search after your quota resets.",
+                "warning",
+            )
+        recipes = _featured_recipes(db, FEATURED_RECIPE_COUNT)
 
     return render_template(
         "recipes_search.html",
@@ -479,6 +581,7 @@ def recipes_search():
         q=q,
         recipes=recipes,
         search_error=search_error,
+        featured=featured,
         show_demo_banner=False,
     )
 
@@ -643,6 +746,7 @@ def mealplan():
             "recipe_id": row.recipe_id,
             "servings":  row.servings,
             "name":      recipe.name if recipe else None,
+            "image_url": recipe.image_url if recipe else None,
         }
 
     return render_template("mealplan.html", title="Meal plan", planned=planned)
@@ -677,7 +781,9 @@ def mealplan_recipe_suggest():
 
     q    = (request.args.get("q") or "").strip().lower()
     db   = get_db_session()
-    rows = db.exec(select(Recipe)).all()
+    rows = db.exec(
+        select(Recipe).where(Recipe.api_id.not_like("demo.p%"))  # type: ignore[arg-type]
+    ).all()
 
     pick = [r for r in rows if q in r.name.lower()][:20] if q else rows[:20]
 
@@ -692,6 +798,9 @@ def mealplan_recipe_suggest():
 # ---------------------------------------------------------------------------
 
 SQLModel.metadata.create_all(engine)
+with engine.begin() as conn:
+    _sync_recipes_id_sequence(conn)
+_purge_legacy_placeholder_demos()
 
 
 # ---------------------------------------------------------------------------

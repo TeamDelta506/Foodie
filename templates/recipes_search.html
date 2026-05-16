@@ -16,12 +16,6 @@
         </div>
         {% endif %}
 
-        {% if search_error %}
-        <div class="alert alert-warning" role="alert">
-            {{ search_error }}
-        </div>
-        {% endif %}
-
         <form method="get" action="{{ url_for('recipes_search') }}" class="foodie-card mb-4">
             <div class="card-body p-4">
                 <label for="recipe-search-q" class="form-label fw-semibold">Search</label>
@@ -34,15 +28,18 @@
         </form>
 
         {% if recipes %}
-        <div class="row row-cols-1 row-cols-md-2 g-4">
+        {% if featured %}
+        <h2 class="h6 text-uppercase text-muted fw-semibold mb-3">Popular picks</h2>
+        {% endif %}
+        <div class="row row-cols-2 row-cols-md-3 row-cols-lg-4 g-3 foodie-recipe-grid--compact">
             {% for r in recipes %}
             <div class="col d-flex">
                 <a href="{{ url_for('recipe_detail', recipe_id=r.id) }}"
-                   class="foodie-recipe-card text-decoration-none text-reset w-100 d-flex flex-column"
+                   class="foodie-recipe-card foodie-recipe-card--compact text-decoration-none text-reset w-100 d-flex flex-column"
                    aria-label="{{ r.name }}">
                     <div class="foodie-recipe-card-media flex-shrink-0">
                         {% if r.image_url %}
-                        <img src="{{ r.image_url }}" class="foodie-recipe-card-img" alt="" width="800" height="600" loading="lazy">
+                        <img src="{{ r.image_url }}" class="foodie-recipe-card-img" alt="" width="240" height="240" loading="lazy">
                         {% else %}
                         <div class="foodie-recipe-card-img d-flex align-items-center justify-content-center text-muted small" role="img" aria-label="No image">No image</div>
                         {% endif %}
@@ -51,7 +48,7 @@
                         {% endif %}
                     </div>
                     <div class="foodie-recipe-card-body flex-grow-1 d-flex align-items-center">
-                        <h3 class="h5 mb-0 foodie-recipe-card-title">{{ r.name }}</h3>
+                        <h3 class="h6 mb-0 foodie-recipe-card-title">{{ r.name }}</h3>
                     </div>
                 </a>
             </div>
@@ -63,7 +60,7 @@
         </div>
         {% else %}
         <div class="alert border foodie-hint shadow-sm mb-0" role="status">
-            Enter a search term to find recipes.
+            Popular recipes will appear here once Edamam is available. Try searching above, or check back after your API quota resets.
         </div>
         {% endif %}
     </div>

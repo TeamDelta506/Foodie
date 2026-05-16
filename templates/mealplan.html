@@ -62,20 +62,32 @@
             {% for d in range(7) %}
             <div class="list-group-item py-3" data-day="{{ d }}">
                 <div class="d-flex flex-wrap justify-content-between align-items-start gap-2">
-                    <div>
-                        <span class="fw-semibold foodie-day-label">{{ labels[d] }}</span>
-                        {% set slot = planned[d] if planned and d in planned else none %}
+                    {% set slot = planned[d] if planned and d in planned else none %}
+                    <div class="flex-grow-1 min-w-0">
+                        <span class="fw-semibold foodie-day-label d-block">{{ labels[d] }}</span>
                         {% if slot %}
-                        <p class="mb-0 small foodie-lead-muted">
-                            {% if slot.name %}
-                            {{ slot.name }} <span class="text-muted">(#{{ slot.recipe_id }})</span>
-                            {% else %}
-                            Recipe #{{ slot.recipe_id }}
+                        <div class="foodie-mealplan-slot d-flex align-items-center gap-2 mt-1">
+                            {% if slot.image_url %}
+                            <a href="{{ url_for('recipe_detail', recipe_id=slot.recipe_id) }}"
+                               class="foodie-mealplan-thumb-link flex-shrink-0"
+                               aria-label="View {{ slot.name or 'recipe' }}">
+                                <img src="{{ slot.image_url }}" alt="" class="foodie-mealplan-thumb"
+                                     width="48" height="48" loading="lazy">
+                            </a>
                             {% endif %}
-                            · {{ slot.servings }} serving(s)
-                        </p>
+                            <p class="mb-0 small foodie-lead-muted min-w-0">
+                                {% if slot.name %}
+                                <a href="{{ url_for('recipe_detail', recipe_id=slot.recipe_id) }}"
+                                   class="foodie-mealplan-recipe-link">{{ slot.name }}</a>
+                                {% else %}
+                                <a href="{{ url_for('recipe_detail', recipe_id=slot.recipe_id) }}"
+                                   class="foodie-mealplan-recipe-link">View recipe</a>
+                                {% endif %}
+                                · {{ slot.servings }} serving{{ 's' if slot.servings != 1 else '' }}
+                            </p>
+                        </div>
                         {% else %}
-                        <p class="mb-0 small foodie-lead-muted">Nothing planned</p>
+                        <p class="mb-0 small foodie-lead-muted mt-1">Nothing planned</p>
                         {% endif %}
                     </div>
                     {% if slot %}
@@ -128,7 +140,7 @@
   function selectRecipe(id, name) {
     hiddenId.value = String(id);
     searchInput.value = name;
-    picked.textContent = "Selected: " + name + " (#" + id + ")";
+    picked.textContent = "Selected: " + name;
     picked.classList.remove("d-none");
     searchInput.classList.remove("is-invalid");
     document.getElementById("mealplan-recipe-err").classList.add("d-none");
