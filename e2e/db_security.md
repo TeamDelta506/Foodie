@@ -36,18 +36,55 @@ End-to-end for **this slice** means every constraint from CONTRACTS.md §1 is en
 
 ---
 
+## Deployment prerequisite
+
+Compose must mount **this** repo (`/home/ubuntu/Foodie/Foodie`), not an older checkout. A stale stack mounted `Foodie-1/Foodie` (no `Recipe` model, raw `session["user_id"]`); Postgres then had only `users` until schema was applied from the branch.
+
+Before browser e2e, from the repo root:
+
+```bash
+docker compose down
+docker compose up --build -d
+docker compose exec app grep -c "class Recipe" /app/app.py   # expect: 1
+docker compose exec db psql -U app -d app -c "\dt"           # expect: users, recipes, ingredients, mealplans
+```
+
+If tables are missing after `up`, restart the `app` service once so `SQLModel.metadata.create_all(engine)` runs against the new models.
+
+---
+
 ## Execution log
+
+**Last verified:** 2026-05-16 (branch `week6/db&security`)
 
 | Step | Result | Notes |
 |------|--------|-------|
-| 1 | **Not run in Postgres yet** | SQLite schema inspection in pytest passes; still need `docker compose exec db psql -U app -d app` to verify real Postgres types and constraints. |
-| 2 | **Not run in Postgres yet** | Model defines `UNIQUE` on `recipes.api_id`; raw duplicate INSERT still needs psql verification. |
-| 3 | **Not run in Postgres yet** | Model defines `UNIQUE(user_id, day_of_week)`; raw duplicate INSERT still needs psql verification. |
-| 4 | **Not run in Postgres yet** | Model defines CHECK constraints for servings, quantity, and day bounds; raw failing INSERTs still need psql verification. |
-| 5 | **Not run in Postgres yet** | Model defines `ingredients.recipe_id` with `ON DELETE CASCADE`; psql delete/select verification still needed. |
-| 6 | **Not run in Postgres yet** | Model defines `mealplans.user_id` with `ON DELETE CASCADE`; psql delete/select verification still needed. |
-| 7 | **Not run in Postgres yet** | Model defines `mealplans.recipe_id` with `ON DELETE RESTRICT`; psql delete verification still needed. |
-| 8 | **Pass in Flask test client** | Register/login/logout flow uses Flask-Login and stores `_user_id`; browser cookie inspection still needs manual verification. |
-| 9 | **Blocked** | `POST /mealplan` and `DELETE /mealplan/<day>` are still server-route work, so full ownership probing waits on those routes. |
+| 1 | **Pass (Postgres)** | After `create_all` from branch `app.py`: `\d recipes`, `\d ingredients`, `\d mealplans` match CONTRACTS.md §1 — column types, NOT NULL, `ix_recipes_api_id` UNIQUE, `uq_mealplans_user_day`, CHECK names (`ck_recipes_default_servings`, `ck_ingredients_quantity`, `ck_mealplans_day_of_week`, `ck_mealplans_servings`), FKs with `ON DELETE CASCADE` / `RESTRICT`. `recipes.created_at` is `timestamptz`. Skeleton `users.created_at` remains `timestamp without time zone` (Week 5 carry-forward). |
+| 2 | **Pass (Postgres)** | Second `INSERT` with same `api_id` → `duplicate key value violates unique constraint "ix_recipes_api_id"`. |
+| 3 | **Pass (Postgres)** | Second `INSERT` on same `(user_id, day_of_week)` → `duplicate key value violates unique constraint "uq_mealplans_user_day"`. |
+| 4 | **Pass (Postgres)** | All three bad INSERTs rejected: `ck_recipes_default_servings`, `ck_ingredients_quantity`, `ck_mealplans_day_of_week`. |
+| 5 | **Pass (Postgres)** | `ingredients` count 1 → 0 after `DELETE FROM recipes` (CASCADE). |
+| 6 | **Pass (Postgres)** | `mealplans` count 1 → 0 after `DELETE FROM users` (CASCADE). |
+| 7 | **Pass (Postgres)** | `DELETE FROM recipes` while referenced by `mealplans` → FK violation on `mealplans_recipe_id_fkey` (RESTRICT). |
+| 8 | **Pass (Flask test client); browser pending** | Register/login stores `_user_id` (not `user_id`); anonymous `GET /mealplan` → 302 → `/login?next=%2Fmealplan`. **Manual:** repeat in browser after Compose serves this branch; confirm cookie in devtools. |
+| 9 | **Pass (Flask test client + pytest)** | User A `POST /mealplan` → row in DB. User B `GET /mealplan` → 200, no A recipe in HTML; B has 0 rows in DB. User B `DELETE /mealplan/0` → **404**; A's row unchanged. Covered by `test_mealplan_scoped_to_current_user` and `test_mealplan_delete_missing_day_returns_404`. |
 
-**Pytest:** `tests/test_db_schema_and_auth.py` — **5 passed**. `tests/test_auth.py` — **7 passed** (no regressions from Flask-Login refactor).
+**Pytest (2026-05-16):**
+
+- `tests/test_db_schema_and_auth.py` — **7 passed** (schema, Flask-Login init, auth gate, ownership isolation, DELETE 404)
+- `tests/test_auth.py` — **7 passed** (no regressions from Flask-Login refactor)
+
+```bash
+python3 -m pytest tests/test_db_schema_and_auth.py tests/test_auth.py -v
+```
+
+**Branch code checklist:**
+
+| Item | Status |
+|------|--------|
+| SQLModel models (`recipes`, `ingredients`, `mealplans`) per CONTRACTS.md §1 | Done |
+| Flask-Login (`login_user`, `logout_user`, `current_user`, `@login_required`) | Done; no `session["user_id"]` in root `app.py` |
+| `LoginManager` + `@login_manager.user_loader` | Done |
+| Meal-plan ownership scoped to `current_user.id` | Done |
+| Postgres constraints verified via raw SQL | Done (see steps 1–7) |
+| Browser auth cookie walk | **Todo** after `docker compose up` from correct repo path |
