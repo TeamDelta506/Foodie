@@ -56,6 +56,17 @@ def _edamam_configured() -> bool:
     return bool(os.environ.get("EDAMAM_APP_ID") and os.environ.get("EDAMAM_APP_KEY"))
 
 
+def _edamam_account_user() -> str:
+    """User id for Edamam active-user tracking (required on some developer plans)."""
+    if current_user.is_authenticated:
+        return str(current_user.id)
+    return os.environ.get("EDAMAM_ACCOUNT_USER", "foodie-team")
+
+
+def _edamam_request_headers() -> dict[str, str]:
+    return {"Edamam-Account-User": _edamam_account_user()}
+
+
 _DEMO_IMG_BOWL   = "/static/img/demo/bowl.jpg"
 _DEMO_IMG_SALMON = "/static/img/demo/salmon.jpg"
 
@@ -435,6 +446,7 @@ def recipes_search():
                     EDAMAM_BASE,
                     params={"type": "public", "q": q,
                             "app_id": EDAMAM_APP_ID, "app_key": EDAMAM_APP_KEY},
+                    headers=_edamam_request_headers(),
                     timeout=EDAMAM_TIMEOUT,
                 )
 
