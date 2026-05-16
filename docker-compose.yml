@@ -18,6 +18,11 @@ services:
     environment:
       DATABASE_URL: postgresql://app:app@db:5432/app
       SECRET_KEY: dev-secret-not-for-production
+      # Edamam keys — set in .env (see .env.example) or export in your shell
+      # before running docker compose up.  App runs without them but recipe
+      # search will return an upstream-error flash instead of real results.
+      EDAMAM_APP_ID: ${EDAMAM_APP_ID:-}
+      EDAMAM_APP_KEY: ${EDAMAM_APP_KEY:-}
     env_file:
       # Optional override file; gitignored. The defaults above work
       # for development. See .env.example for the template.
