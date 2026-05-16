@@ -35,6 +35,7 @@ once Justin's schema is available.
 """
 
 import os
+import logging
 from datetime import datetime
 from pathlib import Path
 from types import SimpleNamespace
@@ -54,6 +55,11 @@ from sqlalchemy import (
 from sqlmodel import SQLModel, Field, Session, create_engine, select
 from werkzeug.exceptions import HTTPException
 from werkzeug.security import generate_password_hash, check_password_hash
+import requests
+from requests.exceptions import ReadTimeout, RequestException
+
+# Setup logging
+logger = logging.getLogger(__name__)
 
 # ---------------------------------------------------------------------------
 # DEMO: in-memory sample recipes for UI preview (search cards + detail + meal
@@ -277,7 +283,7 @@ def inject_user():
 def handle_http_exception(e: HTTPException):
     """Branded HTML for HTTP errors (404, 403, 405, 5xx, …) using the same shell as home.
 
-    Not listed under Sam’s route table in CONTRACTS.md §7 — shared app UX.
+    Not listed under Sam's route table in CONTRACTS.md §7 — shared app UX.
     SAM: If JSON-only routes must return JSON errors instead of HTML for some
     paths, register a narrower handler or check ``request.is_json`` / Accept
     here and delegate before rendering ``error.html``.
@@ -422,7 +428,7 @@ def about():
 # SAM (per §7): You own production behavior here — Edamam ``requests`` (§5),
 # timeouts, error → flash codes on search, DB upsert by ``api_id``, and any
 # routes still stubbed elsewhere (e.g. ``POST /mealplan``, ``DELETE /mealplan/<day>``,
-# ``GET /nutrition/<id>``). The blocks below are scaffolding so Asia’s templates
+# ``GET /nutrition/<id>``). The blocks below are scaffolding so Asia's templates
 # and coordinator tests can run until your integration lands; replace demo
 # branches rather than deleting template contracts.
 # ---------------------------------------------------------------------------
@@ -430,29 +436,114 @@ def about():
 
 @app.route("/recipes/search")
 def recipes_search():
-    """SAM: Edamam search + upsert (§3, §5); map timeout/rate_limit/upstream_* to flash."""
+    """Search recipes via Edamam API with error handling (CONTRACTS.md §3, §5)."""
     q = (request.args.get("q") or "").strip()
     recipes = []
-    if DEMO_MOCK_RECIPES_ENABLED and not q and not recipes:
+    search_error = None
+    
+    if q:
+        try:
+            # Call Edamam API with 4-second timeout per contract
+            params = {
+                "type": "public",
+                "q": q,
+                "app_id": os.environ.get("EDAMAM_APP_ID"),
+                "app_key": os.environ.get("EDAMAM_APP_KEY"),
+            }
+            response = requests.get(
+                "https://api.edamam.com/api/recipes/v2",
+                params=params,
+                timeout=4
+            )
+            
+            if response.status_code == 429:
+                flash("Rate limit reached. Please try again later.", "warning")
+                search_error = "rate_limited"
+            elif response.status_code >= 200 and response.status_code < 300:
+                data = response.json()
+                hits = data.get("hits", [])
+                
+                # Upsert recipes into DB
+                db = get_db_session()
+                for hit in hits:
+                    recipe_data = hit.get("recipe", {})
+                    api_id = recipe_data.get("uri", "")
+                    
+                    if not api_id:
+                        continue
+                    
+                    # Check if recipe already exists
+                    existing = db.exec(
+                        select(Recipe).where(Recipe.api_id == api_id)
+                    ).first()
+                    
+                    if existing:
+                        recipe = existing
+                    else:
+                        # Create new recipe
+                        recipe = Recipe(
+                            api_id=api_id,
+                            name=recipe_data.get("label", "Unknown"),
+                            image_url=recipe_data.get("image"),
+                            calories=recipe_data.get("calories"),
+                            protein=recipe_data.get("totalNutrients", {}).get("PROCNT", {}).get("quantity"),
+                            carbs=recipe_data.get("totalNutrients", {}).get("CHOCDF", {}).get("quantity"),
+                            fat=recipe_data.get("totalNutrients", {}).get("FAT", {}).get("quantity"),
+                            default_servings=int(recipe_data.get("yield", 1) or 1),
+                        )
+                        db.add(recipe)
+                    
+                    recipes.append(recipe)
+                
+                if existing or recipes:
+                    db.commit()
+                    
+            else:
+                logger.error(f"Upstream error from Edamam: {response.status_code}")
+                flash("Error searching recipes. Please try again.", "error")
+                search_error = "upstream_error"
+                
+        except ReadTimeout:
+            flash("Request timed out. Please try again.", "error")
+            search_error = "timeout"
+            logger.warning(f"Edamam request timeout for query: {q}")
+        except RequestException as e:
+            logger.exception(f"Upstream error from Edamam: {e}")
+            flash("Error connecting to recipe service.", "error")
+            search_error = "upstream_error"
+        except Exception as e:
+            logger.exception(f"Error parsing Edamam response: {e}")
+            flash("Error processing recipe data.", "error")
+            search_error = "upstream_invalid"
+    elif DEMO_MOCK_RECIPES_ENABLED:
         recipes = _demo_recipe_summaries()
+    
     return render_template(
         "recipes_search.html",
         title="Discover recipes",
         q=q,
         recipes=recipes,
-        search_error=None,
+        search_error=search_error,
         show_demo_banner=DEMO_MOCK_RECIPES_ENABLED and bool(recipes) and not q,
     )
 
 
 @app.route("/recipes/<int:recipe_id>")
 def recipe_detail(recipe_id: int):
-    """SAM: Load cached recipe by ``recipes.id``; unknown id → 404 (CONTRACTS.md §3)."""
-    recipe, ingredients = None, []
-    demo_preview = False
-    if DEMO_MOCK_RECIPES_ENABLED:
-        recipe, ingredients = _demo_recipe_detail(recipe_id)
-        demo_preview = recipe is not None
+    """Load cached recipe by ``recipes.id``; unknown id → 404 (CONTRACTS.md §3)."""
+    db = get_db_session()
+    recipe = db.get(Recipe, recipe_id)
+    
+    if recipe is None:
+        abort(404)
+    
+    # Fetch ingredients for this recipe
+    ingredients = db.exec(
+        select(Ingredient).where(Ingredient.recipe_id == recipe_id)
+    ).all()
+    
+    demo_preview = DEMO_MOCK_RECIPES_ENABLED and recipe_id in (1, 2)
+    
     return render_template(
         "recipe_detail.html",
         title=(recipe.name if recipe else "Recipe"),
@@ -467,8 +558,7 @@ def recipe_detail(recipe_id: int):
 def recipes_scale():
     """CONTRACTS.md §3 ``POST /recipes/scale`` — JSON scale (auth: session today).
 
-    SAM: Keep request/response envelope; read default_servings + ingredients from
-    DB (Justin schema), not ``_scale_recipe_ingredients`` / demo dict.
+    Read default_servings + ingredients from DB (Justin schema).
     """
 
     if not request.is_json:
@@ -499,59 +589,210 @@ def recipes_scale():
     if target_servings <= 0:
         return jsonify(error="bad_request", message="target_servings must be greater than zero"), 400
 
-    if not DEMO_MOCK_RECIPES_ENABLED:
+    db = get_db_session()
+    recipe = db.get(Recipe, recipe_id)
+    
+    if recipe is None:
+        # Try demo if enabled
+        if DEMO_MOCK_RECIPES_ENABLED:
+            recipe, ingredients = _scale_recipe_ingredients(recipe_id, target_servings)
+            if recipe is None:
+                return jsonify(error="not_found", message="Recipe not found"), 404
+            return jsonify(
+                recipe_id=recipe.id,
+                target_servings=target_servings,
+                default_servings=recipe.default_servings,
+                ingredients=ingredients,
+            )
         return jsonify(error="not_found", message="Recipe not found"), 404
 
-    recipe, ingredients = _scale_recipe_ingredients(recipe_id, target_servings)
-    if recipe is None:
-        return jsonify(error="not_found", message="Recipe not found"), 404
+    # Fetch ingredients
+    ingredients_rows = db.exec(
+        select(Ingredient).where(Ingredient.recipe_id == recipe_id)
+    ).all()
+    
+    # Scale ingredients
+    default = float(recipe.default_servings)
+    if default <= 0:
+        return jsonify(error="bad_request", message="Invalid recipe servings"), 400
+    
+    factor = target_servings / default
+    scaled = []
+    for ing in ingredients_rows:
+        qty = round(float(ing.quantity) * factor, 2)
+        scaled.append({"name": ing.name, "quantity": qty, "unit": ing.unit})
 
     return jsonify(
         recipe_id=recipe.id,
         target_servings=target_servings,
         default_servings=recipe.default_servings,
-        ingredients=ingredients,
+        ingredients=scaled,
+    )
+
+
+@app.route("/nutrition/<int:recipe_id>")
+def get_nutrition(recipe_id: int):
+    """Return scaled nutrition JSON for a cached recipe (CONTRACTS.md §3)."""
+    servings = request.args.get("servings", type=int)
+    
+    db = get_db_session()
+    recipe = db.get(Recipe, recipe_id)
+    
+    if recipe is None:
+        return jsonify(error="not_found", message="Recipe not found"), 404
+    
+    # Use default_servings if servings not specified
+    if servings is None:
+        servings = recipe.default_servings
+    
+    # Calculate scaled nutrition
+    default = float(recipe.default_servings)
+    if default <= 0:
+        default = 1
+    
+    scale_factor = servings / default
+    
+    return jsonify(
+        recipe_id=recipe_id,
+        servings=servings,
+        calories=round((recipe.calories or 0) * scale_factor, 2) if recipe.calories else 0,
+        protein=round((recipe.protein or 0) * scale_factor, 2) if recipe.protein else 0,
+        carbs=round((recipe.carbs or 0) * scale_factor, 2) if recipe.carbs else 0,
+        fat=round((recipe.fat or 0) * scale_factor, 2) if recipe.fat else 0,
     )
 
 
 @app.route("/mealplan", methods=["GET"])
 @login_required
 def mealplan():
-    """SAM: Add ``POST`` on this path (upsert §3); pass ``planned`` dict keyed by weekday."""
+    """Show the current user's week grid Mon–Sun."""
+    db = get_db_session()
+    plans = db.exec(
+        select(MealPlan).where(MealPlan.user_id == current_user.id)
+    ).all()
+    
+    planned = {plan.day_of_week: plan for plan in plans}
+    
     return render_template(
         "mealplan.html",
         title="Meal plan",
-        planned={},
+        planned=planned,
     )
 
 
+@app.route("/mealplan", methods=["POST"])
+@login_required
+def mealplan_post():
+    """Add or replace the plan for a single weekday."""
+    day_of_week = request.form.get("day_of_week")
+    recipe_id = request.form.get("recipe_id")
+    servings = request.form.get("servings")
+    
+    if not day_of_week or not recipe_id or not servings:
+        flash("Missing required fields.")
+        return redirect(url_for("mealplan"))
+    
+    try:
+        day_of_week = int(day_of_week)
+        recipe_id = int(recipe_id)
+        servings = int(servings)
+    except ValueError:
+        flash("Invalid input values.")
+        return redirect(url_for("mealplan"))
+    
+    if day_of_week < 0 or day_of_week > 6:
+        flash("Invalid day of week.")
+        return redirect(url_for("mealplan"))
+    
+    if servings <= 0:
+        flash("Servings must be greater than zero.")
+        return redirect(url_for("mealplan"))
+    
+    db = get_db_session()
+    recipe = db.get(Recipe, recipe_id)
+    if recipe is None:
+        flash("Recipe not found.")
+        return redirect(url_for("mealplan"))
+    
+    # Upsert meal plan
+    existing = db.exec(
+        select(MealPlan).where(
+            (MealPlan.user_id == current_user.id) & (MealPlan.day_of_week == day_of_week)
+        )
+    ).first()
+    
+    if existing:
+        existing.recipe_id = recipe_id
+        existing.servings = servings
+    else:
+        plan = MealPlan(
+            user_id=current_user.id,
+            day_of_week=day_of_week,
+            recipe_id=recipe_id,
+            servings=servings,
+        )
+        db.add(plan)
+    
+    db.commit()
+    flash("Meal plan updated!")
+    return redirect(url_for("mealplan"))
+
+
+@app.route("/mealplan/<int:day>", methods=["DELETE"])
+@login_required
+def mealplan_delete(day: int):
+    """Clear one day's entry for the current user."""
+    if day < 0 or day > 6:
+        abort(400)
+    
+    db = get_db_session()
+    plan = db.exec(
+        select(MealPlan).where(
+            (MealPlan.user_id == current_user.id) & (MealPlan.day_of_week == day)
+        )
+    ).first()
+    
+    if plan is None:
+        abort(404)
+    
+    db.delete(plan)
+    db.commit()
+    flash("Meal plan entry removed!")
+    return redirect(url_for("mealplan"))
+
+
 def _mealplan_suggest_source_rows():
-    """Recipes considered for meal-plan typeahead. Sam: query `recipes` with LIMIT + ILIKE."""
-    if DEMO_MOCK_RECIPES_ENABLED:
-        return _demo_recipe_summaries()
-    return []
+    """Recipes considered for meal-plan typeahead. Query `recipes` with LIMIT + ILIKE."""
+    db = get_db_session()
+    return db.exec(select(Recipe).limit(50)).all()
 
 
 @app.route("/mealplan/recipe-suggest")
 def mealplan_recipe_suggest():
-    """SAM: Keep JSON shape; source rows from ``recipes`` (ILIKE), not demo list."""
     """JSON for meal-plan recipe picker (scalable: swap source for DB / Edamam cache)."""
     if not current_user.is_authenticated:
         return jsonify(recipes=[]), 401
     q_raw = (request.args.get("q") or "").strip()
     q = q_raw.lower()
-    rows = _mealplan_suggest_source_rows()
-    if not q:
-        pick = rows[:20]
+    
+    db = get_db_session()
+    if q:
+        # Search by name (case-insensitive) or by id
+        rows = db.exec(
+            select(Recipe).where(
+                (Recipe.name.ilike(f"%{q}%"))
+            ).limit(20)
+        ).all()
     else:
-        pick = [r for r in rows if q in r.name.lower() or q_raw == str(r.id)][:20]
+        rows = db.exec(select(Recipe).limit(20)).all()
+    
     out = [
         {
             "id": r.id,
             "name": r.name,
-            "image_url": getattr(r, "image_url", None) or "",
+            "image_url": r.image_url or "",
         }
-        for r in pick
+        for r in rows
     ]
     return jsonify(recipes=out)
 
