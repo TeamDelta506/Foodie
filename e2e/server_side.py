@@ -1,19 +1,6 @@
 #!/usr/bin/env python3
 """
 Foodie — server-side end-to-end walk  (e2e/server_side.py)
-===========================================================
-Exercises every server-owned route against the running app with realistic
-inputs and error cases.  Uses only the standard library + requests; no pytest.
-
-Mirrors the walk defined in e2e/server_side.md.
-
-Usage
------
-Against local Docker Compose (Postgres) — run from repo root:
-    python3 e2e/server_side.py
-
-Against a different host:
-    BASE_URL=https://your-ec2-host.example.com python3 e2e/server_side.py
 
 Requirements
 ------------

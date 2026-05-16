@@ -50,6 +50,12 @@ EDAMAM_APP_KEY = os.environ.get("EDAMAM_APP_KEY", "")
 EDAMAM_BASE    = "https://api.edamam.com/api/recipes/v2"
 EDAMAM_TIMEOUT = 4  # seconds per CONTRACTS.md §5
 
+
+def _edamam_configured() -> bool:
+    """True when server-side Edamam credentials are set (shared by all users)."""
+    return bool(os.environ.get("EDAMAM_APP_ID") and os.environ.get("EDAMAM_APP_KEY"))
+
+
 _DEMO_IMG_BOWL   = "/static/img/demo/bowl.jpg"
 _DEMO_IMG_SALMON = "/static/img/demo/salmon.jpg"
 
@@ -416,44 +422,52 @@ def recipes_search():
     search_error = None
 
     if q:
-        try:
-            resp = http.get(
-                EDAMAM_BASE,
-                params={"type": "public", "q": q,
-                        "app_id": EDAMAM_APP_ID, "app_key": EDAMAM_APP_KEY},
-                timeout=EDAMAM_TIMEOUT,
+        if not _edamam_configured():
+            flash(
+                "Recipe search is not configured on this server. "
+                "Set EDAMAM_APP_ID and EDAMAM_APP_KEY in .env (see README Team setup).",
+                "warning",
             )
+            search_error = "not_configured"
+        else:
+            try:
+                resp = http.get(
+                    EDAMAM_BASE,
+                    params={"type": "public", "q": q,
+                            "app_id": EDAMAM_APP_ID, "app_key": EDAMAM_APP_KEY},
+                    timeout=EDAMAM_TIMEOUT,
+                )
 
-            if resp.status_code == 429:
-                flash("Recipe search is rate limited — please try again in a moment.")
-                search_error = "rate_limited"
-            elif not resp.ok:
-                if resp.status_code in (401, 403):
-                    logger.error("Edamam auth error %s — check API keys", resp.status_code)
+                if resp.status_code == 429:
+                    flash("Recipe search is rate limited — please try again in a moment.")
+                    search_error = "rate_limited"
+                elif not resp.ok:
+                    if resp.status_code in (401, 403):
+                        logger.error("Edamam auth error %s — check API keys", resp.status_code)
+                    else:
+                        logger.error("Edamam upstream error: HTTP %s", resp.status_code)
+                    flash("The recipe service returned an error. Please try again shortly.")
+                    search_error = "upstream_error"
                 else:
-                    logger.error("Edamam upstream error: HTTP %s", resp.status_code)
-                flash("The recipe service returned an error. Please try again shortly.")
-                search_error = "upstream_error"
-            else:
-                try:
-                    hits = resp.json().get("hits", [])
-                    db = get_db_session()
-                    for hit in hits:
-                        recipe = _parse_and_upsert_hit(hit, db)
-                        if recipe is not None:
-                            recipes.append(recipe)
-                except (ValueError, KeyError, AttributeError):
-                    logger.exception("Could not parse Edamam response")
-                    flash("Could not read recipe results. Please try again.")
-                    search_error = "upstream_invalid"
+                    try:
+                        hits = resp.json().get("hits", [])
+                        db = get_db_session()
+                        for hit in hits:
+                            recipe = _parse_and_upsert_hit(hit, db)
+                            if recipe is not None:
+                                recipes.append(recipe)
+                    except (ValueError, KeyError, AttributeError):
+                        logger.exception("Could not parse Edamam response")
+                        flash("Could not read recipe results. Please try again.")
+                        search_error = "upstream_invalid"
 
-        except http.exceptions.ReadTimeout:
-            flash("Recipe search timed out. Please try again.")
-            search_error = "timeout"
-        except http.exceptions.RequestException:
-            logger.exception("Edamam request failed")
-            flash("Could not reach the recipe service. Please try again.")
-            search_error = "upstream_error"
+            except http.exceptions.ReadTimeout:
+                flash("Recipe search timed out. Please try again.")
+                search_error = "timeout"
+            except http.exceptions.RequestException:
+                logger.exception("Edamam request failed")
+                flash("Could not reach the recipe service. Please try again.")
+                search_error = "upstream_error"
 
     else:
         db = get_db_session()

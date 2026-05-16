@@ -87,3 +87,53 @@ def test_mealplan_get_requires_authenticated_user(client):
     """Anonymous GET /mealplan must redirect to login."""
     response = client.get("/mealplan", follow_redirects=False)
     assert response.status_code in (302, 401)
+
+
+def _register(client, username: str, password: str = "secret") -> None:
+    client.post("/register", data={"username": username, "password": password})
+    client.post("/logout")
+
+
+def _login(client, username: str, password: str = "secret") -> None:
+    client.post("/login", data={"username": username, "password": password})
+
+
+def test_mealplan_scoped_to_current_user(client):
+    """User B must not see user A's meal-plan rows (CONTRACTS.md §4)."""
+    from sqlmodel import Session, select
+
+    from app import MealPlan, Recipe, User
+
+    _register(client, "owner_a")
+    _register(client, "owner_b")
+
+    with Session(engine) as db:
+        recipe = Recipe(api_id="iso-test", name="Isolation Recipe", default_servings=2)
+        db.add(recipe)
+        db.commit()
+        db.refresh(recipe)
+        recipe_id = recipe.id
+
+    _login(client, "owner_a")
+    client.post(
+        "/mealplan",
+        data={"day_of_week": "0", "recipe_id": str(recipe_id), "servings": "2"},
+    )
+
+    _login(client, "owner_b")
+    response = client.get("/mealplan")
+    assert response.status_code == 200
+    assert b"Isolation Recipe" not in response.data
+
+    with Session(engine) as db:
+        user_b = db.exec(select(User).where(User.username == "owner_b")).first()
+        rows = db.exec(select(MealPlan).where(MealPlan.user_id == user_b.id)).all()
+        assert rows == []
+
+
+def test_mealplan_delete_missing_day_returns_404(client):
+    """DELETE /mealplan/<day> with no plan for current user returns 404, not 403."""
+    _register(client, "deleter")
+    _login(client, "deleter")
+    response = client.delete("/mealplan/3", follow_redirects=False)
+    assert response.status_code == 404
