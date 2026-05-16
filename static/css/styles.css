@@ -282,6 +282,34 @@ body.foodie-app {
 .foodie-recipe-card:hover .foodie-recipe-card-title {
   color: var(--foodie-green-mid);
 }
+
+/* Discover — compact grid (smaller thumbs, less blur on Edamam images) */
+.foodie-recipe-grid--compact .foodie-recipe-card--compact .foodie-recipe-card-media {
+  aspect-ratio: 1 / 1;
+  max-height: 9.5rem;
+}
+
+.foodie-recipe-grid--compact .foodie-recipe-card--compact .foodie-recipe-card-body {
+  padding: 0.55rem 0.65rem 0.7rem;
+}
+
+.foodie-recipe-grid--compact .foodie-recipe-card--compact .foodie-recipe-card-title {
+  font-size: 0.82rem;
+  font-weight: 600;
+  line-height: 1.25;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.foodie-recipe-grid--compact .foodie-recipe-card--compact .foodie-cal-pill {
+  font-size: 0.65rem;
+  padding: 0.2rem 0.45rem;
+  bottom: 0.4rem;
+  left: 0.4rem;
+}
+
 .btn-foodie-primary {
   --bs-btn-color: #fff;
   --bs-btn-bg: var(--foodie-green);
@@ -430,6 +458,42 @@ body.foodie-app {
 
 .foodie-day-label {
   color: var(--foodie-green-deep);
+}
+
+.foodie-mealplan-thumb-link {
+  display: block;
+  border-radius: 0.5rem;
+  overflow: hidden;
+  line-height: 0;
+  box-shadow: 0 1px 4px rgba(27, 67, 50, 0.12);
+  transition: box-shadow 0.15s ease, transform 0.15s ease;
+}
+
+.foodie-mealplan-thumb-link:hover {
+  box-shadow: 0 4px 12px rgba(27, 67, 50, 0.18);
+  transform: translateY(-1px);
+}
+
+.foodie-mealplan-slot {
+  padding-left: 0.15rem;
+}
+
+.foodie-mealplan-thumb {
+  width: 3rem;
+  height: 3rem;
+  object-fit: cover;
+  display: block;
+}
+
+.foodie-mealplan-recipe-link {
+  color: var(--foodie-green-deep);
+  font-weight: 600;
+  text-decoration: none;
+}
+
+.foodie-mealplan-recipe-link:hover {
+  color: var(--foodie-green-mid);
+  text-decoration: underline;
 }
 
 /* Meal plan recipe typeahead */

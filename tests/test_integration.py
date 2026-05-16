@@ -112,4 +112,5 @@ def test_week6_demo_register_search_detail_scale_plan_delete(client):
 
     board_after = client.get("/mealplan")
     assert board_after.status_code == 200
-    assert str(rid).encode() not in board_after.data
+    assert f'href="/recipes/{rid}"'.encode() not in board_after.data
+    assert b"Integration Lentil" not in board_after.data
