@@ -1,31 +1,42 @@
 #!/usr/bin/env python3
 """
-Foodie — end-to-end walk
-========================
-Exercises every server-side route against the running app with realistic
+Foodie — server-side end-to-end walk  (e2e/server_side.py)
+===========================================================
+Exercises every server-owned route against the running app with realistic
 inputs and error cases.  Uses only the standard library + requests; no pytest.
+
+Mirrors the walk defined in e2e/server_side.md.
 
 Usage
 -----
-Against local Docker Compose (Postgres):
-    python3 e2e_walk.py
+Against local Docker Compose (Postgres) — run from repo root:
+    python3 e2e/server_side.py
 
 Against a different host:
-    BASE_URL=https://your-ec2-host.example.com python3 e2e_walk.py
+    BASE_URL=https://your-ec2-host.example.com python3 e2e/server_side.py
 
 Requirements
 ------------
     pip install requests
+
+Live Edamam
+-----------
+Set EDAMAM_APP_ID and EDAMAM_APP_KEY in the environment to exercise the
+real Edamam upsert path (step 6).  Without them the search fails gracefully
+and the script still passes — that error path is part of the contract.
 """
 
 import json
 import os
 import sys
-import textwrap
+import time
 
 import requests
 
 BASE_URL = os.environ.get("BASE_URL", "http://127.0.0.1:5000").rstrip("/")
+
+# Unique per run so the script is safe to re-run against the same DB
+_RUN_ID  = os.environ.get("E2E_USER", f"e2e_{int(time.time())}")
 
 # ── ANSI helpers ────────────────────────────────────────────────────────────
 
@@ -98,9 +109,9 @@ r = s.get(url("/register"))
 assert_check(r.status_code == 200,                   "GET /register  →  200")
 assert_check('name="username"' in r.text,            "Username field present")
 
-# Happy path
+# Happy path — unique username per run so reruns never conflict
 r = s.post(url("/register"),
-           data={"username": "e2e_user", "password": "secure123"},
+           data={"username": _RUN_ID, "password": "secure123"},
            allow_redirects=False)
 assert_check(r.status_code == 302,                   "POST /register  →  302 redirect")
 assert_check(r.headers.get("Location", "").endswith("/"),
@@ -108,11 +119,11 @@ assert_check(r.headers.get("Location", "").endswith("/"),
 
 # Follow redirect and confirm logged-in state
 r = s.get(url("/"))
-assert_check("e2e_user" in r.text,                   "Navbar shows 'e2e_user' after register")
+assert_check(_RUN_ID in r.text,                      "Navbar shows username after register")
 
 # Duplicate username
 r = s.post(url("/register"),
-           data={"username": "e2e_user", "password": "other"},
+           data={"username": _RUN_ID, "password": "other"},
            allow_redirects=True)
 assert_check("already taken" in r.text,              "Duplicate username → 'already taken' flash")
 
@@ -134,18 +145,18 @@ assert_check(r.status_code == 200,                   "GET /login  →  200")
 
 # Wrong password
 r = s.post(url("/login"),
-           data={"username": "e2e_user", "password": "wrong"},
+           data={"username": _RUN_ID, "password": "wrong"},
            allow_redirects=True)
 assert_check("Invalid" in r.text,                    "Wrong password → 'Invalid' flash")
 
 # Correct credentials
 r = s.post(url("/login"),
-           data={"username": "e2e_user", "password": "secure123"},
+           data={"username": _RUN_ID, "password": "secure123"},
            allow_redirects=False)
 assert_check(r.status_code == 302,                   "POST /login correct  →  302")
 s.get(url("/"))  # follow redirect
 r = s.get(url("/"))
-assert_check("e2e_user" in r.text,                   "Logged in: navbar shows username")
+assert_check(_RUN_ID in r.text,                      "Logged in: navbar shows username")
 
 # ════════════════════════════════════════════════════════════════════════════
 # 5. RECIPE SEARCH — empty query (shows cached DB rows)
