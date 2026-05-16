@@ -4,6 +4,7 @@
 ---
 
 ## 👥 Team & Roles
+- **Sowmya** – runs the coordinating-LLM session that produces contracts, owns CONTRACTS.md, reviews cross-role PRs, runs integration tests on the shared EC2.
 - **Sam** – server-side development, backend logic, API integration  
 - **Asia** – client-side development, UI/UX, frontend implementation (JavaScript & CSS)  
 - **Justin** – database management, security considerations, system design  
