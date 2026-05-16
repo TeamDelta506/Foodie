@@ -35,13 +35,21 @@ once Justin's schema is available.
 """
 
 import os
-from datetime import datetime, timezone
+from datetime import datetime
 from pathlib import Path
 from types import SimpleNamespace
 
 from flask import (
-    Flask, render_template, request, redirect, url_for, session, flash, g,
+    Flask, render_template, request, redirect, url_for, flash, g,
     send_from_directory, abort, jsonify,
+)
+from flask_login import (
+    LoginManager, UserMixin, login_user, logout_user, current_user,
+    login_required,
+)
+from sqlalchemy import (
+    Column, DateTime, Integer, SmallInteger, ForeignKey,
+    CheckConstraint, UniqueConstraint, func,
 )
 from sqlmodel import SQLModel, Field, Session, create_engine, select
 from werkzeug.exceptions import HTTPException
@@ -150,18 +158,84 @@ engine = create_engine(DATABASE_URL, echo=False)
 # Path to the synced S3 content. Students populate this with `aws s3 sync`.
 S3_CONTENT_DIR = Path(__file__).parent / "S3_content"
 
+# Flask-Login setup
+login_manager = LoginManager()
+login_manager.login_view = "login"
+login_manager.init_app(app)
+app.extensions["login_manager"] = login_manager
+
 
 # ---------------------------------------------------------------------------
 # Database model
 # ---------------------------------------------------------------------------
 
-class User(SQLModel, table=True):
+class User(UserMixin, SQLModel, table=True):
     __tablename__ = "users"
 
     id: int | None = Field(default=None, primary_key=True)
     username: str = Field(unique=True, index=True, max_length=80)
     password_hash: str = Field(max_length=255)
-    created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+    created_at: datetime | None = Field(
+        default=None,
+        sa_column=Column(DateTime(timezone=True), nullable=False, server_default=func.now()),
+    )
+
+
+class Recipe(SQLModel, table=True):
+    __tablename__ = "recipes"
+    __table_args__ = (
+        CheckConstraint("default_servings > 0", name="ck_recipes_default_servings"),
+    )
+
+    id: int | None = Field(default=None, primary_key=True)
+    api_id: str = Field(unique=True, index=True, max_length=255)
+    name: str = Field(max_length=500)
+    image_url: str | None = Field(default=None, max_length=1000)
+    calories: float | None = Field(default=None)
+    protein: float | None = Field(default=None)
+    carbs: float | None = Field(default=None)
+    fat: float | None = Field(default=None)
+    default_servings: int = Field()
+    created_at: datetime | None = Field(
+        default=None,
+        sa_column=Column(DateTime(timezone=True), nullable=False, server_default=func.now()),
+    )
+
+
+class Ingredient(SQLModel, table=True):
+    __tablename__ = "ingredients"
+    __table_args__ = (
+        CheckConstraint("quantity >= 0", name="ck_ingredients_quantity"),
+    )
+
+    id: int | None = Field(default=None, primary_key=True)
+    recipe_id: int = Field(
+        sa_column=Column(Integer, ForeignKey("recipes.id", ondelete="CASCADE"), nullable=False)
+    )
+    name: str = Field(max_length=300)
+    quantity: float = Field()
+    unit: str = Field(max_length=50)
+
+
+class MealPlan(SQLModel, table=True):
+    __tablename__ = "mealplans"
+    __table_args__ = (
+        UniqueConstraint("user_id", "day_of_week", name="uq_mealplans_user_day"),
+        CheckConstraint("day_of_week BETWEEN 0 AND 6", name="ck_mealplans_day_of_week"),
+        CheckConstraint("servings > 0", name="ck_mealplans_servings"),
+    )
+
+    id: int | None = Field(default=None, primary_key=True)
+    user_id: int = Field(
+        sa_column=Column(Integer, ForeignKey("users.id", ondelete="CASCADE"), nullable=False)
+    )
+    day_of_week: int = Field(
+        sa_column=Column(SmallInteger, nullable=False)
+    )
+    recipe_id: int = Field(
+        sa_column=Column(Integer, ForeignKey("recipes.id", ondelete="RESTRICT"), nullable=False)
+    )
+    servings: int = Field()
 
 
 # ---------------------------------------------------------------------------
@@ -185,16 +259,18 @@ def close_db_session(exception=None):
         db_session.close()
 
 
+@login_manager.user_loader
+def load_user(user_id):
+    db = get_db_session()
+    return db.get(User, int(user_id))
+
+
 # Make `user` available in every Flask-rendered template (login, register,
 # about, recipes, meal plan). Static files served from S3_content/ don't use
 # Jinja2, so this only affects Flask-rendered pages.
 @app.context_processor
 def inject_user():
-    user = None
-    if "user_id" in session:
-        db = get_db_session()
-        user = db.get(User, session["user_id"])
-    return {"user": user}
+    return {"user": current_user if current_user.is_authenticated else None}
 
 
 @app.errorhandler(HTTPException)
@@ -303,8 +379,7 @@ def register():
     db.commit()
     db.refresh(user)
 
-    # Log them in immediately after registration.
-    session["user_id"] = user.id
+    login_user(user)
     return redirect(url_for("home"))
 
 
@@ -324,17 +399,13 @@ def login():
         flash("Invalid username or password.")
         return redirect(url_for("login"))
 
-    # Set the session. The browser will receive a cookie that's a signed
-    # version of {"user_id": <id>}. On every subsequent request, the
-    # browser sends this cookie; Flask validates the signature and gives
-    # us back the user_id.
-    session["user_id"] = user.id
+    login_user(user)
     return redirect(url_for("home"))
 
 
 @app.route("/logout", methods=["POST"])
 def logout():
-    session.pop("user_id", None)
+    logout_user()
     return redirect(url_for("home"))
 
 
@@ -392,14 +463,13 @@ def recipe_detail(recipe_id: int):
 
 
 @app.route("/recipes/scale", methods=["POST"])
+@login_required
 def recipes_scale():
     """CONTRACTS.md §3 ``POST /recipes/scale`` — JSON scale (auth: session today).
 
     SAM: Keep request/response envelope; read default_servings + ingredients from
     DB (Justin schema), not ``_scale_recipe_ingredients`` / demo dict.
     """
-    if "user_id" not in session:
-        return redirect(url_for("login"))
 
     if not request.is_json:
         return (
@@ -445,10 +515,9 @@ def recipes_scale():
 
 
 @app.route("/mealplan", methods=["GET"])
+@login_required
 def mealplan():
     """SAM: Add ``POST`` on this path (upsert §3); pass ``planned`` dict keyed by weekday."""
-    if "user_id" not in session:
-        return redirect(url_for("login"))
     return render_template(
         "mealplan.html",
         title="Meal plan",
@@ -467,7 +536,7 @@ def _mealplan_suggest_source_rows():
 def mealplan_recipe_suggest():
     """SAM: Keep JSON shape; source rows from ``recipes`` (ILIKE), not demo list."""
     """JSON for meal-plan recipe picker (scalable: swap source for DB / Edamam cache)."""
-    if "user_id" not in session:
+    if not current_user.is_authenticated:
         return jsonify(recipes=[]), 401
     q_raw = (request.args.get("q") or "").strip()
     q = q_raw.lower()
