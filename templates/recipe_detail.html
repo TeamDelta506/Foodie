@@ -55,7 +55,9 @@
                         {% endif %}
                     </dl>
                     <p class="mt-3 mb-0">
-                        <a class="btn btn-sm btn-foodie-outline" href="/nutrition/{{ recipe.id }}?servings={{ recipe.default_servings }}" target="_blank" rel="noopener noreferrer">
+                        <a class="btn btn-sm btn-foodie-outline"
+                           href="{{ url_for('nutrition', recipe_id=recipe.id, servings=recipe.default_servings) }}"
+                           target="_blank" rel="noopener noreferrer">
                             View scaled nutrition (JSON)
                         </a>
                     </p>

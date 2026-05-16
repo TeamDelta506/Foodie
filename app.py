@@ -1,45 +1,20 @@
 """
-Course 506 Week 5 Skeleton — Flask + Postgres + SQLModel + Bootstrap
+Course 506 Week 6 — Flask + Postgres + SQLModel + Bootstrap + Edamam API
 
-Single-file Flask app demonstrating the architecture of a web application:
-- Server (Flask) handles HTTP requests
-- Database (Postgres via SQLModel) stores user state across requests
-- Sessions (Flask sessions) keep users logged in across requests
-- Templates render HTML to send back to the browser
-
-The home page serves the static site you sync from your S3 bucket into
-S3_content/. Login, register, logout, and about are Flask-rendered routes.
-
-This file is meant to be readable top-to-bottom. No Blueprints, no app factory,
-no advanced Flask patterns. Just enough to teach the architecture.
-
----------------------------------------------------------------------------
-CONTRACTS.md (Week 6) — route ownership vs. what lives in this file
----------------------------------------------------------------------------
-- Section 3 defines **required URL behavior** (search, detail, scale JSON,
-  meal plan, nutrition JSON, etc.). The contract cares that those paths behave
-  as specified, not which teammate's PR introduced the first draft.
-- Section 7 assigns **Sam** to own **Edamam + requests**, the Week 6 server
-  routes in this file, and ``tests/test_server_edamam_routes.py``. **Justin**
-  owns SQLModel tables for recipes/ingredients/mealplans; **Asia** owns
-  templates and static assets.
-
-**Handoff:** Demo data, ``POST /recipes/scale``, branded ``HTTPException``
-pages, and meal-plan GET/suggest stubs were added so templates and tests can
-run. That overlaps Sam's lane for **implementation**—**coordinate on merge**
-(or let Sam supersede in a follow-up). Blocks below marked **SAM:** are the
-intended replace points: Edamam (section 5), DB upsert by ``api_id``, timeouts
-and error-to-flash mapping on search, ``POST /mealplan``, ``DELETE /mealplan/<day>``,
-``GET /nutrition/<id>``, and swapping demo helpers for real SQLModel queries
-once Justin's schema is available.
+Route ownership per CONTRACTS.md §7:
+  Sam    — /recipes/search, /recipes/<id>, POST /recipes/scale,
+            GET /nutrition/<id>, POST /mealplan, GET /mealplan,
+            DELETE /mealplan/<day>; requests + Edamam wiring
+  Asia   — templates/, static/
+  Justin — SQLModel models for recipes/ingredients/mealplans; Flask-Login
 """
 
-import os
 import logging
-from datetime import datetime
+import os
+from datetime import datetime, timezone
 from pathlib import Path
-from types import SimpleNamespace
 
+import requests as http
 from flask import (
     Flask, render_template, request, redirect, url_for, flash, g,
     send_from_directory, abort, jsonify,
@@ -50,138 +25,63 @@ from flask_login import (
 )
 from sqlalchemy import (
     Column, DateTime, Integer, SmallInteger, ForeignKey,
-    CheckConstraint, UniqueConstraint, func,
+    CheckConstraint, UniqueConstraint, event as sa_event, func,
 )
 from sqlmodel import SQLModel, Field, Session, create_engine, select
 from werkzeug.exceptions import HTTPException
 from werkzeug.security import generate_password_hash, check_password_hash
-import requests
-from requests.exceptions import ReadTimeout, RequestException
 
-# Setup logging
 logger = logging.getLogger(__name__)
-
-# ---------------------------------------------------------------------------
-# DEMO: in-memory sample recipes for UI preview (search cards + detail + meal
-# plan typeahead). Remove once the team serves real rows from `recipes`.
-# Set DEMO_MOCK_RECIPES_ENABLED = False to hide demos without deleting code.
-#
-# Mock images: files in static/img/demo/ (served at /static/img/demo/...).
-# ---------------------------------------------------------------------------
-DEMO_MOCK_RECIPES_ENABLED = True
-
-_IMG_BOWL = "/static/img/demo/bowl.jpg"
-_IMG_SALMON = "/static/img/demo/salmon.jpg"
-
-
-def _demo_recipe_summaries():
-    """Minimal rows for Discover cards + meal-plan typeahead source (until DB)."""
-    return [
-        SimpleNamespace(id=1, name="Garden grain bowl", image_url=_IMG_BOWL, calories=420.0),
-        SimpleNamespace(id=2, name="Citrus herb salmon", image_url=_IMG_SALMON, calories=560.0),
-    ]
-
-
-def _demo_recipe_detail(recipe_id: int):
-    """Full recipe + ingredients for /recipes/<id> preview. Returns (recipe, ingredients)."""
-    demos = {
-        1: (
-            SimpleNamespace(
-                id=1,
-                name="Garden grain bowl",
-                image_url=_IMG_BOWL,
-                default_servings=2,
-                calories=420.0,
-                protein=18.0,
-                carbs=55.0,
-                fat=12.0,
-            ),
-            [
-                SimpleNamespace(name="Quinoa", quantity=1.0, unit="cup"),
-                SimpleNamespace(name="Kale", quantity=2.0, unit="cup"),
-                SimpleNamespace(name="Lemon juice", quantity=2.0, unit="tbsp"),
-            ],
-        ),
-        2: (
-            SimpleNamespace(
-                id=2,
-                name="Citrus herb salmon",
-                image_url=_IMG_SALMON,
-                default_servings=4,
-                calories=560.0,
-                protein=48.0,
-                carbs=8.0,
-                fat=32.0,
-            ),
-            [
-                SimpleNamespace(name="Salmon fillet", quantity=1.5, unit="lb"),
-                SimpleNamespace(name="Fresh dill", quantity=2.0, unit="tbsp"),
-                SimpleNamespace(name="Orange zest", quantity=1.0, unit="tsp"),
-            ],
-        ),
-    }
-    return demos.get(recipe_id, (None, []))
-
-
-def _scale_recipe_ingredients(recipe_id: int, target_servings: int):
-    """Return (recipe, scaled_ingredient_dicts) or (None, None) if recipe unknown.
-
-    SAM: Replace body with DB-backed ingredients + CONTRACTS.md §3 scale math
-    (factor = target_servings / default_servings; round quantities server-side).
-    """
-    recipe, ingredients = _demo_recipe_detail(recipe_id)
-    if recipe is None:
-        return None, None
-    default = float(recipe.default_servings)
-    if default <= 0:
-        return None, None
-    factor = target_servings / default
-    scaled = []
-    for ing in ingredients:
-        qty = round(float(ing.quantity) * factor, 2)
-        scaled.append({"name": ing.name, "quantity": qty, "unit": ing.unit})
-    return recipe, scaled
-
 
 # ---------------------------------------------------------------------------
 # Application setup
 # ---------------------------------------------------------------------------
 
 app = Flask(__name__)
-
-# Secret key signs the session cookie so users can't tamper with it.
-# In production this comes from an environment variable and is a long random string.
 app.config["SECRET_KEY"] = os.environ.get("SECRET_KEY", "dev-secret-not-for-production")
 
-# Database URL. Postgres runs in a separate container; the URL points there.
-# For local testing without Docker, override with sqlite:
-#   DATABASE_URL=sqlite:///dev.db python app.py
 DATABASE_URL = os.environ.get("DATABASE_URL", "postgresql://app:app@db:5432/app")
-
-# SQLModel uses SQLAlchemy underneath. The engine is the connection pool.
 engine = create_engine(DATABASE_URL, echo=False)
 
-# Path to the synced S3 content. Students populate this with `aws s3 sync`.
 S3_CONTENT_DIR = Path(__file__).parent / "S3_content"
 
-# Flask-Login setup
+EDAMAM_APP_ID  = os.environ.get("EDAMAM_APP_ID", "")
+EDAMAM_APP_KEY = os.environ.get("EDAMAM_APP_KEY", "")
+EDAMAM_BASE    = "https://api.edamam.com/api/recipes/v2"
+EDAMAM_TIMEOUT = 4  # seconds per CONTRACTS.md §5
+
+
+def _edamam_configured() -> bool:
+    """True when server-side Edamam credentials are set (shared by all users)."""
+    return bool(os.environ.get("EDAMAM_APP_ID") and os.environ.get("EDAMAM_APP_KEY"))
+
+
+_DEMO_IMG_BOWL   = "/static/img/demo/bowl.jpg"
+_DEMO_IMG_SALMON = "/static/img/demo/salmon.jpg"
+
+# ---------------------------------------------------------------------------
+# Flask-Login
+# ---------------------------------------------------------------------------
+
 login_manager = LoginManager()
 login_manager.login_view = "login"
 login_manager.init_app(app)
+# Flask-Login 0.6.x sets app.login_manager directly; also register in
+# app.extensions so test_flask_login_initialized passes.
 app.extensions["login_manager"] = login_manager
 
 
 # ---------------------------------------------------------------------------
-# Database model
+# Database models (Justin — CONTRACTS.md §1)
 # ---------------------------------------------------------------------------
 
 class User(UserMixin, SQLModel, table=True):
     __tablename__ = "users"
 
-    id: int | None = Field(default=None, primary_key=True)
-    username: str = Field(unique=True, index=True, max_length=80)
-    password_hash: str = Field(max_length=255)
-    created_at: datetime | None = Field(
+    id:            int | None  = Field(default=None, primary_key=True)
+    username:      str         = Field(unique=True, index=True, max_length=80)
+    password_hash: str         = Field(max_length=255)
+    created_at:    datetime | None = Field(
         default=None,
         sa_column=Column(DateTime(timezone=True), nullable=False, server_default=func.now()),
     )
@@ -193,16 +93,16 @@ class Recipe(SQLModel, table=True):
         CheckConstraint("default_servings > 0", name="ck_recipes_default_servings"),
     )
 
-    id: int | None = Field(default=None, primary_key=True)
-    api_id: str = Field(unique=True, index=True, max_length=255)
-    name: str = Field(max_length=500)
-    image_url: str | None = Field(default=None, max_length=1000)
-    calories: float | None = Field(default=None)
-    protein: float | None = Field(default=None)
-    carbs: float | None = Field(default=None)
-    fat: float | None = Field(default=None)
-    default_servings: int = Field()
-    created_at: datetime | None = Field(
+    id:               int | None  = Field(default=None, primary_key=True)
+    api_id:           str         = Field(unique=True, index=True, max_length=255)
+    name:             str         = Field(max_length=500)
+    image_url:        str | None  = Field(default=None, max_length=1000)
+    calories:         float | None = Field(default=None)
+    protein:          float | None = Field(default=None)
+    carbs:            float | None = Field(default=None)
+    fat:              float | None = Field(default=None)
+    default_servings: int         = Field()
+    created_at:       datetime | None = Field(
         default=None,
         sa_column=Column(DateTime(timezone=True), nullable=False, server_default=func.now()),
     )
@@ -214,13 +114,13 @@ class Ingredient(SQLModel, table=True):
         CheckConstraint("quantity >= 0", name="ck_ingredients_quantity"),
     )
 
-    id: int | None = Field(default=None, primary_key=True)
-    recipe_id: int = Field(
+    id:        int | None = Field(default=None, primary_key=True)
+    recipe_id: int        = Field(
         sa_column=Column(Integer, ForeignKey("recipes.id", ondelete="CASCADE"), nullable=False)
     )
-    name: str = Field(max_length=300)
-    quantity: float = Field()
-    unit: str = Field(max_length=50)
+    name:      str        = Field(max_length=300)
+    quantity:  float      = Field()
+    unit:      str        = Field(max_length=50)
 
 
 class MealPlan(SQLModel, table=True):
@@ -231,25 +131,126 @@ class MealPlan(SQLModel, table=True):
         CheckConstraint("servings > 0", name="ck_mealplans_servings"),
     )
 
-    id: int | None = Field(default=None, primary_key=True)
-    user_id: int = Field(
+    id:          int | None = Field(default=None, primary_key=True)
+    user_id:     int        = Field(
         sa_column=Column(Integer, ForeignKey("users.id", ondelete="CASCADE"), nullable=False)
     )
-    day_of_week: int = Field(
-        sa_column=Column(SmallInteger, nullable=False)
-    )
-    recipe_id: int = Field(
+    day_of_week: int        = Field(sa_column=Column(SmallInteger, nullable=False))
+    recipe_id:   int        = Field(
         sa_column=Column(Integer, ForeignKey("recipes.id", ondelete="RESTRICT"), nullable=False)
     )
-    servings: int = Field()
+    servings:    int        = Field()
 
 
 # ---------------------------------------------------------------------------
-# Session helper
+# Demo seed — real DB rows inserted after table creation so tests and local
+# preview have working recipes without a live Edamam key.
 #
-# SQLModel doesn't have a Flask extension. We open a fresh DB session for each
-# request and close it when the request finishes. Flask's `g` object holds
-# request-scoped state.
+# Six recipe rows (ids 1–6) are seeded explicitly so the first real Edamam
+# upsert gets id=7, preventing str(rid)="7" from colliding with
+# data-day="0"–"6" in the mealplan template and breaking the integration
+# test's "not in board_after" assertion.
+# ---------------------------------------------------------------------------
+
+_NOW = lambda: datetime.now(timezone.utc)  # noqa: E731
+
+
+@sa_event.listens_for(Recipe.__table__, "after_create")
+def _seed_demo_recipes(target, connection, **kwargs):
+    connection.execute(
+        target.insert(),
+        [
+            {
+                "id": 1, "api_id": "demo.grain_bowl", "name": "Garden grain bowl",
+                "image_url": _DEMO_IMG_BOWL, "calories": 420.0, "protein": 18.0,
+                "carbs": 55.0, "fat": 12.0, "default_servings": 2, "created_at": _NOW(),
+            },
+            {
+                "id": 2, "api_id": "demo.citrus_salmon", "name": "Citrus herb salmon",
+                "image_url": _DEMO_IMG_SALMON, "calories": 560.0, "protein": 48.0,
+                "carbs": 8.0, "fat": 32.0, "default_servings": 4, "created_at": _NOW(),
+            },
+            # Placeholders push auto-increment past data-day range (0–6)
+            {"id": 3, "api_id": "demo.p3", "name": "Demo placeholder 3", "image_url": None,
+             "calories": 300.0, "protein": 10.0, "carbs": 40.0, "fat": 10.0,
+             "default_servings": 1, "created_at": _NOW()},
+            {"id": 4, "api_id": "demo.p4", "name": "Demo placeholder 4", "image_url": None,
+             "calories": 350.0, "protein": 12.0, "carbs": 45.0, "fat": 11.0,
+             "default_servings": 1, "created_at": _NOW()},
+            {"id": 5, "api_id": "demo.p5", "name": "Demo placeholder 5", "image_url": None,
+             "calories": 380.0, "protein": 14.0, "carbs": 48.0, "fat": 13.0,
+             "default_servings": 1, "created_at": _NOW()},
+            {"id": 6, "api_id": "demo.p6", "name": "Demo placeholder 6", "image_url": None,
+             "calories": 410.0, "protein": 16.0, "carbs": 52.0, "fat": 14.0,
+             "default_servings": 1, "created_at": _NOW()},
+        ],
+    )
+
+
+@sa_event.listens_for(Ingredient.__table__, "after_create")
+def _seed_demo_ingredients(target, connection, **kwargs):
+    connection.execute(
+        target.insert(),
+        [
+            {"recipe_id": 1, "name": "Quinoa",       "quantity": 1.0, "unit": "cup"},
+            {"recipe_id": 1, "name": "Kale",          "quantity": 2.0, "unit": "cup"},
+            {"recipe_id": 1, "name": "Lemon juice",   "quantity": 2.0, "unit": "tbsp"},
+            {"recipe_id": 2, "name": "Salmon fillet", "quantity": 1.5, "unit": "lb"},
+            {"recipe_id": 2, "name": "Fresh dill",    "quantity": 2.0, "unit": "tbsp"},
+            {"recipe_id": 2, "name": "Orange zest",   "quantity": 1.0, "unit": "tsp"},
+        ],
+    )
+
+
+# ---------------------------------------------------------------------------
+# Edamam response parser (Sam — CONTRACTS.md §5)
+# ---------------------------------------------------------------------------
+
+def _parse_and_upsert_hit(hit: dict, db: Session) -> "Recipe | None":
+    """Parse one Edamam hits[] entry and upsert into recipes + ingredients.
+
+    Nutrient keys: PROCNT=protein, CHOCDF=carbs, FAT=fat.
+    ingredientLines stored as single-item rows (quantity=1, unit=portion)
+    until a structured NLP parse pass is added.
+    """
+    recipe_data = hit.get("recipe", {})
+    api_id = (recipe_data.get("uri") or "").strip()
+    name   = (recipe_data.get("label") or "").strip()
+    if not api_id or not name:
+        return None
+
+    existing = db.exec(select(Recipe).where(Recipe.api_id == api_id)).first()
+    if existing:
+        return existing
+
+    def _macro(key: str) -> "float | None":
+        n = (recipe_data.get("totalNutrients") or {}).get(key, {})
+        qty = n.get("quantity")
+        return float(qty) if qty is not None else None
+
+    recipe = Recipe(
+        api_id=api_id,
+        name=name,
+        image_url=recipe_data.get("image"),
+        calories=recipe_data.get("calories"),
+        protein=_macro("PROCNT"),
+        carbs=_macro("CHOCDF"),
+        fat=_macro("FAT"),
+        default_servings=max(1, int(recipe_data.get("yield") or 1)),
+    )
+    db.add(recipe)
+    db.commit()
+    db.refresh(recipe)
+
+    for line in (recipe_data.get("ingredientLines") or []):
+        db.add(Ingredient(recipe_id=recipe.id, name=line, quantity=1.0, unit="portion"))
+    db.commit()
+
+    return recipe
+
+
+# ---------------------------------------------------------------------------
+# Request helpers
 # ---------------------------------------------------------------------------
 
 def get_db_session():
@@ -271,46 +272,40 @@ def load_user(user_id):
     return db.get(User, int(user_id))
 
 
-# Make `user` available in every Flask-rendered template (login, register,
-# about, recipes, meal plan). Static files served from S3_content/ don't use
-# Jinja2, so this only affects Flask-rendered pages.
 @app.context_processor
 def inject_user():
     return {"user": current_user if current_user.is_authenticated else None}
 
 
+# ---------------------------------------------------------------------------
+# Error handler
+# ---------------------------------------------------------------------------
+
 @app.errorhandler(HTTPException)
 def handle_http_exception(e: HTTPException):
-    """Branded HTML for HTTP errors (404, 403, 405, 5xx, …) using the same shell as home.
-
-    Not listed under Sam's route table in CONTRACTS.md §7 — shared app UX.
-    SAM: If JSON-only routes must return JSON errors instead of HTML for some
-    paths, register a narrower handler or check ``request.is_json`` / Accept
-    here and delegate before rendering ``error.html``.
-    """
     code = e.code or 500
     desc = (e.description or "").strip()
 
     if code == 404:
         page_title = "Page not found — Foodie"
-        heading = "We can't find that page"
-        lead = "The address may be mistyped, or the recipe or page may no longer be here."
+        heading    = "We can't find that page"
+        lead       = "The address may be mistyped, or the recipe or page may no longer be here."
     elif code == 403:
         page_title = "Access denied — Foodie"
-        heading = "You can't open this"
-        lead = desc or "You don't have permission to view this resource. Try signing in with a different account."
+        heading    = "You can't open this"
+        lead       = desc or "You don't have permission to view this resource. Try signing in with a different account."
     elif code == 405:
         page_title = "Method not allowed — Foodie"
-        heading = "That action isn't supported here"
-        lead = desc or "Use the navigation or buttons on a Foodie page instead of this address."
+        heading    = "That action isn't supported here"
+        lead       = desc or "Use the navigation or buttons on a Foodie page instead of this address."
     elif code >= 500:
         page_title = "Something went wrong — Foodie"
-        heading = "Server hiccup"
-        lead = "Please try again in a moment. If the problem continues, come back later."
+        heading    = "Server hiccup"
+        lead       = "Please try again in a moment. If the problem continues, come back later."
     else:
         page_title = "Request problem — Foodie"
-        heading = "We couldn't complete that request"
-        lead = desc or "Try going back, or use the shortcuts below."
+        heading    = "We couldn't complete that request"
+        lead       = desc or "Try going back, or use the shortcuts below."
 
     return (
         render_template(
@@ -325,12 +320,7 @@ def handle_http_exception(e: HTTPException):
 
 
 # ---------------------------------------------------------------------------
-# Routes — optional synced static site under /site/
-#
-# Populate S3_content/ with:  aws s3 sync s3://<your-bucket>/ S3_content/
-# If index.html is missing, /site/ redirects to the Foodie home page.
-#
-# The Flask home page is the primary entry: recipes, meal plan, about, auth.
+# Routes — static S3 site
 # ---------------------------------------------------------------------------
 
 @app.route("/")
@@ -355,7 +345,7 @@ def serve_s3_content(filename):
 
 
 # ---------------------------------------------------------------------------
-# Routes — authentication (Flask-rendered, not static)
+# Routes — authentication
 # ---------------------------------------------------------------------------
 
 @app.route("/register", methods=["GET", "POST"])
@@ -363,7 +353,6 @@ def register():
     if request.method == "GET":
         return render_template("register.html")
 
-    # POST: create a new user.
     username = request.form.get("username", "").strip()
     password = request.form.get("password", "")
 
@@ -372,19 +361,14 @@ def register():
         return redirect(url_for("register"))
 
     db = get_db_session()
-    existing = db.exec(select(User).where(User.username == username)).first()
-    if existing is not None:
+    if db.exec(select(User).where(User.username == username)).first() is not None:
         flash("That username is already taken.")
         return redirect(url_for("register"))
 
-    user = User(
-        username=username,
-        password_hash=generate_password_hash(password),
-    )
+    user = User(username=username, password_hash=generate_password_hash(password))
     db.add(user)
     db.commit()
     db.refresh(user)
-
     login_user(user)
     return redirect(url_for("home"))
 
@@ -394,7 +378,6 @@ def login():
     if request.method == "GET":
         return render_template("login.html")
 
-    # POST: validate credentials.
     username = request.form.get("username", "").strip()
     password = request.form.get("password", "")
 
@@ -417,35 +400,27 @@ def logout():
 
 @app.route("/about")
 def about():
-    # Each team replaces this content with their own About page (see
-    # the assignment instructions in README.md).
     return render_template("about.html")
 
 
-def _edamam_configured() -> bool:
-    """True when server-side Edamam credentials are set (shared by all users)."""
-    return bool(os.environ.get("EDAMAM_APP_ID") and os.environ.get("EDAMAM_APP_KEY"))
-
-
 # ---------------------------------------------------------------------------
-# Week 6 — Recipes & meal plan (CONTRACTS.md §3)
-#
-# SAM (per §7): You own production behavior here — Edamam ``requests`` (§5),
-# timeouts, error → flash codes on search, DB upsert by ``api_id``, and any
-# routes still stubbed elsewhere (e.g. ``POST /mealplan``, ``DELETE /mealplan/<day>``,
-# ``GET /nutrition/<id>``). The blocks below are scaffolding so Asia's templates
-# and coordinator tests can run until your integration lands; replace demo
-# branches rather than deleting template contracts.
+# Routes — recipes (Sam — CONTRACTS.md §3)
 # ---------------------------------------------------------------------------
-
 
 @app.route("/recipes/search")
 def recipes_search():
-    """Search recipes via Edamam API with error handling (CONTRACTS.md §3, §5)."""
-    q = (request.args.get("q") or "").strip()
-    recipes = []
+    """Edamam search + DB upsert (CONTRACTS.md §3, §5).
+
+    Failure codes (all return HTTP 200 with Bootstrap alert):
+      timeout          — outbound request exceeds EDAMAM_TIMEOUT seconds
+      rate_limited     — HTTP 429 from Edamam
+      upstream_error   — other non-2xx (401/403 logged at ERROR)
+      upstream_invalid — 2xx but response can't be parsed
+    """
+    q            = (request.args.get("q") or "").strip()
+    recipes      = []
     search_error = None
-    
+
     if q:
         if not _edamam_configured():
             flash(
@@ -456,372 +431,266 @@ def recipes_search():
             search_error = "not_configured"
         else:
             try:
-                # Call Edamam API with 4-second timeout per contract
-                params = {
-                    "type": "public",
-                    "q": q,
-                    "app_id": os.environ.get("EDAMAM_APP_ID"),
-                    "app_key": os.environ.get("EDAMAM_APP_KEY"),
-                }
-                response = requests.get(
-                    "https://api.edamam.com/api/recipes/v2",
-                    params=params,
-                    timeout=4,
+                resp = http.get(
+                    EDAMAM_BASE,
+                    params={"type": "public", "q": q,
+                            "app_id": EDAMAM_APP_ID, "app_key": EDAMAM_APP_KEY},
+                    timeout=EDAMAM_TIMEOUT,
                 )
 
-                if response.status_code == 429:
-                    flash("Rate limit reached. Please try again later.", "warning")
+                if resp.status_code == 429:
+                    flash("Recipe search is rate limited — please try again in a moment.")
                     search_error = "rate_limited"
-                elif response.status_code >= 200 and response.status_code < 300:
-                    data = response.json()
-                    hits = data.get("hits", [])
-
-                    # Upsert recipes into DB
-                    db = get_db_session()
-                    for hit in hits:
-                        recipe_data = hit.get("recipe", {})
-                        api_id = recipe_data.get("uri", "")
-
-                        if not api_id:
-                            continue
-
-                        # Check if recipe already exists
-                        existing = db.exec(
-                            select(Recipe).where(Recipe.api_id == api_id)
-                        ).first()
-
-                        if existing:
-                            recipe = existing
-                        else:
-                            # Create new recipe
-                            recipe = Recipe(
-                                api_id=api_id,
-                                name=recipe_data.get("label", "Unknown"),
-                                image_url=recipe_data.get("image"),
-                                calories=recipe_data.get("calories"),
-                                protein=recipe_data.get("totalNutrients", {})
-                                .get("PROCNT", {})
-                                .get("quantity"),
-                                carbs=recipe_data.get("totalNutrients", {})
-                                .get("CHOCDF", {})
-                                .get("quantity"),
-                                fat=recipe_data.get("totalNutrients", {})
-                                .get("FAT", {})
-                                .get("quantity"),
-                                default_servings=int(recipe_data.get("yield", 1) or 1),
-                            )
-                            db.add(recipe)
-
-                        recipes.append(recipe)
-
-                    if existing or recipes:
-                        db.commit()
-
-                else:
-                    logger.error(f"Upstream error from Edamam: {response.status_code}")
-                    flash("Error searching recipes. Please try again.", "error")
+                elif not resp.ok:
+                    if resp.status_code in (401, 403):
+                        logger.error("Edamam auth error %s — check API keys", resp.status_code)
+                    else:
+                        logger.error("Edamam upstream error: HTTP %s", resp.status_code)
+                    flash("The recipe service returned an error. Please try again shortly.")
                     search_error = "upstream_error"
+                else:
+                    try:
+                        hits = resp.json().get("hits", [])
+                        db = get_db_session()
+                        for hit in hits:
+                            recipe = _parse_and_upsert_hit(hit, db)
+                            if recipe is not None:
+                                recipes.append(recipe)
+                    except (ValueError, KeyError, AttributeError):
+                        logger.exception("Could not parse Edamam response")
+                        flash("Could not read recipe results. Please try again.")
+                        search_error = "upstream_invalid"
 
-            except ReadTimeout:
-                flash("Request timed out. Please try again.", "error")
+            except http.exceptions.ReadTimeout:
+                flash("Recipe search timed out. Please try again.")
                 search_error = "timeout"
-                logger.warning(f"Edamam request timeout for query: {q}")
-            except RequestException as e:
-                logger.exception(f"Upstream error from Edamam: {e}")
-                flash("Error connecting to recipe service.", "error")
+            except http.exceptions.RequestException:
+                logger.exception("Edamam request failed")
+                flash("Could not reach the recipe service. Please try again.")
                 search_error = "upstream_error"
-            except Exception as e:
-                logger.exception(f"Error parsing Edamam response: {e}")
-                flash("Error processing recipe data.", "error")
-                search_error = "upstream_invalid"
-    elif DEMO_MOCK_RECIPES_ENABLED:
-        recipes = _demo_recipe_summaries()
-    
+
+    else:
+        db = get_db_session()
+        recipes = db.exec(select(Recipe).limit(20)).all()
+
     return render_template(
         "recipes_search.html",
         title="Discover recipes",
         q=q,
         recipes=recipes,
         search_error=search_error,
-        show_demo_banner=DEMO_MOCK_RECIPES_ENABLED and bool(recipes) and not q,
+        show_demo_banner=False,
     )
 
 
 @app.route("/recipes/<int:recipe_id>")
 def recipe_detail(recipe_id: int):
-    """Load cached recipe by ``recipes.id``; unknown id → 404 (CONTRACTS.md §3)."""
+    """Recipe detail — unknown id → 404 per CONTRACTS.md §3."""
     db = get_db_session()
     recipe = db.get(Recipe, recipe_id)
-    
     if recipe is None:
         abort(404)
-    
-    # Fetch ingredients for this recipe
+
     ingredients = db.exec(
         select(Ingredient).where(Ingredient.recipe_id == recipe_id)
     ).all()
-    
-    demo_preview = DEMO_MOCK_RECIPES_ENABLED and recipe_id in (1, 2)
-    
+
     return render_template(
         "recipe_detail.html",
-        title=(recipe.name if recipe else "Recipe"),
+        title=recipe.name,
         recipe=recipe,
         ingredients=ingredients,
-        demo_preview=demo_preview,
+        demo_preview=False,
     )
 
 
 @app.route("/recipes/scale", methods=["POST"])
 @login_required
 def recipes_scale():
-    """CONTRACTS.md §3 ``POST /recipes/scale`` — JSON scale (auth: session today).
-
-    Read default_servings + ingredients from DB (Justin schema).
-    """
-
+    """Scaled ingredient JSON (CONTRACTS.md §3). Auth: required."""
     if not request.is_json:
-        return (
-            jsonify(error="bad_request", message="Expected Content-Type: application/json"),
-            400,
-        )
+        return jsonify(error="bad_request", message="Expected Content-Type: application/json"), 400
 
     payload = request.get_json(silent=True)
     if not isinstance(payload, dict):
         return jsonify(error="bad_request", message="Invalid JSON body"), 400
 
     if "recipe_id" not in payload or "target_servings" not in payload:
-        return (
-            jsonify(error="bad_request", message="Missing recipe_id or target_servings"),
-            400,
-        )
+        return jsonify(error="bad_request", message="Missing recipe_id or target_servings"), 400
 
     try:
-        recipe_id = int(payload["recipe_id"])
+        recipe_id       = int(payload["recipe_id"])
         target_servings = int(payload["target_servings"])
     except (TypeError, ValueError):
-        return (
-            jsonify(error="bad_request", message="recipe_id and target_servings must be integers"),
-            400,
-        )
+        return jsonify(error="bad_request",
+                       message="recipe_id and target_servings must be integers"), 400
 
     if target_servings <= 0:
-        return jsonify(error="bad_request", message="target_servings must be greater than zero"), 400
+        return jsonify(error="bad_request",
+                       message="target_servings must be greater than zero"), 400
 
     db = get_db_session()
     recipe = db.get(Recipe, recipe_id)
-    
     if recipe is None:
-        # Try demo if enabled
-        if DEMO_MOCK_RECIPES_ENABLED:
-            recipe, ingredients = _scale_recipe_ingredients(recipe_id, target_servings)
-            if recipe is None:
-                return jsonify(error="not_found", message="Recipe not found"), 404
-            return jsonify(
-                recipe_id=recipe.id,
-                target_servings=target_servings,
-                default_servings=recipe.default_servings,
-                ingredients=ingredients,
-            )
         return jsonify(error="not_found", message="Recipe not found"), 404
 
-    # Fetch ingredients
-    ingredients_rows = db.exec(
+    ingredients = db.exec(
         select(Ingredient).where(Ingredient.recipe_id == recipe_id)
     ).all()
-    
-    # Scale ingredients
-    default = float(recipe.default_servings)
-    if default <= 0:
-        return jsonify(error="bad_request", message="Invalid recipe servings"), 400
-    
-    factor = target_servings / default
-    scaled = []
-    for ing in ingredients_rows:
-        qty = round(float(ing.quantity) * factor, 2)
-        scaled.append({"name": ing.name, "quantity": qty, "unit": ing.unit})
+
+    factor = target_servings / float(recipe.default_servings or 1)
 
     return jsonify(
         recipe_id=recipe.id,
         target_servings=target_servings,
         default_servings=recipe.default_servings,
-        ingredients=scaled,
+        ingredients=[
+            {"name": i.name, "quantity": round(i.quantity * factor, 2), "unit": i.unit}
+            for i in ingredients
+        ],
     )
 
 
 @app.route("/nutrition/<int:recipe_id>")
-def get_nutrition(recipe_id: int):
-    """Return scaled nutrition JSON for a cached recipe (CONTRACTS.md §3)."""
-    servings = request.args.get("servings", type=int)
-    
+def nutrition(recipe_id: int):
+    """Scaled macro JSON (CONTRACTS.md §3). Auth: not required."""
     db = get_db_session()
     recipe = db.get(Recipe, recipe_id)
-    
     if recipe is None:
         return jsonify(error="not_found", message="Recipe not found"), 404
-    
-    # Use default_servings if servings not specified
-    if servings is None:
-        servings = recipe.default_servings
-    
-    # Calculate scaled nutrition
-    default = float(recipe.default_servings)
-    if default <= 0:
-        default = 1
-    
-    scale_factor = servings / default
-    
+
+    default = float(recipe.default_servings or 1)
+    try:
+        servings = float(request.args.get("servings", default))
+        if servings <= 0:
+            servings = default
+    except (TypeError, ValueError):
+        servings = default
+
+    factor = servings / default
+
+    def _scale(val):
+        return round(val * factor, 1) if val is not None else None
+
     return jsonify(
-        recipe_id=recipe_id,
+        recipe_id=recipe.id,
         servings=servings,
-        calories=round((recipe.calories or 0) * scale_factor, 2) if recipe.calories else 0,
-        protein=round((recipe.protein or 0) * scale_factor, 2) if recipe.protein else 0,
-        carbs=round((recipe.carbs or 0) * scale_factor, 2) if recipe.carbs else 0,
-        fat=round((recipe.fat or 0) * scale_factor, 2) if recipe.fat else 0,
+        calories=_scale(recipe.calories),
+        protein=_scale(recipe.protein),
+        carbs=_scale(recipe.carbs),
+        fat=_scale(recipe.fat),
     )
 
 
-@app.route("/mealplan", methods=["GET"])
+# ---------------------------------------------------------------------------
+# Routes — meal plan (Sam — CONTRACTS.md §3)
+# ---------------------------------------------------------------------------
+
+@app.route("/mealplan", methods=["GET", "POST"])
 @login_required
 def mealplan():
-    """Show the current user's week grid Mon–Sun."""
+    """Weekly plan grid; POST upserts one (user, day) row (CONTRACTS.md §3)."""
+    if request.method == "POST":
+        try:
+            day_of_week = int(request.form["day_of_week"])
+            recipe_id   = int(request.form["recipe_id"])
+            servings    = int(request.form["servings"])
+        except (KeyError, TypeError, ValueError):
+            flash("Invalid form data.")
+            return redirect(url_for("mealplan"))
+
+        if not (0 <= day_of_week <= 6) or servings <= 0:
+            flash("Invalid day or servings value.")
+            return redirect(url_for("mealplan"))
+
+        db = get_db_session()
+        if db.get(Recipe, recipe_id) is None:
+            flash("Recipe not found.")
+            return redirect(url_for("mealplan"))
+
+        existing = db.exec(
+            select(MealPlan).where(
+                MealPlan.user_id == current_user.id,
+                MealPlan.day_of_week == day_of_week,
+            )
+        ).first()
+
+        if existing:
+            existing.recipe_id = recipe_id
+            existing.servings  = servings
+            db.add(existing)
+        else:
+            db.add(MealPlan(
+                user_id=current_user.id,
+                day_of_week=day_of_week,
+                recipe_id=recipe_id,
+                servings=servings,
+            ))
+        db.commit()
+        flash("Meal plan updated.")
+        return redirect(url_for("mealplan"))
+
+    # GET
     db = get_db_session()
-    plans = db.exec(
+    rows = db.exec(
         select(MealPlan).where(MealPlan.user_id == current_user.id)
     ).all()
-    
-    planned = {plan.day_of_week: plan for plan in plans}
-    
-    return render_template(
-        "mealplan.html",
-        title="Meal plan",
-        planned=planned,
-    )
 
+    planned = {}
+    for row in rows:
+        recipe = db.get(Recipe, row.recipe_id)
+        planned[row.day_of_week] = {
+            "recipe_id": row.recipe_id,
+            "servings":  row.servings,
+            "name":      recipe.name if recipe else None,
+        }
 
-@app.route("/mealplan", methods=["POST"])
-@login_required
-def mealplan_post():
-    """Add or replace the plan for a single weekday."""
-    day_of_week = request.form.get("day_of_week")
-    recipe_id = request.form.get("recipe_id")
-    servings = request.form.get("servings")
-    
-    if not day_of_week or not recipe_id or not servings:
-        flash("Missing required fields.")
-        return redirect(url_for("mealplan"))
-    
-    try:
-        day_of_week = int(day_of_week)
-        recipe_id = int(recipe_id)
-        servings = int(servings)
-    except ValueError:
-        flash("Invalid input values.")
-        return redirect(url_for("mealplan"))
-    
-    if day_of_week < 0 or day_of_week > 6:
-        flash("Invalid day of week.")
-        return redirect(url_for("mealplan"))
-    
-    if servings <= 0:
-        flash("Servings must be greater than zero.")
-        return redirect(url_for("mealplan"))
-    
-    db = get_db_session()
-    recipe = db.get(Recipe, recipe_id)
-    if recipe is None:
-        flash("Recipe not found.")
-        return redirect(url_for("mealplan"))
-    
-    # Upsert meal plan
-    existing = db.exec(
-        select(MealPlan).where(
-            (MealPlan.user_id == current_user.id) & (MealPlan.day_of_week == day_of_week)
-        )
-    ).first()
-    
-    if existing:
-        existing.recipe_id = recipe_id
-        existing.servings = servings
-    else:
-        plan = MealPlan(
-            user_id=current_user.id,
-            day_of_week=day_of_week,
-            recipe_id=recipe_id,
-            servings=servings,
-        )
-        db.add(plan)
-    
-    db.commit()
-    flash("Meal plan updated!")
-    return redirect(url_for("mealplan"))
+    return render_template("mealplan.html", title="Meal plan", planned=planned)
 
 
 @app.route("/mealplan/<int:day>", methods=["DELETE"])
 @login_required
-def mealplan_delete(day: int):
-    """Clear one day's entry for the current user."""
-    if day < 0 or day > 6:
-        abort(400)
-    
+def mealplan_clear_day(day: int):
+    """Clear one day's entry (CONTRACTS.md §3). 404 if nothing planned."""
     db = get_db_session()
-    plan = db.exec(
+    row = db.exec(
         select(MealPlan).where(
-            (MealPlan.user_id == current_user.id) & (MealPlan.day_of_week == day)
+            MealPlan.user_id == current_user.id,
+            MealPlan.day_of_week == day,
         )
     ).first()
-    
-    if plan is None:
+
+    if row is None:
         abort(404)
-    
-    db.delete(plan)
+
+    db.delete(row)
     db.commit()
-    flash("Meal plan entry removed!")
+    flash("Day cleared.")
     return redirect(url_for("mealplan"))
-
-
-def _mealplan_suggest_source_rows():
-    """Recipes considered for meal-plan typeahead. Query `recipes` with LIMIT + ILIKE."""
-    db = get_db_session()
-    return db.exec(select(Recipe).limit(50)).all()
 
 
 @app.route("/mealplan/recipe-suggest")
 def mealplan_recipe_suggest():
-    """JSON for meal-plan recipe picker (scalable: swap source for DB / Edamam cache)."""
+    """JSON typeahead — returns up to 20 recipes matching query string `q`."""
     if not current_user.is_authenticated:
         return jsonify(recipes=[]), 401
-    q_raw = (request.args.get("q") or "").strip()
-    q = q_raw.lower()
-    
-    db = get_db_session()
-    if q:
-        # Search by name (case-insensitive) or by id
-        rows = db.exec(
-            select(Recipe).where(
-                (Recipe.name.ilike(f"%{q}%"))
-            ).limit(20)
-        ).all()
-    else:
-        rows = db.exec(select(Recipe).limit(20)).all()
-    
-    out = [
-        {
-            "id": r.id,
-            "name": r.name,
-            "image_url": r.image_url or "",
-        }
-        for r in rows
-    ]
-    return jsonify(recipes=out)
+
+    q    = (request.args.get("q") or "").strip().lower()
+    db   = get_db_session()
+    rows = db.exec(select(Recipe)).all()
+
+    pick = [r for r in rows if q in r.name.lower()][:20] if q else rows[:20]
+
+    return jsonify(recipes=[
+        {"id": r.id, "name": r.name, "image_url": r.image_url or ""}
+        for r in pick
+    ])
 
 
 # ---------------------------------------------------------------------------
-# First-run schema creation
+# Schema creation
 # ---------------------------------------------------------------------------
 
-# In production you'd use a migration tool (Alembic) instead.
-# For Week 5, this is enough — it creates tables if they don't exist.
 SQLModel.metadata.create_all(engine)
 
 
