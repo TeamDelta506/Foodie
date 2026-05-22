@@ -2,11 +2,11 @@
 
 **Team:** TeamDelta506  
 **Project:** Foodie — Recipe Scaler & Meal Planner  
-**Week:** 6  
+**Week:** 7 (extends Week 6 — OAuth, session hardening, Playwright e2e)  
 **Coordinator:** Sowmya Korasikha  
-**Last updated:** Wednesday, May 13, 2026 (PDT) — post–LLM session
+**Last updated:** Thursday, May 21, 2026 (PDT) — Week 7 OAuth contract revision
 
-This document is the team’s binding agreement for Week 6. Routes, tables, JSON envelopes, and failure semantics live here. When code disagrees with this file, **fix the code** unless the team agrees to revise the contract (small follow-up PR: `"Contract revision: <reason>"`).
+This document is the team’s binding agreement for Week 6 **and Week 7**. Week 6 routes remain in force unless revised below. Routes, tables, JSON envelopes, and failure semantics live here. When code disagrees with this file, **fix the code** unless the team agrees to revise the contract (small follow-up PR: `"Contract revision: <reason>"`).
 
 ---
 
@@ -14,13 +14,13 @@ This document is the team’s binding agreement for Week 6. Routes, tables, JSON
 
 ### Table: `users` (skeleton — carried forward)
 
-Matches the Week 5 starter. **Db-and-security** may refactor session auth to Flask-Login; columns stay the same unless the team opens a contract revision.
+Carried from Week 5/6. **Week 7 revision:** `password_hash` may be `NULL` when the account is created exclusively via OAuth (see §9). Password login **must reject** users with `password_hash IS NULL` using the same generic flash as a bad password (no account-type leak).
 
 | Column | Type | Constraints / notes |
 |--------|------|------------------------|
 | `id` | `INTEGER` | `PRIMARY KEY`, autoincrement |
 | `username` | `VARCHAR(80)` | `UNIQUE NOT NULL`, indexed |
-| `password_hash` | `VARCHAR(255)` | `NOT NULL` (Werkzeug hash) |
+| `password_hash` | `VARCHAR(255)` | **nullable** — `NULL` for OAuth-only accounts; non-null Werkzeug hash for password users |
 | `created_at` | `TIMESTAMP WITH TIME ZONE` | `NOT NULL`, default now (UTC) |
 
 ---
@@ -77,6 +77,25 @@ Normalized ingredient lines for a cached recipe.
 **Uniqueness:** `UNIQUE (user_id, day_of_week)`.
 
 ---
+### Table: `oauth_identities` (new — Week 7)
+
+Links an external OAuth provider account to a local `users` row. **One local user may have multiple identities** (e.g. GitHub today, Google later) via separate rows sharing the same `user_id`.
+
+| Column | Type | Constraints / notes |
+|--------|------|------------------------|
+| `id` | `INTEGER` | `PRIMARY KEY`, autoincrement |
+| `user_id` | `INTEGER` | `NOT NULL`, `REFERENCES users(id) ON DELETE CASCADE` |
+| `provider` | `VARCHAR(32)` | `NOT NULL` — e.g. `'github'` |
+| `provider_user_id` | `VARCHAR(64)` | `NOT NULL` — provider stable id (GitHub numeric `id` as string) |
+| `provider_login` | `VARCHAR(80)` | nullable — GitHub `login` at link time (audit/display) |
+| `created_at` | `TIMESTAMP WITH TIME ZONE` | `NOT NULL`, default now (UTC) |
+
+**Uniqueness:** `UNIQUE (provider, provider_user_id)` — prevents duplicate links to the same GitHub account.
+
+**Indexes:** index on `user_id` for lookup when listing a user’s linked providers.
+
+---
+
 
 ## 2. Identifier semantics
 
@@ -273,6 +292,67 @@ Values are **totals for the requested `servings`**, not per-serving, unless all 
 
 ---
 
+### `GET /login/github`
+
+**Purpose:** Start the GitHub OAuth authorization code flow (Authlib `authorize_redirect`).
+
+**Auth:** **Not required** (anonymous initiator).
+
+**Inputs:** none required. Optional query param `next` — internal path only (must start with `/`, no scheme/host); stored in server session and honored after successful callback; default redirect target is **`/mealplan`** if absent or invalid.
+
+**Success:** **`302`** redirect to `https://github.com/login/oauth/authorize` with Authlib-generated `client_id`, `redirect_uri`, `scope`, and `state`.
+
+**Errors:**
+
+| Condition | Status | Behavior |
+|-----------|--------|----------|
+| Missing OAuth env vars at startup | app fails on import/config | startup crash via `os.environ["KEY"]` |
+| Authlib/state setup failure | `302` → `/login` + flash | Log server-side; generic OAuth failure flash |
+
+**Tests:** Playwright smoke (coordinator) clicks login-page **Sign in with GitHub** link whose `href` resolves here. E2e does **not** follow the real GitHub redirect — see §11.
+
+---
+
+### `GET /auth/github/callback`
+
+**Purpose:** OAuth redirect URI registered with GitHub. Exchange `code` for token, fetch user profile, create-or-link local user, establish Flask-Login session.
+
+**Auth:** **Not required** on entry (anonymous return from GitHub).
+
+**Inputs (query — set by GitHub):**
+
+| Param | Required | Notes |
+|--------|----------|-------|
+| `code` | Yes on success | Authorization code — single use |
+| `state` | Yes | Must match value issued by `/login/github` (Authlib CSRF) |
+
+**Provider profile (GitHub `GET /user`) — fields Foodie requires:**
+
+| GitHub field | Required? | Local use | If missing/null |
+|--------------|-----------|-----------|-----------------|
+| `id` | **Yes** | `oauth_identities.provider_user_id` (string) | Abort login: flash generic failure, **`302` → `/login`**; log WARNING |
+| `login` | **Yes** for new username | `users.username` on create; `provider_login` on link row | Fallback username: `github-{id}` |
+| `email` | No | **Not stored** Week 7 | Ignore |
+| `avatar_url` | No | **Not stored** Week 7 | Ignore |
+| `name` | No | **Not stored** Week 7 | Ignore |
+
+**Create-or-link algorithm (Sam):**
+
+1. Validate `state`; on failure → flash + redirect `/login`.
+2. Exchange `code` for token via Authlib. On failure → flash + redirect `/login`; log exception.
+3. Fetch GitHub user JSON. If `id` missing → flash + redirect `/login` (never 500 on partial payload).
+4. Lookup `oauth_identities` where `provider='github'` AND `provider_user_id=str(id)`.
+   - **Found:** load linked `users` row → `login_user(user, remember=remember flag)`.
+   - **Not found:** username = `login` or `github-{id}`. If username exists with **no** GitHub identity → **link** (insert identity only). If username free → **create** user (`password_hash=NULL`) + identity. If collision unresolvable → append `-{id}` suffix to username.
+5. Clear OAuth scratch keys from Flask `session`.
+6. **`302` redirect** to `next` or **`/mealplan`**.
+
+**Success:** **`302`** to post-login page; navbar shows **`Logged in as {username}`** (§9).
+
+**Errors:** user-visible OAuth failures → **`302` → `/login`** + generic flash (no provider error string leakage).
+
+---
+
 ## 4. Authorization rules
 
 | Resource / action | Who | Notes |
@@ -283,7 +363,9 @@ Values are **totals for the requested `servings`**, not per-serving, unless all 
 
 **OWASP-style “not yours” rule (Week 6 scope):** routes are only **`/mealplan`** scoped to **session user**. Cross-user attacking is not applicable via IDOR URLs. If you introduce recipe ownership later, use **`404`** for unauthorized rows — never `403` for existence leaks.
 
-**Flask-Login:** Db-and-security implements `login_user`, `logout_user`, `current_user`, `@login_required`. Until merged, skeleton session cookies are acceptable **only** if tests can’t land — target is Flask-Login per assignment Study Guide.
+**Flask-Login (Week 6 — done):** `login_user`, `logout_user`, `current_user`, `@login_required`.
+
+**OAuth (Week 7):** GitHub routes in §3 supplement password login; both coexist. Password form stays on `/login` until a future week retires it.
 
 ---
 
@@ -318,12 +400,12 @@ Values are **totals for the requested `servings`**, not per-serving, unless all 
 - **One meal per day.** Multi-slot days (breakfast/lunch/dinner) **deferred**.
 - **“Save recipe” language** in the About page means **assign to meal plan**, not a separate favorites table in Week 6.
 - **Anonymous search consumes Edamam quota** — acceptable for demo; production would add auth-gated search or server-side caching policies.
-- **CSRF:** forms don’t yet use CSRF tokens — acceptable Week 6; Week 7 hardening per course roadmap.
+- **CSRF (Week 7):** Flask-WTF CSRF on **every state-changing HTML form**. See §10.
 - **Backup USDA API** — not wired in Week 6 automated tests.
 
 ---
 
-## 7. Role boundaries
+## 7. Role boundaries (Week 6 baseline — see §12 for Week 7)
 
 ### Server-side — **Sam (TR4UM)**
 
@@ -375,7 +457,10 @@ Values are **totals for the requested `servings`**, not per-serving, unless all 
 
 ---
 
-## 8. Saturday demo script (team walk)
+## 8. Demo scripts
+
+### Week 6 walk (complete)
+
 
 1. Anonymous: `/recipes/search?q=tomato` → results render (or graceful failure banner if quota exceeded — still demonstrate flash).
 2. Click through to **`/recipes/<id>`** for a hit.
@@ -387,3 +472,143 @@ Values are **totals for the requested `servings`**, not per-serving, unless all 
 8. Log out; attempt **`GET /mealplan`** → redirected to login.
 
 All automated tests (`pytest`) green at submission time.
+
+### Week 7 walk (team Part 3)
+
+1. `/login` — password form + **Sign in with GitHub**.
+2. GitHub OAuth (manual once) → **`/mealplan`** + **`Logged in as {username}`**.
+3. Row in **`oauth_identities`** for GitHub id.
+4. Logout → `/`; `/mealplan` requires login again.
+5. Second GitHub login reuses same user/identity row.
+6. `pytest tests/e2e/` green including `test_full_lifecycle.py`.
+
+
+## 9. OAuth session, logout, and first-time user shape
+
+### Local `users` row after first-time GitHub login
+
+| Field | Value |
+|-------|--------|
+| `id` | new autoincrement PK |
+| `username` | GitHub `login`, or `github-{id}` fallback, or collision suffix |
+| `password_hash` | **`NULL`** |
+| `created_at` | UTC now |
+
+Matching `oauth_identities` row inserted in the same transaction.
+
+### Session state immediately after successful callback
+
+**Flask `session` dict (Flask-Login minimum):**
+
+| Key | Type | Meaning |
+|-----|------|---------|
+| `_user_id` | `str` | `str(users.id)` |
+| `_fresh` | `bool` | `True` on fresh login |
+
+OAuth scratch keys (`_oauth_state`, `next`, etc.) **cleared** before redirect.
+
+**Cookies set on success:**
+
+| Cookie | When | Flags (§10) |
+|--------|------|---------------|
+| Flask `session` | always | `HttpOnly`, `SameSite=Lax`, `Secure` off in docker dev |
+| `remember_token` | Remember me checked | `HttpOnly`, `SameSite=Lax` |
+
+**Navbar (Asia):** visible text **`Logged in as {username}`** (replaces Week 6 `Hi, {username}`).
+
+### Logout — `POST /logout`
+
+**Clears locally:** Flask-Login session, session cookie, `remember_token` if present.
+
+**Does not clear at provider:** no GitHub token revoke; no GitHub browser logout.
+
+**Response:** **`302` → `/`** with optional flash *You have been logged out.*
+
+---
+
+## 10. Session hardening and CSRF (Week 7)
+
+**Environment:** `load_dotenv()` before `os.environ[...]` in `app.py`. Required: `SECRET_KEY`, `OAUTH_CLIENT_ID`, `OAUTH_CLIENT_SECRET`, `DATABASE_URL`. Document in `.env.example`; secrets in gitignored `.env`.
+
+**Cookie flags:**
+
+| Setting | Value |
+|---------|--------|
+| `SESSION_COOKIE_HTTPONLY` | `True` |
+| `SESSION_COOKIE_SAMESITE` | `'Lax'` |
+| `SESSION_COOKIE_SECURE` | `False` in docker dev; `True` over HTTPS in production |
+
+**Session lifetime:**
+
+| Mode | Duration |
+|------|----------|
+| Default | **`7 days`** (`PERMANENT_SESSION_LIFETIME`) |
+| Remember me | **`30 days`** via `login_user(..., remember=True)` |
+
+**Remember me:** checkbox on `/login` named **`remember`**. Asia wires UI; Sam passes flag on password and OAuth login; Justin configures Flask-Login.
+
+**CSRF:** Flask-WTF on all **`POST`** HTML forms — `/login`, `/register`, `/logout`, `/mealplan`, planner forms. Invalid/missing token → **`400`**.
+
+---
+
+## 11. Test-only routes and external dependency honesty
+
+### `GET /test/login/<username>` (TESTING only)
+
+**Guard:** `if not app.config.get("TESTING"): abort(404)`.
+
+1. Lookup `users.username == <username>`; if missing create `User(username=..., password_hash=NULL)`.
+2. `login_user(user)`.
+3. **`302` → `/mealplan`**.
+
+Playwright stands in for post-GitHub-redirect login. Does not create `oauth_identities` unless callback is exercised separately.
+
+**Fixture:** `tests/e2e/conftest.py` sets `TESTING=True` and SQLite `DATABASE_URL`.
+
+### `external_dependency: github.com`
+
+**Specified here:** Foodie routes, parsing, defaults, DB effects given representative GitHub OAuth + profile JSON.
+
+**Not specified:** GitHub live redirects, rate limits, exact errors. Representative profile:
+
+```json
+{
+  "login": "octocat",
+  "id": 583231,
+  "avatar_url": "https://avatars.githubusercontent.com/u/583231?v=4",
+  "email": null
+}
+```
+
+**Gap:** Playwright does not drive real `github.com` authorize. Manual verify once; document in `team_walkthrough.md`.
+
+**OAuth app:** dev app under coordinator account; callback `http://localhost:5000/auth/github/callback`; secrets in `.env` only.
+
+---
+
+## 12. Week 7 role boundaries (additions)
+
+### Server-side — **Sam** — Week 7
+
+- Authlib GitHub provider; **`/login/github`**, **`/auth/github/callback`**
+- Create-or-link §3; never crash on partial payload
+- `tests/e2e/test_oauth_login_happy_path.py`
+
+### Client-side — **Asia** — Week 7
+
+- Sign in with GitHub button; keep password form; Remember me; navbar **`Logged in as {username}`**; logout → home
+- `tests/e2e/test_oauth_navbar.py`
+
+### DB-and-security — **Justin** — Week 7
+
+- `oauth_identities` model; nullable `password_hash`; cookie flags; CSRF; session lifetime
+- Extend `tests/test_db_schema_and_auth.py`; `tests/e2e/test_protected_page_auth.py`
+
+### Coordinator — **Sowmya** — Week 7
+
+- This contract + `coord_session.md`; test-login backdoor; `.env.example`
+- `tests/e2e/conftest.py`; `tests/e2e/test_smoke_login_page.py`
+
+---
+
+Tag submission **`week7-final`.

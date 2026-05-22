@@ -1,107 +1,154 @@
-# Coordinator–LLM Session — Foodie (Week 6)
+# Coordinator–LLM Session — Foodie (Week 7 OAuth)
 
 **Project:** Foodie — Recipe Scaler and Meal Planner  
 **Team:** TeamDelta506 (Sam, Asia, Justin, Sowmya)  
 **Coordinator:** Sowmya Korasikha  
-**LLM:** Claude (Anthropic) via Cursor IDE  
-**Session date:** Wednesday, May 13, 2026 (PDT)  
-**Working repo:** `github.com/TeamDelta506/Foodie` (default branch `master`, recreated from `lhhunghimself/week_5_506_starter`)
+**LLM:** Claude via Cursor IDE  
+**Session date:** Thursday, May 21, 2026 (PDT)  
+**Working repo:** `github.com/TeamDelta506/Foodie` — branch `week7/contracts-oauth`
 
 ---
 
-## Prologue — context the LLM gathered before we started
+## Prologue — context before decisions
 
-Before I (Sowmya) started making decisions, the LLM read and summarized:
+The LLM reviewed:
 
-1. **The team's agreed About page**
-   (`https://raw.githubusercontent.com/sowmyakb/week_5_506/master/templates/about.html`) — Foodie's project pitch, 7 endpoints, 4-table schema, Edamam Recipe Search API as primary data source (USDA FoodData Central as backup), and our role assignments:
-   - Sam — server-side  
-   - Asia — client-side (frontend, UI/UX, JavaScript & CSS)  
-   - Justin — database management, security, system design  
-   - Sowmya — coordinator (`CONTRACTS.md`, integration testing, PR review)
-2. **The team repo's state at session start** — Asia recreated `TeamDelta506/Foodie` on **2026-05-09** from the official `week_5_506_starter` template. At kickoff it was effectively the **raw skeleton**: starter `User` model, raw `session["user_id"]` auth, starter templates, `tests/test_auth.py`, placeholder `contracts/` notes — no Foodie-specific routes yet.
-3. **The Brew Crew / StudySpot worked example** (`https://github.com/lhhunghimself/study_spot_demo`) — structural model for `CONTRACTS.md` depth (schema tables, endpoint envelopes, external API failure semantics, role boundaries).
-4. **CI** — `.github/workflows/test.yml` was re-enabled on **`master`** (commit **`00bfdd0`**, CI job name **`test`**) *before* this contracts PR; branch protection (require status check `test`) was delegated to the org admin (Asia) as a follow-up click in GitHub Settings.
+1. **Week 6 `CONTRACTS.md` and `coord_session.md`** on `master` — binding spec for Edamam routes, meal plan, Flask-Login password auth.
+2. **Live app on EC2** — `User(username, password_hash NOT NULL)`, navbar `Hi, {username}`, post-login redirect to **`/`** (home), logout → home. **24/24 pytest green** on Week 6 tests.
+3. **Week 7 assignment** — OAuth via Authlib, Playwright e2e, session hardening, six contract items including honest `external_dependency: github.com`.
+4. **OAuth app setup (same day)** — org URL 404’d (Sowmya is org **member**, not owner). Dev OAuth app created under **personal** GitHub account; callback `http://localhost:5000/auth/github/callback`; credentials in gitignored `.env` on EC2; `.env.example` updated with placeholders.
 
 ---
 
 ## How we ran this session
 
-The LLM surfaced design forks **one at a time** (recipe cache semantics, `/nutrition` purpose, meal-plan granularity, Edamam failure/tuning, anon vs auth, identifier semantics). For each item Sowmya either chose a lane, pushed back, or **consulted teammates on Discord** when the call touched implementation load for Sam / Justin / Asia. The intent (per Canvas) is a transcript that shows **real engagement**, not coordinator-only dictation.
+Same pattern as Week 6: one design fork at a time, coordinator chooses or defaults after noting who is affected. Week 7 adds **cross-role coupling** (Sam’s callback redirect = Asia’s post-login UX = Justin’s session cookies = Playwright assertions).
 
 ---
 
 ## Session log
 
-<!-- Full decision log — mirrors the working notes file used during the live Cursor session -->
+### Decision 1 — Post-login landing page after OAuth
 
-### Decision 1 — What is the `recipes` table for?
+**LLM framing:** Week 6 password login redirects to **`/`** (home). OAuth could land anywhere. Protected page makes auth e2e meaningful.
 
-**LLM framing:** The About page lists `Recipes(id, api_id, name, image_url, calories, protein, carbs, fat)` — no `user_id`. The pitch says "save recipes …" Three options: **A** global Edamam cache, **B** per-user saved rows only, **C** cache + separate favorites table.
+**Options:** **A)** `/` home · **B)** `/mealplan` · **C)** honor `?next=` only
 
-**Coordinator response:** Sowmya surfaced **A vs B** to **Sam and Justin** on Discord; both endorsed **A** quickly.
+**Coordinator response:** **B — `/mealplan`**. Meal plan is the main authenticated feature; Playwright “protected page” tests already center on `/mealplan`. Optional `?next=` allowed for internal paths (Sam implements; default `/mealplan`).
 
-**Resolution:** **`recipes` is a shared cache**; “save” in Week 6 means **meal-plan assignment**, not a favorites feature. Documented as Known limitation §6 in `CONTRACTS.md`.
-
----
-
-### Decision 4 — Is `/nutrition/<id>` redundant with `/recipes/<id>`?
-
-**LLM framing:** Detail HTML already shows macros — standalone `/nutrition` looked redundant until repurposed.
-
-**LLM pushback:** Initially argued drop; then reversed — repurposing as **scaled JSON** matches "Recipe Scaler" and keeps the About page’s **7-endpoint** plan intact.
-
-**Coordinator response:** Sowmya chose **repurpose** (**Option B** in session).
-
-**Resolution:** **`GET /nutrition/<id>?servings=N`** returns JSON scaled macros (omit `servings` → use `default_servings` on the recipe row).
+**Cross-role:** Asia — navbar must read authenticated on meal plan page. Justin — session cookie set before redirect. Sam — callback final redirect target.
 
 ---
 
-### Decision 3 — Meal plan slots: per day vs per meal-type
+### Decision 2 — GitHub profile fields and missing-data defaults
 
-**LLM framing:** Schema sketch has no `meal_type`; realistic apps often want /meal-types.
+**LLM framing:** GitHub may omit `email`; `login` is usually present. Contract must never 500 on partial JSON.
 
-**Coordinator response:** Sowmya posted **A vs B** to the team**; channel quiet by cutoff → coordinator exercised the documented default.
+**Coordinator response:**
 
-**Resolution:** **One slot per weekday** (`UNIQUE (user_id, day_of_week)`). **0 = Monday … 6 = Sunday**. Multi-slot days → Week 7+ / §6 known limitation.
+| Field | Required | Missing behavior |
+|-------|----------|------------------|
+| `id` | **Yes** | Fail login gracefully → `/login` + flash |
+| `login` | Preferred | Fallback username `github-{id}` |
+| `email`, `avatar_url`, `name` | No | Ignore — not stored Week 7 |
 
----
+**Cross-role:** Sam implements mapping. Justin stores only `oauth_identities` + existing `users` columns (no new profile columns). Asia display uses `users.username` only.
 
-### Decision 5 — Edamam failure handling for search
-
-**Resolution:** **4s** outbound timeout. **Four** user-facing codes: **`timeout`**, **`rate_limited`**, **`upstream_error`**, **`upstream_invalid`**. Upstream **401/403** fold into **`upstream_error`** with loud **server logs** — not a separate flash string. Search stays **HTTP 200** with visible alert on upstream failure; may still show cached hits. §6 **softened** language on indefinite caching vs production compliance paths (**Premium / TTL / USDA**).
-
----
-
-### Decision 6 — Anonymous access footprint
-
-**Resolution:** **Public read** for search + detail + nutrition JSON. **Login** for scale + all meal-plan routes (redirect to login).
+**Pushback noted:** Study guide shows email — we deliberately **don’t persist email** Week 7 to avoid schema creep; can revise later if product needs it.
 
 ---
 
-### Decision 2 — Meaning of `<id>` in `/recipes/<id>` and `/nutrition/<id>`
+### Decision 3 — Link model: one user, multiple OAuth identities
 
-**Resolution:** **`<id>` is always internal `recipes.id` (PK)**. **`api_id`** is for upsert/dedupe only.
+**LLM framing:** Password user later clicks “Sign in with GitHub” — same person, two auth methods.
+
+**Coordinator response:** New **`oauth_identities`** table with **`UNIQUE (provider, provider_user_id)`**. Link algorithm:
+
+1. Known GitHub id → existing identity → login that user  
+2. Unknown GitHub id + matching local username without GitHub row → **link**  
+3. Unknown GitHub id + no user → **create** OAuth-only user (`password_hash NULL`)
+
+**Cross-role:** Justin owns table + migration + nullable `password_hash`. Sam owns algorithm. Justin’s schema test must assert table exists before Sam’s callback test passes.
 
 ---
 
-## Teammate consultation summary
+### Decision 4 — Session state and navbar copy
 
-| Topic | Where raised | Outcome |
-|--------|----------------|----------|
-| Global cache vs favorites | Discord — Sam, Justin | Unanimous **A** (cache) |
-| One meal vs three per day | Discord — whole dev team | Coordinator default **A** after quiet window |
+**LLM framing:** Assignment Playwright examples assert **`Logged in as {username}`**; Foodie currently shows **`Hi, {username}`**.
+
+**Coordinator response:** Contract requires navbar **`Logged in as {username}`** for Week 7 e2e consistency. Asia updates `base.html`.
+
+**Session after callback:** Flask-Login `_user_id` + `_fresh`; `remember_token` when Remember me set. Justin sets cookie flags §10.
 
 ---
 
-## Artifacts delivered after this session
+### Decision 5 — Logout scope
 
-- `CONTRACTS.md` at repo root (binding spec).  
-- **Four** new pytest modules under `tests/` — all **red** at opening merge; green when roles land.  
-- Coordinator transcript (**this file**), lightly edited for clarity (typos / ordering only).
+**LLM framing:** Users may expect “log out everywhere.” OAuth providers are separate sessions.
+
+**Coordinator response:** **Local only** — `logout_user()`, clear session + remember cookies. **Do not** revoke GitHub token or log out of github.com. Redirect **`/`** with optional flash.
+
+**Cross-role:** Asia — logout button stays POST form (CSRF token added by Justin). Justin — CSRF on logout form.
+
+---
+
+### Decision 6 — What we cannot put in the contract (external dependency)
+
+**Coordinator response:** Document **`external_dependency: github.com`** in §11 with representative JSON only. Playwright uses **`/test/login/<username>`** backdoor — does not replace manual one-time GitHub redirect check. Gap named for `team_walkthrough.md`.
+
+**Cross-role:** Coordinator owns backdoor + `tests/e2e/conftest.py`. All role Playwright tests depend on backdoor until Sam ships real callback (optional mock callback tests).
+
+---
+
+### Decision 7 — Remember me and session lifetime
+
+**Coordinator response:** Default session **7 days**; Remember me **30 days** via Flask-Login `remember=True`. Checkbox name **`remember`** on login form.
+
+**Cross-role:** Asia adds checkbox; Sam passes flag on password + OAuth login; Justin configures `PERMANENT_SESSION_LIFETIME` and cookie flags.
+
+---
+
+### Decision 8 — CSRF (Week 6 limitation closed)
+
+**Coordinator response:** Flask-WTF CSRF on **all state-changing HTML forms** — closes Week 6 §6 limitation. Part 3 lifecycle test will POST without token and expect rejection.
+
+**Cross-role:** Justin enables globally; Asia adds `{{ csrf_token() }}` to every form she owns or touches; Sam ensures any new OAuth-related POST forms include token if added.
+
+---
+
+## Teammate consultation
+
+| Topic | Where | Outcome |
+|-------|--------|---------|
+| Org OAuth app | GitHub UI | 404 — Sowmya not org owner; **personal dev app** used instead |
+| Post-login page | Coordinator default | **`/mealplan`** — will confirm in Discord if Asia/Sam prefer `/` |
+| Navbar copy change | Coordinator default | **`Logged in as`** — aligns with assignment e2e wording |
+
+*Note:* Discord ping planned after contract PR opens — teammates can comment on PR before implementing.
+
+---
+
+## Artifacts from this session
+
+| File | Status |
+|------|--------|
+| `CONTRACTS.md` | Week 7 OAuth sections §3 routes, §9–§12, schema + demo updates |
+| `coord_session.md` | This file |
+| `.env.example` | OAuth placeholders (prior step, same branch) |
+
+**Not in this PR (coordinator Step 2):** test-login backdoor, `tests/e2e/conftest.py`, Playwright smoke test — follow after team acknowledges contract.
+
+---
+
+## Integration log (Week 7)
+
+| Date | Event | Resolution |
+|------|--------|------------|
+| 2026-05-21 | Org OAuth settings 404 for coordinator | Personal GitHub OAuth app; documented in §11 |
+| — | *(add rows as PRs land)* | |
 
 ---
 
 ## Reflection
 
-The useful friction in this session was deciding what *not* to build (favorites table, multi-meal days, extra error taxonomies) so Week 6 stays integration-shaped. The counterweight was **`/nutrition` repurposing** — a small surface area with high demo value.
+Week 7 contract is harder than Week 6 because **half the behavior lives on GitHub’s servers**. The honest move is naming that gap and giving the team a **test-login backdoor** plus concrete shapes for everything *we* control (DB link table, session cookies, redirect targets). The highest-risk integration point is **create-or-link** when a password user first attaches GitHub — Sam and Justin should pair on that branch before Asia polishes navbar copy.
