@@ -23,6 +23,12 @@ name: Tests
 jobs:
   test:
     runs-on: ubuntu-latest
+    env:
+      SECRET_KEY: test-secret-key-for-ci
+      DATABASE_URL: sqlite:///:memory:
+      OAUTH_CLIENT_ID: ci-oauth-client-id
+      OAUTH_CLIENT_SECRET: ci-oauth-client-secret
+
 
     steps:
       - uses: actions/checkout@v4
@@ -36,6 +42,7 @@ jobs:
         run: |
           python -m pip install --upgrade pip
           pip install -r requirements.txt
+          playwright install chromium
 
       - name: Run tests
         run: pytest -v

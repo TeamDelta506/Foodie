@@ -10,3 +10,6 @@ Flask-Login
 requests>=2.31.0
 responses>=0.25.0
 beautifulsoup4>=4.12.0
+python-dotenv>=1.0.0
+playwright>=1.40.0
+pytest-playwright>=0.4.0
