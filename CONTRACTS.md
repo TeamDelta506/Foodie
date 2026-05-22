@@ -8,6 +8,8 @@
 
 This document is the team’s binding agreement for Week 6 **and Week 7**. Week 6 routes remain in force unless revised below. Routes, tables, JSON envelopes, and failure semantics live here. When code disagrees with this file, **fix the code** unless the team agrees to revise the contract (small follow-up PR: `"Contract revision: <reason>"`).
 
+**Week 7 revision scope (this PR):** GitHub OAuth (`/login/github`, `/auth/github/callback`), `oauth_identities` schema, session hardening (cookie flags, CSRF, lifetime), test-login backdoor, Playwright e2e hooks. Week 6 Edamam/meal-plan contracts unchanged unless noted.
+
 ---
 
 ## 1. Schema
@@ -292,6 +294,32 @@ Values are **totals for the requested `servings`**, not per-serving, unless all 
 
 ---
 
+### `GET /login` (existing — Week 7 UI additions)
+
+**Purpose:** Render password login form **and** entry point for OAuth.
+
+**Auth:** Not required.
+
+**Success:** `200` HTML. Page **must** include:
+
+| Element | Requirement |
+|---------|-------------|
+| Password form | `POST` to `/login` — **kept** (Week 8 may revisit removal) |
+| **Sign in with GitHub** | Link or button with `href="{{ url_for('login_github') }}"` or `/login/github` |
+| **Remember me** | Checkbox `name="remember"` — value `y` when checked (Asia picks exact markup; Sam/Justin read presence/`y`) |
+
+**Tests:** `tests/e2e/test_smoke_login_page.py` (coordinator); `tests/e2e/test_oauth_navbar.py` (Asia).
+
+---
+
+### `POST /login` (existing — Week 7 redirect alignment)
+
+**Week 7 change:** on successful password auth, **`302` → `/mealplan`** (same deliberate landing as OAuth — replaces Week 6 redirect to `/`).
+
+**Remember me:** pass checkbox into `login_user(user, remember=<bool>)`.
+
+---
+
 ### `GET /login/github`
 
 **Purpose:** Start the GitHub OAuth authorization code flow (Authlib `authorize_redirect`).
@@ -300,16 +328,22 @@ Values are **totals for the requested `servings`**, not per-serving, unless all 
 
 **Inputs:** none required. Optional query param `next` — internal path only (must start with `/`, no scheme/host); stored in server session and honored after successful callback; default redirect target is **`/mealplan`** if absent or invalid.
 
+**OAuth scope (server → GitHub):** `read:user` (minimum). Do **not** request repo or org scopes for Week 7.
+
+**Remember me (OAuth path):** if the user checked **Remember me** on `GET /login` before clicking GitHub, Sam stores `session["remember_oauth"]=True` when initiating redirect; callback reads it for `login_user(..., remember=...)`, then clears the flag.
+
 **Success:** **`302`** redirect to `https://github.com/login/oauth/authorize` with Authlib-generated `client_id`, `redirect_uri`, `scope`, and `state`.
+
+**Output:** no HTML body — browser leaves Foodie for GitHub.
 
 **Errors:**
 
 | Condition | Status | Behavior |
 |-----------|--------|----------|
 | Missing OAuth env vars at startup | app fails on import/config | startup crash via `os.environ["KEY"]` |
-| Authlib/state setup failure | `302` → `/login` + flash | Log server-side; generic OAuth failure flash |
+| Authlib/state setup failure | `302` → `/login` + flash | Log server-side; user-facing flash: *"GitHub sign-in is unavailable. Try again or use password login."* |
 
-**Tests:** Playwright smoke (coordinator) clicks login-page **Sign in with GitHub** link whose `href` resolves here. E2e does **not** follow the real GitHub redirect — see §11.
+**Tests:** Playwright smoke (coordinator) — `tests/e2e/test_smoke_login_page.py` clicks **Sign in with GitHub** link whose `href` resolves here. E2e does **not** follow the real GitHub redirect — see §11.
 
 ---
 
@@ -347,9 +381,13 @@ Values are **totals for the requested `servings`**, not per-serving, unless all 
 5. Clear OAuth scratch keys from Flask `session`.
 6. **`302` redirect** to `next` or **`/mealplan`**.
 
-**Success:** **`302`** to post-login page; navbar shows **`Logged in as {username}`** (§9).
+**Token handling:** GitHub access token is used only inside the callback to fetch profile. **Do not persist** access token in DB or session.
 
-**Errors:** user-visible OAuth failures → **`302` → `/login`** + generic flash (no provider error string leakage).
+**Success response:** **`302`** to `next` or **`/mealplan`**. Response sets session cookie (+ optional `remember_token`). Navbar on landing page shows **`Logged in as {username}`** (§9).
+
+**Errors:** all user-visible OAuth failures → **`302` → `/login`** + flash *"GitHub sign-in failed. Try again or use password login."* (no raw provider error text).
+
+**Tests:** `tests/e2e/test_oauth_login_happy_path.py` (Sam); Part 3 `tests/e2e/test_full_lifecycle.py` first-time + returning login.
 
 ---
 
@@ -358,8 +396,10 @@ Values are **totals for the requested `servings`**, not per-serving, unless all 
 | Resource / action | Who | Notes |
 |-------------------|-----|------|
 | Search, recipe detail, nutrition JSON | **Public** | Rate limits still apply at Edamam |
+| `GET /login`, `GET /login/github`, `GET /auth/github/callback` | **Public** | OAuth initiator + callback |
 | Scale JSON, all meal-plan routes | **Authenticated** | Redirect (`302`) to login if anonymous |
 | Meal-plan rows | **Owner only** | Scoped by `user_id = current_user.id` |
+| `GET /test/login/<username>` | **TESTING only** | 404 when `TESTING` false — §11 |
 
 **OWASP-style “not yours” rule (Week 6 scope):** routes are only **`/mealplan`** scoped to **session user**. Cross-user attacking is not applicable via IDOR URLs. If you introduce recipe ownership later, use **`404`** for unauthorized rows — never `403` for existence leaks.
 
@@ -485,27 +525,43 @@ All automated tests (`pytest`) green at submission time.
 
 ## 9. OAuth session, logout, and first-time user shape
 
-### Local `users` row after first-time GitHub login
+### Local records after first-time GitHub login (same DB transaction)
 
-| Field | Value |
-|-------|--------|
-| `id` | new autoincrement PK |
-| `username` | GitHub `login`, or `github-{id}` fallback, or collision suffix |
+**`users` row:**
+
+| Column | Type / value |
+|--------|----------------|
+| `id` | `INTEGER` PK (new) |
+| `username` | `VARCHAR(80)` — GitHub `login`, or `github-{id}` fallback, or `{login}-{id}` collision suffix |
 | `password_hash` | **`NULL`** |
+| `created_at` | `TIMESTAMP WITH TIME ZONE` UTC now |
+
+**`oauth_identities` row (inserted with user):**
+
+| Column | Type / value |
+|--------|----------------|
+| `id` | `INTEGER` PK (new) |
+| `user_id` | `INTEGER` FK → `users.id` |
+| `provider` | `'github'` |
+| `provider_user_id` | `VARCHAR(64)` — `str(github.id)` |
+| `provider_login` | `VARCHAR(80)` — GitHub `login` or `NULL` if absent |
 | `created_at` | UTC now |
 
-Matching `oauth_identities` row inserted in the same transaction.
+**Returning GitHub login:** step 4 finds existing identity → **no new rows**; same `users.id` reused.
 
 ### Session state immediately after successful callback
 
-**Flask `session` dict (Flask-Login minimum):**
+**Flask `session` dict immediately before redirect (Flask-Login):**
 
-| Key | Type | Meaning |
-|-----|------|---------|
-| `_user_id` | `str` | `str(users.id)` |
-| `_fresh` | `bool` | `True` on fresh login |
+| Key | Type | Value after successful callback |
+|-----|------|----------------------------------|
+| `_user_id` | `str` | `str(users.id)` — authenticated user |
+| `_fresh` | `bool` | `True` |
+| `_id` | `str` | Flask session id (signed) |
 
-OAuth scratch keys (`_oauth_state`, `next`, etc.) **cleared** before redirect.
+**Must be cleared before redirect:** `_oauth_state`, `next`, `remember_oauth`, any Authlib scratch keys.
+
+**Not stored in session after callback:** GitHub access token, GitHub `code`.
 
 **Cookies set on success:**
 
@@ -516,19 +572,43 @@ OAuth scratch keys (`_oauth_state`, `next`, etc.) **cleared** before redirect.
 
 **Navbar (Asia):** visible text **`Logged in as {username}`** (replaces Week 6 `Hi, {username}`).
 
-### Logout — `POST /logout`
+### Logout — `POST /logout` (existing route — Week 7 semantics unchanged)
 
-**Clears locally:** Flask-Login session, session cookie, `remember_token` if present.
+**Clears locally (Foodie only):**
 
-**Does not clear at provider:** no GitHub token revoke; no GitHub browser logout.
+| Item | Action |
+|------|--------|
+| Flask-Login session | `logout_user()` — removes `_user_id`, `_fresh` |
+| Signed session cookie | cleared / expired |
+| `remember_token` cookie | cleared if present |
+| Server-side session data | Flask session emptied |
 
-**Response:** **`302` → `/`** with optional flash *You have been logged out.*
+**Does *not* clear at provider (explicit):**
+
+| Item | Action |
+|------|--------|
+| GitHub OAuth token | **not** revoked (Foodie does not call GitHub revoke API) |
+| GitHub browser session | **unchanged** — user may still be logged in at github.com |
+| `oauth_identities` rows | **retained** — logout is session-only, not account deletion |
+
+**Response:** **`302` → `/`** with flash *"You have been logged out."*
+
+**Tests:** `tests/e2e/test_protected_page_auth.py` (Justin); Part 3 lifecycle logout step.
 
 ---
 
 ## 10. Session hardening and CSRF (Week 7)
 
-**Environment:** `load_dotenv()` before `os.environ[...]` in `app.py`. Required: `SECRET_KEY`, `OAUTH_CLIENT_ID`, `OAUTH_CLIENT_SECRET`, `DATABASE_URL`. Document in `.env.example`; secrets in gitignored `.env`.
+**Environment (`python-dotenv` — add to `requirements.txt`):** `load_dotenv()` as **first import side-effect** in `app.py`, before any `os.environ[...]`. Required keys (square-bracket access — crash if missing):
+
+| Variable | Purpose |
+|----------|---------|
+| `SECRET_KEY` | Signs Flask session cookie |
+| `OAUTH_CLIENT_ID` | GitHub OAuth app |
+| `OAUTH_CLIENT_SECRET` | GitHub OAuth app |
+| `DATABASE_URL` | Postgres (dev) / SQLite (e2e fixture) |
+
+Document names in **`.env.example`** (committed); real values in gitignored **`.env`** only.
 
 **Cookie flags:**
 
@@ -567,9 +647,11 @@ Playwright stands in for post-GitHub-redirect login. Does not create `oauth_iden
 
 ### `external_dependency: github.com`
 
-**Specified here:** Foodie routes, parsing, defaults, DB effects given representative GitHub OAuth + profile JSON.
+**What this contract specifies:** Foodie server behavior — our routes, Authlib exchange, field mapping, DB writes, session cookies, redirects — **given** a successful authorization `code` and a profile JSON shaped like the representative payload below.
 
-**Not specified:** GitHub live redirects, rate limits, exact errors. Representative profile:
+**What this contract cannot specify:** GitHub's authorize-page UI, whether the user approves, network failures on github.com, token-endpoint error bodies, rate limits, or field order. Those are verified manually once or left as documented gaps.
+
+**Representative GitHub user profile (Study Guide shape):**
 
 ```json
 {
@@ -588,27 +670,55 @@ Playwright stands in for post-GitHub-redirect login. Does not create `oauth_iden
 
 ## 12. Week 7 role boundaries (additions)
 
-### Server-side — **Sam** — Week 7
+### Server-side — **Sam (TR4UM)** — Week 7
 
-- Authlib GitHub provider; **`/login/github`**, **`/auth/github/callback`**
-- Create-or-link §3; never crash on partial payload
-- `tests/e2e/test_oauth_login_happy_path.py`
+- Register Authlib GitHub OAuth client (`OAUTH_CLIENT_ID`, `OAUTH_CLIENT_SECRET`)
+- Implement **`GET /login/github`**, **`GET /auth/github/callback`** per §3
+- Create-or-link algorithm; map missing provider fields per §3 table; **never 500** on partial payload
+- Do not persist GitHub access tokens
+- **`tests/e2e/test_oauth_login_happy_path.py`** — backdoor or callback mock; assert **`Logged in as <username>`** visible
 
-### Client-side — **Asia** — Week 7
+### Client-side — **Asia (LemonBirdy / citronoiseau)** — Week 7
 
-- Sign in with GitHub button; keep password form; Remember me; navbar **`Logged in as {username}`**; logout → home
-- `tests/e2e/test_oauth_navbar.py`
+- **`templates/login.html`:** **Sign in with GitHub** button + existing password form
+- Deliberate post-login landing aligns with **`/mealplan`** (navbar visible on protected page)
+- **Remember me** checkbox `name="remember"`; logout button clears session → **`/`**
+- **`templates/base.html`:** navbar copy **`Logged in as {username}`**
+- **`tests/e2e/test_oauth_navbar.py`** — logged-out user clicks GitHub entry → backdoor login → username in navbar
 
-### DB-and-security — **Justin** — Week 7
+### DB-and-security — **Justin (SpartenLife)** — Week 7
 
-- `oauth_identities` model; nullable `password_hash`; cookie flags; CSRF; session lifetime
-- Extend `tests/test_db_schema_and_auth.py`; `tests/e2e/test_protected_page_auth.py`
+- SQLModel **`OAuthIdentity`** / **`oauth_identities`** table §1; migration or clean schema update
+- Nullable **`users.password_hash`**; reject password login when NULL
+- Cookie flags §10; `PERMANENT_SESSION_LIFETIME`; remember-me duration
+- Flask-WTF CSRF on every state-changing form §10
+- Extend **`tests/test_db_schema_and_auth.py`** — assert `oauth_identities` columns + uniqueness
+- **`tests/e2e/test_protected_page_auth.py`** — `/mealplan` gated before login, open after backdoor, closed after logout (DOM)
 
-### Coordinator — **Sowmya** — Week 7
+### Coordinator — **Sowmya Korasikha** — Week 7
 
-- This contract + `coord_session.md`; test-login backdoor; `.env.example`
-- `tests/e2e/conftest.py`; `tests/e2e/test_smoke_login_page.py`
+- **`CONTRACTS.md`**, **`coord_session.md`**, integration log
+- **`GET /test/login/<username>`** §11; **`.env.example`**; GitHub OAuth app (dev credentials)
+- **`tests/e2e/conftest.py`** — `TESTING=True`, live server, SQLite DB
+- **`tests/e2e/test_smoke_login_page.py`** — app starts, login page loads, GitHub button present and clickable
 
 ---
 
-Tag submission **`week7-final`.
+## 13. Contract tests map (Week 7)
+
+| Contract clause | Enforcing test(s) |
+|-----------------|-------------------|
+| §3 `/login/github`, `/auth/github/callback` | Sam e2e; coordinator smoke (button → route) |
+| §3 provider field defaults | Sam unit/integration (optional); lifecycle test DB assert |
+| §9 first-time user + identity row | Part 3 `test_full_lifecycle.py` first-time login |
+| §9 returning login reuses row | Part 3 lifecycle returning login |
+| §9 session cookies after callback | Justin e2e protected-page test |
+| §9 logout local vs provider | Justin e2e; Part 3 lifecycle |
+| §10 CSRF rejection | Part 3 lifecycle tokenless POST |
+| §10 session expiry | Part 3 lifecycle short `PERMANENT_SESSION_LIFETIME` |
+| §11 test-login backdoor | All role Playwright tests |
+| §11 `external_dependency` gap | `team_walkthrough.md` gaps section (Part 3) |
+
+---
+
+Tag submission commit **`week7-final`**.

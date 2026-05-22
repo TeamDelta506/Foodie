@@ -28,15 +28,15 @@ Same pattern as Week 6: one design fork at a time, coordinator chooses or defaul
 
 ## Session log
 
-### Decision 1 — Post-login landing page after OAuth
+### Decision 1 — Post-login landing page (OAuth + password)
 
 **LLM framing:** Week 6 password login redirects to **`/`** (home). OAuth could land anywhere. Protected page makes auth e2e meaningful.
 
 **Options:** **A)** `/` home · **B)** `/mealplan` · **C)** honor `?next=` only
 
-**Coordinator response:** **B — `/mealplan`**. Meal plan is the main authenticated feature; Playwright “protected page” tests already center on `/mealplan`. Optional `?next=` allowed for internal paths (Sam implements; default `/mealplan`).
+**Coordinator response:** **B — `/mealplan` for both OAuth and password login** (Week 7 alignment). Meal plan is Foodie’s main authenticated surface; Justin’s e2e and Part 3 lifecycle already gate `/mealplan`. Optional internal `?next=` on OAuth start; default **`/mealplan`**.
 
-**Cross-role:** Asia — navbar must read authenticated on meal plan page. Justin — session cookie set before redirect. Sam — callback final redirect target.
+**Cross-role:** Asia — same landing for both login paths. Sam — callback + `POST /login` redirect. Justin — session cookie before redirect.
 
 ---
 
