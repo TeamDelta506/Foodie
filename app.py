@@ -11,6 +11,10 @@ Route ownership per CONTRACTS.md §7:
 
 import logging
 import os
+
+from dotenv import load_dotenv
+
+load_dotenv()  # before os.environ lookups (CONTRACTS.md §10)
 import random
 import uuid
 from datetime import datetime, timezone
@@ -40,9 +44,12 @@ logger = logging.getLogger(__name__)
 # ---------------------------------------------------------------------------
 
 app = Flask(__name__)
-app.config["SECRET_KEY"] = os.environ.get("SECRET_KEY", "dev-secret-not-for-production")
+app.config["SECRET_KEY"] = os.environ["SECRET_KEY"]
 
-DATABASE_URL = os.environ.get("DATABASE_URL", "postgresql://app:app@db:5432/app")
+DATABASE_URL = os.environ["DATABASE_URL"]
+OAUTH_CLIENT_ID = os.environ["OAUTH_CLIENT_ID"]
+OAUTH_CLIENT_SECRET = os.environ["OAUTH_CLIENT_SECRET"]
+
 engine = create_engine(DATABASE_URL, echo=False)
 
 S3_CONTENT_DIR = Path(__file__).parent / "S3_content"
@@ -101,7 +108,7 @@ class User(UserMixin, SQLModel, table=True):
 
     id:            int | None  = Field(default=None, primary_key=True)
     username:      str         = Field(unique=True, index=True, max_length=80)
-    password_hash: str         = Field(max_length=255)
+    password_hash: str | None  = Field(default=None, max_length=255, nullable=True)
     created_at:    datetime | None = Field(
         default=None,
         sa_column=Column(DateTime(timezone=True), nullable=False, server_default=func.now()),
@@ -502,7 +509,7 @@ def login():
     db = get_db_session()
     user = db.exec(select(User).where(User.username == username)).first()
 
-    if user is None or not check_password_hash(user.password_hash, password):
+    if user is None or user.password_hash is None or not check_password_hash(user.password_hash, password):
         flash("Invalid username or password.")
         return redirect(url_for("login"))
 
@@ -514,6 +521,22 @@ def login():
 def logout():
     logout_user()
     return redirect(url_for("home"))
+
+
+@app.route("/test/login/<username>")
+def test_login(username):
+    """TESTING-only OAuth stand-in for Playwright (CONTRACTS.md §11)."""
+    if not app.config.get("TESTING"):
+        abort(404)
+    db = get_db_session()
+    user = db.exec(select(User).where(User.username == username)).first()
+    if user is None:
+        user = User(username=username, password_hash=None)
+        db.add(user)
+        db.commit()
+        db.refresh(user)
+    login_user(user)
+    return redirect(url_for("mealplan"))
 
 
 @app.route("/about")
