@@ -49,7 +49,7 @@ def test_week6_demo_register_search_detail_scale_plan_delete(client):
                     "recipe": {
                         "uri": "edamam.integration.stub",
                         "label": "Integration Lentil Stew",
-                        "image": None,
+                        "images": {"REGULAR": {"url": "https://cdn.example/integration-lentil.jpg"}},
                         "yield": 2.0,
                         "calories": 640.0,
                         "totalNutrients": {},

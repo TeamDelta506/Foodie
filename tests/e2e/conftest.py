@@ -17,6 +17,8 @@ os.environ["DATABASE_URL"] = f"sqlite:///{_E2E_DB}"
 os.environ["SECRET_KEY"] = "e2e-test-secret-key"
 os.environ["OAUTH_CLIENT_ID"] = "e2e-test-oauth-client-id"
 os.environ["OAUTH_CLIENT_SECRET"] = "e2e-test-oauth-client-secret"
+os.environ["ENABLE_TEST_LOGIN"] = "1"
+os.environ["DISABLE_EDAMAM_API"] = "1"
 
 from sqlmodel import SQLModel  # noqa: E402
 
@@ -53,3 +55,9 @@ def live_server():
 
     yield _Server()
     server.shutdown()
+
+
+@pytest.fixture(scope="session")
+def base_url(live_server):
+    """Sam's e2e tests expect `base_url`; coordinator fixture is `live_server`."""
+    return live_server.url

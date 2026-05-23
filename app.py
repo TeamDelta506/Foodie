@@ -35,7 +35,7 @@ from flask_login import (
 )
 from sqlalchemy import (
     Column, DateTime, Integer, SmallInteger, ForeignKey,
-    CheckConstraint, UniqueConstraint, event as sa_event, func, text,
+    CheckConstraint, UniqueConstraint, event as sa_event, func, inspect, text,
 )
 from sqlmodel import SQLModel, Field, Session, create_engine, select
 from werkzeug.exceptions import HTTPException
@@ -56,12 +56,12 @@ app.config["REMEMBER_COOKIE_SAMESITE"] = "Lax"
 # Permanent session lifetime — overridable via SESSION_LIFETIME_SECONDS for fast tests.
 _sess_secs = int(os.environ.get("SESSION_LIFETIME_SECONDS", 0))
 app.config["PERMANENT_SESSION_LIFETIME"] = (
-    timedelta(seconds=_sess_secs) if _sess_secs else timedelta(days=14)
+    timedelta(seconds=_sess_secs) if _sess_secs else timedelta(days=7)
 )
 
 DATABASE_URL         = os.environ.get("DATABASE_URL", "sqlite:///./foodie_dev.db")
-GITHUB_CLIENT_ID     = os.environ.get("GITHUB_CLIENT_ID", "")
-GITHUB_CLIENT_SECRET = os.environ.get("GITHUB_CLIENT_SECRET", "")
+OAUTH_CLIENT_ID     = os.environ.get("OAUTH_CLIENT_ID") or os.environ.get("GITHUB_CLIENT_ID", "")
+OAUTH_CLIENT_SECRET = os.environ.get("OAUTH_CLIENT_SECRET") or os.environ.get("GITHUB_CLIENT_SECRET", "")
 
 engine = create_engine(DATABASE_URL, echo=False)
 
@@ -72,12 +72,12 @@ engine = create_engine(DATABASE_URL, echo=False)
 oauth = OAuth(app)
 github_oauth = oauth.register(
     name="github",
-    client_id=GITHUB_CLIENT_ID,
-    client_secret=GITHUB_CLIENT_SECRET,
+    client_id=OAUTH_CLIENT_ID,
+    client_secret=OAUTH_CLIENT_SECRET,
     access_token_url="https://github.com/login/oauth/access_token",
     authorize_url="https://github.com/login/oauth/authorize",
     api_base_url="https://api.github.com/",
-    client_kwargs={"scope": "read:user user:email"},
+    client_kwargs={"scope": "read:user"},
 )
 
 S3_CONTENT_DIR = Path(__file__).parent / "S3_content"
@@ -142,9 +142,30 @@ class User(UserMixin, SQLModel, table=True):
         default=None,
         sa_column=Column(DateTime(timezone=True), nullable=False, server_default=func.now()),
     )
-    # GitHub OAuth identity (Week 7).  NULL for local-only accounts.
+    # Legacy mirror of oauth_identities (Week 7); prefer oauth_identities for lookups.
     github_id:    str | None = Field(default=None, max_length=64,  unique=True, index=True)
     github_login: str | None = Field(default=None, max_length=255)
+
+
+class OAuthIdentity(SQLModel, table=True):
+    """Links external OAuth accounts to local users (CONTRACTS.md §1)."""
+
+    __tablename__ = "oauth_identities"
+    __table_args__ = (
+        UniqueConstraint("provider", "provider_user_id", name="uq_oauth_provider_user"),
+    )
+
+    id:               int | None  = Field(default=None, primary_key=True)
+    user_id:          int         = Field(
+        sa_column=Column(Integer, ForeignKey("users.id", ondelete="CASCADE"), nullable=False, index=True)
+    )
+    provider:         str         = Field(max_length=32)
+    provider_user_id: str         = Field(max_length=64)
+    provider_login:   str | None  = Field(default=None, max_length=80)
+    created_at:       datetime | None = Field(
+        default=None,
+        sa_column=Column(DateTime(timezone=True), nullable=False, server_default=func.now()),
+    )
 
 
 class Recipe(SQLModel, table=True):
@@ -280,6 +301,29 @@ def _seed_demo_ingredients(target, connection, **kwargs):
 # Edamam response parser (Sam — CONTRACTS.md §5)
 # ---------------------------------------------------------------------------
 
+_EDAMAM_IMAGE_SIZE_KEYS = (
+    "REGULAR", "LARGE", "SMALL", "THUMBNAIL",
+    "regular", "large", "small", "thumbnail",
+)
+
+
+def _edamam_image_url(recipe_data: dict) -> str | None:
+    """Best recipe image URL from an Edamam hits[] recipe object."""
+    images = recipe_data.get("images") or {}
+    for key in _EDAMAM_IMAGE_SIZE_KEYS:
+        entry = images.get(key)
+        if isinstance(entry, dict):
+            url = (entry.get("url") or "").strip()
+            if url:
+                return url
+        elif isinstance(entry, str) and entry.strip().startswith(("http://", "https://")):
+            return entry.strip()
+    top = recipe_data.get("image")
+    if isinstance(top, str) and top.strip().startswith(("http://", "https://")):
+        return top.strip()
+    return None
+
+
 def _parse_and_upsert_hit(hit: dict, db: Session) -> "Recipe | None":
     """Parse one Edamam hits[] entry and upsert into recipes + ingredients.
 
@@ -293,16 +337,17 @@ def _parse_and_upsert_hit(hit: dict, db: Session) -> "Recipe | None":
     if not api_id or not name:
         return None
 
+    image_url = _edamam_image_url(recipe_data)
+
     existing = db.exec(select(Recipe).where(Recipe.api_id == api_id)).first()
     if existing:
+        # Refresh cached image URL when Edamam returns one (e.g. row saved before parser fix).
+        if image_url and image_url != existing.image_url:
+            existing.image_url = image_url
+            db.add(existing)
+            db.commit()
+            db.refresh(existing)
         return existing
-
-    images = recipe_data.get("images") or {}
-    image_url = (
-        (images.get("SMALL") or {}).get("url")
-        or (images.get("THUMBNAIL") or {}).get("url")
-        or recipe_data.get("image")
-    )
 
     def _macro(key: str) -> "float | None":
         n = (recipe_data.get("totalNutrients") or {}).get(key, {})
@@ -352,12 +397,21 @@ def _bootstrap_featured_recipes(db: Session) -> str | None:
     """One Edamam call per session to seed popular dishes when the cache is thin."""
     if _count_non_demo_recipes(db) >= FEATURED_RECIPE_COUNT:
         return None
+    # Never burn Edamam quota during pytest / Playwright (template tests hit this route).
+    if app.config.get("TESTING"):
+        return None
+    if os.environ.get("DISABLE_EDAMAM_API", "").lower() in ("1", "true", "yes"):
+        return None
     if not _edamam_configured() or session.get("_featured_bootstrap_done"):
         return None
+    if session.get("_edamam_rate_limited"):
+        return "rate_limited"
 
     session["_featured_bootstrap_done"] = True
     term = random.choice(POPULAR_SEARCH_TERMS)
     _, err = _edamam_search_recipes(term, db)
+    if err == "rate_limited":
+        session["_edamam_rate_limited"] = True
     return err
 
 
@@ -505,6 +559,82 @@ def serve_s3_content(filename):
 # Routes — authentication
 # ---------------------------------------------------------------------------
 
+_GITHUB_PROVIDER = "github"
+_OAUTH_FAIL_FLASH = "GitHub sign-in failed. Try again or use password login."
+
+
+def _remember_checked() -> bool:
+    """CONTRACTS.md §3 — checkbox name `remember`, value `y` when checked."""
+    return request.form.get("remember") in ("y", "on", "true", "1")
+
+
+def _github_identity_by_provider_id(db: Session, provider_user_id: str) -> OAuthIdentity | None:
+    return db.exec(
+        select(OAuthIdentity).where(
+            OAuthIdentity.provider == _GITHUB_PROVIDER,
+            OAuthIdentity.provider_user_id == provider_user_id,
+        )
+    ).first()
+
+
+def _user_has_github_identity(db: Session, user_id: int) -> bool:
+    return db.exec(
+        select(OAuthIdentity).where(
+            OAuthIdentity.user_id == user_id,
+            OAuthIdentity.provider == _GITHUB_PROVIDER,
+        )
+    ).first() is not None
+
+
+def _link_github_identity(
+    db: Session, user: User, provider_user_id: str, provider_login: str | None
+) -> None:
+    """Insert oauth_identities row and sync legacy users.github_* columns."""
+    if _github_identity_by_provider_id(db, provider_user_id):
+        return
+    db.add(
+        OAuthIdentity(
+            user_id=user.id,
+            provider=_GITHUB_PROVIDER,
+            provider_user_id=provider_user_id,
+            provider_login=(provider_login or "")[:80] or None,
+        )
+    )
+    user.github_id = provider_user_id
+    user.github_login = provider_login
+    db.add(user)
+    db.commit()
+
+
+def _free_username_for_github(db: Session, github_login: str | None, github_id: str) -> str:
+    """New-account username when no linkable local row exists (CONTRACTS.md §3)."""
+    base = (github_login or f"github-{github_id}")[:80]
+    candidate = base
+    suffix = 1
+    while db.exec(select(User).where(User.username == candidate)).first():
+        candidate = f"{base[:74]}-{github_id}"[:80] if suffix == 1 else f"{base[:70]}_{suffix}"[:80]
+        suffix += 1
+        if suffix > 99:
+            return f"github-{github_id}"[:80]
+    return candidate
+
+
+def _ensure_test_github_identity(db: Session, user: User, handle: str) -> str:
+    """Backdoor identity — CONTRACTS.md §11; provider_user_id test_<username>."""
+    provider_user_id = f"test_{handle}"
+    if not _github_identity_by_provider_id(db, provider_user_id):
+        _link_github_identity(db, user, provider_user_id, handle)
+    return provider_user_id
+
+
+def _post_login_redirect():
+    """Week 7 deliberate landing page after successful auth (CONTRACTS.md §3)."""
+    next_url = request.form.get("next") or request.args.get("next") or ""
+    if next_url and next_url.startswith("/") and not next_url.startswith("//"):
+        return redirect(next_url)
+    return redirect(url_for("mealplan"))
+
+
 @app.route("/register", methods=["GET", "POST"])
 def register():
     if request.method == "GET":
@@ -526,8 +656,9 @@ def register():
     db.add(user)
     db.commit()
     db.refresh(user)
-    login_user(user)
-    return redirect(url_for("home"))
+    session.permanent = True
+    login_user(user, remember=_remember_checked())
+    return _post_login_redirect()
 
 
 @app.route("/login", methods=["GET", "POST"])
@@ -537,7 +668,6 @@ def login():
 
     username  = request.form.get("username", "").strip()
     password  = request.form.get("password", "")
-    remember  = bool(request.form.get("remember_me"))
 
     db   = get_db_session()
     user = db.exec(select(User).where(User.username == username)).first()
@@ -547,12 +677,8 @@ def login():
         return redirect(url_for("login"))
 
     session.permanent = True
-    login_user(user, remember=remember)
-
-    next_url = request.form.get("next") or request.args.get("next") or ""
-    if next_url and next_url.startswith("/") and not next_url.startswith("//"):
-        return redirect(next_url)
-    return redirect(url_for("home"))
+    login_user(user, remember=_remember_checked())
+    return _post_login_redirect()
 
 
 @app.route("/logout", methods=["POST"])
@@ -569,11 +695,11 @@ def test_login_legacy(username: str):
     db = get_db_session()
     user = db.exec(select(User).where(User.username == username)).first()
     if user is None:
-        user = User(username=username, password_hash=None,
-                    github_id=f"test_{username}", github_login=username)
+        user = User(username=username, password_hash=None)
         db.add(user)
         db.commit()
         db.refresh(user)
+    _ensure_test_github_identity(db, user, username)
     session.permanent = True
     login_user(user)
     return redirect(url_for("mealplan"))
@@ -591,81 +717,77 @@ def about():
 @app.route("/login/github")
 def login_github():
     """Redirect to GitHub's OAuth authorisation page."""
+    if request.args.get("remember") == "y":
+        session["remember_oauth"] = True
+    next_url = request.args.get("next", "")
+    if next_url and next_url.startswith("/") and not next_url.startswith("//"):
+        session["next"] = next_url
     redirect_uri = url_for("auth_github_callback", _external=True)
     return github_oauth.authorize_redirect(redirect_uri)
 
 
 @app.route("/auth/github/callback")
 def auth_github_callback():
-    """Handle GitHub's OAuth callback.
-
-    Three-way create-or-link logic:
-      1. Returning GitHub user — github_id already in DB → log in.
-      2. Logged-in local user linking GitHub → attach github_id.
-      3. Brand-new user → create account from GitHub profile.
-    All profile fields are accessed defensively; null payloads never crash.
-    """
+    """OAuth callback — create-or-link via oauth_identities (CONTRACTS.md §3)."""
     try:
         token = github_oauth.authorize_access_token()
     except Exception:
-        flash("GitHub authorisation failed. Please try again.")
+        logger.warning("GitHub OAuth token exchange failed", exc_info=True)
+        flash(_OAUTH_FAIL_FLASH)
         return redirect(url_for("login"))
 
-    resp    = github_oauth.get("user", token=token)
+    resp = github_oauth.get("user", token=token)
     profile: dict = resp.json() if resp.ok else {}
 
-    raw_id       = profile.get("id")
-    github_id    = str(raw_id) if raw_id is not None else None
-    github_login = (
-        profile.get("login") or profile.get("name")
-        or (f"gh_{github_id}" if github_id else None)
-    )
-
-    if not github_id:
-        flash("GitHub did not return an account ID. Please try again.")
+    raw_id = profile.get("id")
+    if raw_id is None:
+        logger.warning("GitHub profile missing id: %s", profile)
+        flash(_OAUTH_FAIL_FLASH)
         return redirect(url_for("login"))
 
+    provider_user_id = str(raw_id)
+    provider_login = profile.get("login") or None
+
+    remember = session.pop("remember_oauth", False)
+    next_url = session.pop("next", None)
     db = get_db_session()
 
-    # Case 1 — returning GitHub user.
-    existing = db.exec(select(User).where(User.github_id == github_id)).first()
-    if existing:
+    def _oauth_done(user: User):
         session.permanent = True
-        login_user(existing)
-        flash(f"Logged in as {existing.username}")
-        return redirect(url_for("home"))
+        login_user(user, remember=remember)
+        flash(f"Logged in as {user.username}")
+        if next_url and next_url.startswith("/") and not next_url.startswith("//"):
+            return redirect(next_url)
+        return redirect(url_for("mealplan"))
 
-    # Case 2 — logged-in local user adding GitHub.
+    # Returning GitHub user — lookup oauth_identities first.
+    identity = _github_identity_by_provider_id(db, provider_user_id)
+    if identity:
+        user = db.get(User, identity.user_id)
+        if user is not None:
+            return _oauth_done(user)
+
+    # Logged-in local user linking GitHub.
     if current_user.is_authenticated:
         user = db.get(User, int(current_user.get_id()))
-        user.github_id    = github_id
-        user.github_login = github_login
-        db.add(user)
-        db.commit()
-        flash(f"GitHub account linked. Logged in as {user.username}")
-        return redirect(url_for("home"))
+        if user is not None:
+            _link_github_identity(db, user, provider_user_id, provider_login)
+            return _oauth_done(user)
 
-    # Case 3 — brand-new user arriving via GitHub.
-    base = (github_login or f"gh_{github_id}")[:80]
-    username = base
-    suffix   = 1
-    while db.exec(select(User).where(User.username == username)).first():
-        username = f"{base[:74]}_{suffix}"
-        suffix  += 1
+    # New user — link to existing username without identity, or create.
+    preferred = (provider_login or f"github-{provider_user_id}")[:80]
+    existing = db.exec(select(User).where(User.username == preferred)).first()
+    if existing is not None and not _user_has_github_identity(db, existing.id):
+        _link_github_identity(db, existing, provider_user_id, provider_login)
+        return _oauth_done(existing)
 
-    user = User(
-        username=username,
-        password_hash=None,
-        github_id=github_id,
-        github_login=github_login,
-    )
+    username = _free_username_for_github(db, provider_login, provider_user_id)
+    user = User(username=username, password_hash=None)
     db.add(user)
     db.commit()
     db.refresh(user)
-    session.permanent = True
-    login_user(user)
-    flash(f"Logged in as {user.username}")
-    return redirect(url_for("home"))
+    _link_github_identity(db, user, provider_user_id, provider_login)
+    return _oauth_done(user)
 
 
 @app.route("/test-login")
@@ -685,22 +807,18 @@ def test_login(username: str = ""):
     db     = get_db_session()
     user   = db.exec(select(User).where(User.username == handle)).first()
     if user is None:
-        user = User(
-            username=handle,
-            password_hash=None,
-            github_id=f"test_{handle}",
-            github_login=handle,
-        )
+        user = User(username=handle, password_hash=None)
         db.add(user)
         db.commit()
         db.refresh(user)
+    _ensure_test_github_identity(db, user, handle)
     session.permanent = True
     login_user(user)
     flash(f"Logged in as {user.username}")
     next_url = request.args.get("next", "")
     if next_url and next_url.startswith("/") and not next_url.startswith("//"):
         return redirect(next_url)
-    return redirect(url_for("home"))
+    return redirect(url_for("mealplan"))
 
 
 @app.route("/api/debug/oauth-identity/<username>")
@@ -712,11 +830,18 @@ def debug_oauth_identity(username: str):
     user = db.exec(select(User).where(User.username == username)).first()
     if user is None:
         return jsonify({"error": "not_found"}), 404
+    identity = db.exec(
+        select(OAuthIdentity).where(
+            OAuthIdentity.user_id == user.id,
+            OAuthIdentity.provider == _GITHUB_PROVIDER,
+        )
+    ).first()
     return jsonify({
         "username":            user.username,
-        "has_github_identity": user.github_id is not None,
-        "github_id":           user.github_id,
-        "github_login":        user.github_login,
+        "has_github_identity": identity is not None,
+        "github_id":           identity.provider_user_id if identity else None,
+        "provider_user_id":    identity.provider_user_id if identity else None,
+        "provider_login":      identity.provider_login if identity else None,
     })
 
 
@@ -748,8 +873,17 @@ def recipes_search():
                 "warning",
             )
             search_error = "not_configured"
+        elif session.get("_edamam_rate_limited"):
+            flash(
+                "Edamam usage limit reached for this app. "
+                "Wait until your quota resets (often the next day), then try again.",
+                "warning",
+            )
+            search_error = "rate_limited"
         else:
             recipes, search_error = _edamam_search_recipes(q, db)
+            if search_error == "rate_limited":
+                session["_edamam_rate_limited"] = True
             if search_error == "timeout":
                 flash("Recipe search timeout — please try again.")
             elif search_error == "rate_limited":
@@ -993,10 +1127,56 @@ def mealplan_recipe_suggest():
 
 
 # ---------------------------------------------------------------------------
-# Schema creation
+# Schema creation / Week 7 upgrades (Justin owns formal migrations — CONTRACTS.md §12)
 # ---------------------------------------------------------------------------
 
+def _upgrade_week7_auth_schema() -> None:
+    """Bridge patch until Justin's Alembic migration (CONTRACTS.md §1, §12).
+
+    create_all() does not ALTER existing Postgres volumes — Week 7 needs nullable
+    password_hash and GitHub columns on users plus oauth_identities.
+    """
+    insp = inspect(engine)
+    if "users" not in insp.get_table_names():
+        return
+    user_cols = {c["name"]: c for c in insp.get_columns("users")}
+    user_col_names = set(user_cols)
+    dialect = engine.dialect.name
+    with engine.begin() as conn:
+        pw = user_cols.get("password_hash")
+        if pw is not None and not pw.get("nullable", True):
+            conn.execute(text("ALTER TABLE users ALTER COLUMN password_hash DROP NOT NULL"))
+
+        if "github_id" not in user_col_names:
+            if dialect == "postgresql":
+                conn.execute(text(
+                    "ALTER TABLE users ADD COLUMN IF NOT EXISTS github_id VARCHAR(64)"
+                ))
+                conn.execute(text(
+                    "ALTER TABLE users ADD COLUMN IF NOT EXISTS github_login VARCHAR(255)"
+                ))
+                conn.execute(text(
+                    "CREATE UNIQUE INDEX IF NOT EXISTS ix_users_github_id "
+                    "ON users (github_id) WHERE github_id IS NOT NULL"
+                ))
+            else:
+                conn.execute(text("ALTER TABLE users ADD COLUMN github_id VARCHAR(64)"))
+                conn.execute(text(
+                    "ALTER TABLE users ADD COLUMN github_login VARCHAR(255)"
+                ))
+        elif "github_login" not in user_col_names:
+            if dialect == "postgresql":
+                conn.execute(text(
+                    "ALTER TABLE users ADD COLUMN IF NOT EXISTS github_login VARCHAR(255)"
+                ))
+            else:
+                conn.execute(text(
+                    "ALTER TABLE users ADD COLUMN github_login VARCHAR(255)"
+                ))
+
+
 SQLModel.metadata.create_all(engine)
+_upgrade_week7_auth_schema()
 with engine.begin() as conn:
     _sync_recipes_id_sequence(conn)
 _purge_legacy_placeholder_demos()

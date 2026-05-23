@@ -26,11 +26,9 @@
             <div class="row g-0 align-items-lg-stretch">
                 <div class="col-lg-5">
                     <div class="foodie-recipe-card-media">
-                        {% if recipe.image_url %}
-                        <img src="{{ recipe.image_url }}" class="foodie-recipe-card-img" alt="" width="800" height="600" loading="eager">
-                        {% else %}
-                        <div class="foodie-recipe-card-img d-flex align-items-center justify-content-center text-muted small" role="img" aria-label="No image">No image</div>
-                        {% endif %}
+                        {% with image_url=recipe.image_url, width=800, height=600, loading='eager' %}
+                        {% include "partials/recipe_image.html" %}
+                        {% endwith %}
                         {% if recipe.calories is not none %}
                         <span class="foodie-cal-pill">{{ '%.0f'|format(recipe.calories) }} kcal</span>
                         {% endif %}

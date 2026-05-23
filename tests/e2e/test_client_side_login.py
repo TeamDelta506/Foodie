@@ -87,19 +87,18 @@ def test_client_side_github_login(page: Page, base_url: str) -> None:
     expect(page.locator('input[name="password"]')).to_be_visible()
 
     # "Remember me" checkbox must be present.
-    expect(page.locator('input[name="remember_me"]')).to_be_visible()
+    expect(page.locator('input[name="remember"]')).to_be_visible()
 
     # GitHub button must be present.
     github_btn = page.get_by_role("link", name=re.compile(r"github", re.IGNORECASE))
     expect(github_btn).to_be_visible()
 
-    # ── 1–3. Click GitHub button → intercepted → test-login → home ──────────
+    # ── 1–3. Click GitHub button → intercepted → test-login → mealplan ───────
     github_btn.click()
 
-    # After the intercept chain completes we should be on the home page.
-    page.wait_for_url(f"{base_url}/", timeout=10_000)
-    assert page.url == f"{base_url}/", (
-        f"Expected home page after OAuth, got {page.url!r}"
+    page.wait_for_url("**/mealplan**", timeout=10_000)
+    assert "/mealplan" in page.url, (
+        f"Expected /mealplan after OAuth, got {page.url!r}"
     )
 
     # ── 4. Username visible in the navbar ────────────────────────────────────
@@ -139,8 +138,8 @@ def test_login_page_has_both_auth_paths(page: Page, base_url: str) -> None:
     # Password-based form fields.
     expect(page.locator('input[name="username"]')).to_be_visible()
     expect(page.locator('input[name="password"]')).to_be_visible()
-    expect(page.locator('input[name="remember_me"]')).to_be_visible()
-    expect(page.get_by_role("button", name="Log in")).to_be_visible()
+    expect(page.locator('input[name="remember"]')).to_be_visible()
+    expect(page.get_by_role("button", name="Log in with password")).to_be_visible()
 
     # OAuth path.
     expect(
@@ -152,10 +151,10 @@ def test_login_page_has_both_auth_paths(page: Page, base_url: str) -> None:
 # Test 3 — Remember me checkbox ticked flows through to submit
 # ---------------------------------------------------------------------------
 
-def test_remember_me_checkbox(page: Page, base_url: str) -> None:
+def test_remember_checkbox(page: Page, base_url: str) -> None:
     """
-    The "Remember me" checkbox can be ticked before submitting the login form.
-    After login the user should land on the home page (not an error page).
+    The "Remember me" checkbox (`name="remember"`, value `y`) works on password login.
+    After login the user lands on /mealplan (CONTRACTS.md §3).
     Uses the registered-user path via /test-login to seed the account, then
     logs in with the password form.
     """
@@ -173,7 +172,7 @@ def test_remember_me_checkbox(page: Page, base_url: str) -> None:
     goto(page, base_url, "/register")
     page.fill('input[name="username"]', pw_user)
     page.fill('input[name="password"]', pw_pass)
-    page.get_by_role("button", name="Register").click()
+    page.get_by_role("button", name="Create account").click()
     # Now logged in from register — log out.
     page.locator("form[action*='logout'] button").click()
 
@@ -181,11 +180,10 @@ def test_remember_me_checkbox(page: Page, base_url: str) -> None:
     goto(page, base_url, "/login")
     page.fill('input[name="username"]', pw_user)
     page.fill('input[name="password"]', pw_pass)
-    page.check('input[name="remember_me"]')
-    page.get_by_role("button", name="Log in").click()
+    page.check('input[name="remember"]')
+    page.get_by_role("button", name="Log in with password").click()
 
-    # Should land on home page and be logged in.
-    page.wait_for_url(f"{base_url}/", timeout=8_000)
+    page.wait_for_url("**/mealplan**", timeout=8_000)
     expect(page.locator("nav").get_by_text(pw_user)).to_be_visible()
 
 
@@ -193,14 +191,14 @@ def test_remember_me_checkbox(page: Page, base_url: str) -> None:
 # Test 4 — Post-login landing page is the home page (deliberate, not random)
 # ---------------------------------------------------------------------------
 
-def test_post_login_lands_on_home(page: Page, base_url: str) -> None:
+def test_post_login_lands_on_mealplan(page: Page, base_url: str) -> None:
     """
-    After completing OAuth (via test-login backdoor), the user always lands on
-    the home page — the redirect is intentional, not accidental.
+    After completing OAuth (via test-login backdoor), the user lands on
+    /mealplan — the Week 7 deliberate post-login page (CONTRACTS.md §3).
     """
     user = f"pw_land_{int(time.time())}"
     goto(page, base_url, f"/test-login?username={user}")
-    assert page.url == f"{base_url}/", (
-        f"Expected deliberate redirect to home page, got {page.url!r}"
+    assert "/mealplan" in page.url, (
+        f"Expected deliberate redirect to /mealplan, got {page.url!r}"
     )
     expect(page.locator("nav").get_by_text(user)).to_be_visible()

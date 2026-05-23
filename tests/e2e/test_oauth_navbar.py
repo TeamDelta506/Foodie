@@ -6,9 +6,9 @@ from playwright.sync_api import Page, expect
 E2E_USERNAME = "e2e_github_user"
 
 
-def test_github_sign_in_shows_username_in_navbar(page: Page, live_server):
+def test_github_sign_in_shows_username_in_navbar(page: Page, base_url):
     """Logged-out user clicks Sign in with GitHub; backdoor completes login; username in navbar."""
-    base = live_server.url
+    base = base_url
 
     def _oauth_start_redirects_to_backdoor(route):
         route.fulfill(

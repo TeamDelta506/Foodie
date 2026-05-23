@@ -57,6 +57,32 @@ def test_ingredients_table_foreign_keys():
     assert ("recipe_id", "recipes") in targets
 
 
+def test_users_password_hash_is_nullable():
+    """OAuth-only users store password_hash=NULL (CONTRACTS.md §1 — Justin schema)."""
+    inspector = inspect(engine)
+    cols = {c["name"]: c for c in inspector.get_columns("users")}
+    assert "password_hash" in cols
+    assert cols["password_hash"].get("nullable") is True
+
+
+def test_oauth_identities_table_and_unique_provider_user():
+    """oauth_identities per CONTRACTS.md §1 (Week 7 — Sam/Justin)."""
+    inspector = inspect(engine)
+    assert "oauth_identities" in inspector.get_table_names()
+    cols = {c["name"] for c in inspector.get_columns("oauth_identities")}
+    required = {
+        "id", "user_id", "provider", "provider_user_id", "provider_login", "created_at",
+    }
+    assert required.issubset(cols), f"missing oauth_identities columns: {required - cols}"
+    uniques = inspector.get_unique_constraints("oauth_identities")
+    if uniques:
+        assert {"provider", "provider_user_id"} in [set(u["column_names"]) for u in uniques]
+    else:
+        indexes = inspector.get_indexes("oauth_identities")
+        names = [set(idx["column_names"]) for idx in indexes if idx.get("unique")]
+        assert {"provider", "provider_user_id"} in names
+
+
 def test_mealplans_unique_user_day():
     """At most one meal per (user, weekday) — UNIQUE(user_id, day_of_week)."""
     inspector = inspect(engine)

@@ -71,8 +71,9 @@
                             <a href="{{ url_for('recipe_detail', recipe_id=slot.recipe_id) }}"
                                class="foodie-mealplan-thumb-link flex-shrink-0"
                                aria-label="View {{ slot.name or 'recipe' }}">
-                                <img src="{{ slot.image_url }}" alt="" class="foodie-mealplan-thumb"
-                                     width="48" height="48" loading="lazy">
+                                {% with image_url=slot.image_url, css_class='foodie-mealplan-thumb', width=48, height=48 %}
+                                {% include "partials/recipe_image.html" %}
+                                {% endwith %}
                             </a>
                             {% endif %}
                             <p class="mb-0 small foodie-lead-muted min-w-0">
@@ -171,6 +172,7 @@
         img.className = "foodie-suggest-thumb";
         img.width = 40;
         img.height = 40;
+        img.referrerPolicy = "no-referrer";
         btn.appendChild(img);
       }
       var span = document.createElement("span");

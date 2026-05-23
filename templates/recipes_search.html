@@ -7,7 +7,7 @@
     <div class="col-lg-10 mx-auto">
         <h1 class="h2 foodie-page-heading mb-2">Discover recipes</h1>
         <p class="foodie-lead-muted mb-4">
-            Search the recipe catalog. Results are cached for scaling and meal planning.
+            Search the recipe catalog. Recipe data and image URLs are cached in the database after each search.
         </p>
 
         {% if show_demo_banner %}
@@ -38,11 +38,9 @@
                    class="foodie-recipe-card foodie-recipe-card--compact text-decoration-none text-reset w-100 d-flex flex-column"
                    aria-label="{{ r.name }}">
                     <div class="foodie-recipe-card-media flex-shrink-0">
-                        {% if r.image_url %}
-                        <img src="{{ r.image_url }}" class="foodie-recipe-card-img" alt="" width="240" height="240" loading="lazy">
-                        {% else %}
-                        <div class="foodie-recipe-card-img d-flex align-items-center justify-content-center text-muted small" role="img" aria-label="No image">No image</div>
-                        {% endif %}
+                        {% with image_url=r.image_url, width=240, height=240 %}
+                        {% include "partials/recipe_image.html" %}
+                        {% endwith %}
                         {% if r.calories is not none %}
                         <span class="foodie-cal-pill">{{ '%.0f'|format(r.calories) }} kcal</span>
                         {% endif %}
