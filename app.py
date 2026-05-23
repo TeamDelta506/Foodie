@@ -1,12 +1,15 @@
+from __future__ import annotations
+
 """
-Course 506 Week 6 — Flask + Postgres + SQLModel + Bootstrap + Edamam API
+Course 506 Week 7 — Flask + Postgres + SQLModel + GitHub OAuth + Playwright
 
 Route ownership per CONTRACTS.md §7:
   Sam    — /recipes/search, /recipes/<id>, POST /recipes/scale,
             GET /nutrition/<id>, POST /mealplan, GET /mealplan,
-            DELETE /mealplan/<day>; requests + Edamam wiring
-  Asia   — templates/, static/
-  Justin — SQLModel models for recipes/ingredients/mealplans; Flask-Login
+            DELETE /mealplan/<day>; requests + Edamam wiring;
+            /login/github, /auth/github/callback, /test-login (Week 7)
+  Asia   — templates/, static/; login UX, Remember me (Week 7)
+  Justin — SQLModel models; Flask-Login; DB schema (Week 7: github_id)
 """
 
 import logging
@@ -17,10 +20,11 @@ from dotenv import load_dotenv
 load_dotenv()  # before os.environ lookups (CONTRACTS.md §10)
 import random
 import uuid
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 from pathlib import Path
 
 import requests as http
+from authlib.integrations.flask_client import OAuth
 from flask import (
     Flask, render_template, request, redirect, url_for, flash, g,
     send_from_directory, abort, jsonify, session,
@@ -44,13 +48,37 @@ logger = logging.getLogger(__name__)
 # ---------------------------------------------------------------------------
 
 app = Flask(__name__)
-app.config["SECRET_KEY"] = os.environ["SECRET_KEY"]
+app.config["SECRET_KEY"] = os.environ.get("SECRET_KEY", "dev-secret-not-for-production")
+# Remember-me cookie — 30 days, HttpOnly, SameSite=Lax (Week 7 client-side).
+app.config["REMEMBER_COOKIE_DURATION"]  = timedelta(days=30)
+app.config["REMEMBER_COOKIE_HTTPONLY"]  = True
+app.config["REMEMBER_COOKIE_SAMESITE"] = "Lax"
+# Permanent session lifetime — overridable via SESSION_LIFETIME_SECONDS for fast tests.
+_sess_secs = int(os.environ.get("SESSION_LIFETIME_SECONDS", 0))
+app.config["PERMANENT_SESSION_LIFETIME"] = (
+    timedelta(seconds=_sess_secs) if _sess_secs else timedelta(days=14)
+)
 
-DATABASE_URL = os.environ["DATABASE_URL"]
-OAUTH_CLIENT_ID = os.environ["OAUTH_CLIENT_ID"]
-OAUTH_CLIENT_SECRET = os.environ["OAUTH_CLIENT_SECRET"]
+DATABASE_URL         = os.environ.get("DATABASE_URL", "sqlite:///./foodie_dev.db")
+GITHUB_CLIENT_ID     = os.environ.get("GITHUB_CLIENT_ID", "")
+GITHUB_CLIENT_SECRET = os.environ.get("GITHUB_CLIENT_SECRET", "")
 
 engine = create_engine(DATABASE_URL, echo=False)
+
+# ---------------------------------------------------------------------------
+# Authlib — GitHub OAuth (Week 7, server-side role)
+# ---------------------------------------------------------------------------
+
+oauth = OAuth(app)
+github_oauth = oauth.register(
+    name="github",
+    client_id=GITHUB_CLIENT_ID,
+    client_secret=GITHUB_CLIENT_SECRET,
+    access_token_url="https://github.com/login/oauth/access_token",
+    authorize_url="https://github.com/login/oauth/authorize",
+    api_base_url="https://api.github.com/",
+    client_kwargs={"scope": "read:user user:email"},
+)
 
 S3_CONTENT_DIR = Path(__file__).parent / "S3_content"
 
@@ -108,11 +136,15 @@ class User(UserMixin, SQLModel, table=True):
 
     id:            int | None  = Field(default=None, primary_key=True)
     username:      str         = Field(unique=True, index=True, max_length=80)
+    # Nullable — OAuth-only accounts have no local password.
     password_hash: str | None  = Field(default=None, max_length=255, nullable=True)
     created_at:    datetime | None = Field(
         default=None,
         sa_column=Column(DateTime(timezone=True), nullable=False, server_default=func.now()),
     )
+    # GitHub OAuth identity (Week 7).  NULL for local-only accounts.
+    github_id:    str | None = Field(default=None, max_length=64,  unique=True, index=True)
+    github_login: str | None = Field(default=None, max_length=255)
 
 
 class Recipe(SQLModel, table=True):
@@ -503,17 +535,23 @@ def login():
     if request.method == "GET":
         return render_template("login.html")
 
-    username = request.form.get("username", "").strip()
-    password = request.form.get("password", "")
+    username  = request.form.get("username", "").strip()
+    password  = request.form.get("password", "")
+    remember  = bool(request.form.get("remember_me"))
 
-    db = get_db_session()
+    db   = get_db_session()
     user = db.exec(select(User).where(User.username == username)).first()
 
     if user is None or user.password_hash is None or not check_password_hash(user.password_hash, password):
         flash("Invalid username or password.")
         return redirect(url_for("login"))
 
-    login_user(user)
+    session.permanent = True
+    login_user(user, remember=remember)
+
+    next_url = request.form.get("next") or request.args.get("next") or ""
+    if next_url and next_url.startswith("/") and not next_url.startswith("//"):
+        return redirect(next_url)
     return redirect(url_for("home"))
 
 
@@ -524,17 +562,19 @@ def logout():
 
 
 @app.route("/test/login/<username>")
-def test_login(username):
-    """TESTING-only OAuth stand-in for Playwright (CONTRACTS.md §11)."""
+def test_login_legacy(username: str):
+    """Legacy path-based test backdoor kept for existing pytest tests."""
     if not app.config.get("TESTING"):
         abort(404)
     db = get_db_session()
     user = db.exec(select(User).where(User.username == username)).first()
     if user is None:
-        user = User(username=username, password_hash=None)
+        user = User(username=username, password_hash=None,
+                    github_id=f"test_{username}", github_login=username)
         db.add(user)
         db.commit()
         db.refresh(user)
+    session.permanent = True
     login_user(user)
     return redirect(url_for("mealplan"))
 
@@ -542,6 +582,142 @@ def test_login(username):
 @app.route("/about")
 def about():
     return render_template("about.html")
+
+
+# ---------------------------------------------------------------------------
+# Routes — GitHub OAuth (Week 7, server-side role)
+# ---------------------------------------------------------------------------
+
+@app.route("/login/github")
+def login_github():
+    """Redirect to GitHub's OAuth authorisation page."""
+    redirect_uri = url_for("auth_github_callback", _external=True)
+    return github_oauth.authorize_redirect(redirect_uri)
+
+
+@app.route("/auth/github/callback")
+def auth_github_callback():
+    """Handle GitHub's OAuth callback.
+
+    Three-way create-or-link logic:
+      1. Returning GitHub user — github_id already in DB → log in.
+      2. Logged-in local user linking GitHub → attach github_id.
+      3. Brand-new user → create account from GitHub profile.
+    All profile fields are accessed defensively; null payloads never crash.
+    """
+    try:
+        token = github_oauth.authorize_access_token()
+    except Exception:
+        flash("GitHub authorisation failed. Please try again.")
+        return redirect(url_for("login"))
+
+    resp    = github_oauth.get("user", token=token)
+    profile: dict = resp.json() if resp.ok else {}
+
+    raw_id       = profile.get("id")
+    github_id    = str(raw_id) if raw_id is not None else None
+    github_login = (
+        profile.get("login") or profile.get("name")
+        or (f"gh_{github_id}" if github_id else None)
+    )
+
+    if not github_id:
+        flash("GitHub did not return an account ID. Please try again.")
+        return redirect(url_for("login"))
+
+    db = get_db_session()
+
+    # Case 1 — returning GitHub user.
+    existing = db.exec(select(User).where(User.github_id == github_id)).first()
+    if existing:
+        session.permanent = True
+        login_user(existing)
+        flash(f"Logged in as {existing.username}")
+        return redirect(url_for("home"))
+
+    # Case 2 — logged-in local user adding GitHub.
+    if current_user.is_authenticated:
+        user = db.get(User, int(current_user.get_id()))
+        user.github_id    = github_id
+        user.github_login = github_login
+        db.add(user)
+        db.commit()
+        flash(f"GitHub account linked. Logged in as {user.username}")
+        return redirect(url_for("home"))
+
+    # Case 3 — brand-new user arriving via GitHub.
+    base = (github_login or f"gh_{github_id}")[:80]
+    username = base
+    suffix   = 1
+    while db.exec(select(User).where(User.username == username)).first():
+        username = f"{base[:74]}_{suffix}"
+        suffix  += 1
+
+    user = User(
+        username=username,
+        password_hash=None,
+        github_id=github_id,
+        github_login=github_login,
+    )
+    db.add(user)
+    db.commit()
+    db.refresh(user)
+    session.permanent = True
+    login_user(user)
+    flash(f"Logged in as {user.username}")
+    return redirect(url_for("home"))
+
+
+@app.route("/test-login")
+def test_login(username: str = ""):
+    """CI / Playwright backdoor — creates or reuses a test user.
+
+    Only active when ENABLE_TEST_LOGIN=1.  Never expose in production.
+
+    Query params:
+        username  — test account handle (default: playwright_test).
+        next      — optional redirect path after login.
+    """
+    if os.environ.get("ENABLE_TEST_LOGIN", "").lower() not in ("1", "true"):
+        abort(404)
+
+    handle = (request.args.get("username") or "playwright_test").strip()[:80]
+    db     = get_db_session()
+    user   = db.exec(select(User).where(User.username == handle)).first()
+    if user is None:
+        user = User(
+            username=handle,
+            password_hash=None,
+            github_id=f"test_{handle}",
+            github_login=handle,
+        )
+        db.add(user)
+        db.commit()
+        db.refresh(user)
+    session.permanent = True
+    login_user(user)
+    flash(f"Logged in as {user.username}")
+    next_url = request.args.get("next", "")
+    if next_url and next_url.startswith("/") and not next_url.startswith("//"):
+        return redirect(next_url)
+    return redirect(url_for("home"))
+
+
+@app.route("/api/debug/oauth-identity/<username>")
+def debug_oauth_identity(username: str):
+    """Return stored GitHub identity for a user — ENABLE_TEST_LOGIN only."""
+    if os.environ.get("ENABLE_TEST_LOGIN", "").lower() not in ("1", "true"):
+        abort(404)
+    db   = get_db_session()
+    user = db.exec(select(User).where(User.username == username)).first()
+    if user is None:
+        return jsonify({"error": "not_found"}), 404
+    return jsonify({
+        "username":            user.username,
+        "has_github_identity": user.github_id is not None,
+        "github_id":           user.github_id,
+        "github_login":        user.github_login,
+    })
 
 
 # ---------------------------------------------------------------------------
