@@ -32,10 +32,10 @@
                 <ul class="navbar-nav foodie-nav-account ms-lg-auto align-items-lg-center text-center text-lg-end">
                     {% if user %}
                     <li class="nav-item">
-                        <span class="nav-link py-lg-2 mb-0">Hi, <span class="fw-semibold">{{ user.username }}</span></span>
+                        <span class="nav-link py-lg-2 mb-0 foodie-nav-user">Logged in as <span class="fw-semibold">{{ user.username }}</span></span>
                     </li>
                     <li class="nav-item">
-                        <form method="POST" action="{{ url_for('logout') }}" class="d-inline">
+                        <form method="POST" action="{{ url_for('logout') }}" class="d-inline" data-disable-on-submit>
                             <button type="submit" class="btn btn-link nav-link">Log out</button>
                         </form>
                     </li>

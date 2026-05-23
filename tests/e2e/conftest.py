@@ -2,13 +2,14 @@
 from __future__ import annotations
 
 import os
+import tempfile
 import threading
 from pathlib import Path
 
 import pytest
 
 # Hermetic SQLite + secrets before app import (Study Guide pattern).
-_E2E_DB = Path("/tmp") / "foodie_e2e_test.db"
+_E2E_DB = Path(tempfile.gettempdir()) / "foodie_e2e_test.db"
 if _E2E_DB.exists():
     _E2E_DB.unlink()
 
@@ -30,7 +31,10 @@ def _e2e_app_config():
     yield
     SQLModel.metadata.drop_all(engine)
     if _E2E_DB.exists():
-        _E2E_DB.unlink()
+        try:
+            _E2E_DB.unlink()
+        except OSError:
+            pass  # Windows: file may still be held by the live-server thread
 
 
 @pytest.fixture(scope="session")
