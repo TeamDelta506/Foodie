@@ -71,13 +71,12 @@ def test_first_time_oauth_login(page: Page, base_url: str) -> None:
 
     Verifies:
       - The user lands on the home page with their username visible.
-      - A GitHub identity (github_id) is stored in the database for that user.
+      - A GitHub row exists in oauth_identities for that user.
       - The flash message confirms "Logged in as <username>".
       - The user can access the protected /mealplan route immediately.
 
-    Regression caught: if the create-or-link branch failed to write github_id
-    to the User row (e.g. forgot `db.commit()` after setting github_id), the
-    debug endpoint would return has_github_identity=false, and the second
+    Regression caught: if the create-or-link branch failed to insert
+    oauth_identities, the debug endpoint would return has_github_identity=false, and the second
     login in scenario 2 would create a duplicate account instead of reusing
     the existing one.
     """
@@ -88,9 +87,9 @@ def test_first_time_oauth_login(page: Page, base_url: str) -> None:
     # Simulate first-time GitHub OAuth via the test-login backdoor.
     goto(page, base_url, f"/test-login?username={OAUTH_USER}")
 
-    # ── Lands on home page ───────────────────────────────────────────────────
-    assert page.url == f"{base_url}/", (
-        f"Expected home page after first login, got {page.url!r}"
+    # ── Lands on meal plan (Week 7 deliberate landing) ───────────────────────
+    assert "/mealplan" in page.url, (
+        f"Expected /mealplan after first login, got {page.url!r}"
     )
 
     # ── Username visible in navbar ───────────────────────────────────────────
@@ -155,8 +154,7 @@ def test_returning_oauth_login_reuses_row(page: Page, base_url: str) -> None:
     # Second login via the same backdoor (same username → same github_id).
     goto(page, base_url, f"/test-login?username={OAUTH_USER}")
 
-    # ── Same home page, same username ────────────────────────────────────────
-    assert page.url == f"{base_url}/", f"Expected home, got {page.url!r}"
+    assert "/mealplan" in page.url, f"Expected /mealplan, got {page.url!r}"
     expect(page.locator("nav").get_by_text(OAUTH_USER)).to_be_visible()
 
     # ── github_id unchanged — row was reused, not duplicated ─────────────────
@@ -249,7 +247,7 @@ def test_session_expiry_blocks_protected_route(page: Page, base_url: str) -> Non
 
     # Log in and confirm access.
     goto(page, base_url, f"/test-login?username={session_user}")
-    assert page.url == f"{base_url}/", f"Expected home page, got {page.url!r}"
+    assert "/mealplan" in page.url, f"Expected /mealplan after login, got {page.url!r}"
     expect(page.locator("nav").get_by_text(session_user)).to_be_visible()
 
     goto(page, base_url, "/mealplan")

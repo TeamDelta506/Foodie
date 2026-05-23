@@ -95,8 +95,8 @@ def test_login_with_wrong_password_shows_invalid(client):
     assert b"Invalid" in response.data
 
 
-def test_login_redirects_home_with_session(client):
-    """A successful login redirects to / and sets the session cookie."""
+def test_login_redirects_mealplan_with_session(client):
+    """Week 7 — successful password login redirects to /mealplan (CONTRACTS.md §3)."""
     client.post("/register", data={"username": "carol", "password": "secret"})
     client.post("/logout")
 
@@ -104,9 +104,8 @@ def test_login_redirects_home_with_session(client):
         "/login",
         data={"username": "carol", "password": "secret"},
     )
-    # 302 redirect to home
     assert response.status_code == 302
-    assert response.location.endswith("/")
+    assert response.location.endswith("/mealplan")
 
     # Flask-Login stores the authenticated user id under '_user_id'
     with client.session_transaction() as sess:

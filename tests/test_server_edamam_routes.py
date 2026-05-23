@@ -27,7 +27,7 @@ import requests  # noqa: E402
 import responses  # noqa: E402
 from sqlmodel import SQLModel  # noqa: E402
 
-from app import app, engine  # noqa: E402
+from app import app, engine, _edamam_image_url  # noqa: E402
 
 _EDAMAM_RE = re.compile(r"https://api\.edamam\.com/api/recipes/v2\?.*")
 
@@ -53,7 +53,8 @@ def test_recipes_search_returns_200_html_with_query_form(client):
                     "recipe": {
                         "uri": "edamam.recipe.internal_dummy_001",
                         "label": "Test Tomato Soup",
-                        "image": None,
+                        "images": {"REGULAR": {"url": "https://cdn.example/test-tomato.jpg"}},
+                        "image": "https://cdn.example/test-tomato-legacy.jpg",
                         "yield": 2.0,
                         "calories": 400.0,
                         "totalNutrients": {},
@@ -110,6 +111,19 @@ def test_post_scale_requires_authentication(client):
         headers={"Content-Type": "application/json"},
     )
     assert response.status_code in (302, 401)
+
+
+def test_edamam_image_url_prefers_regular_then_legacy_image_field():
+    """Parser checks all common Edamam image shapes (cached recipes need a URL)."""
+    assert _edamam_image_url({
+        "images": {"REGULAR": {"url": "https://cdn.example/regular.jpg"}},
+        "image": "https://cdn.example/legacy.jpg",
+    }) == "https://cdn.example/regular.jpg"
+    assert _edamam_image_url({
+        "images": {"SMALL": {"url": "https://cdn.example/small.jpg"}},
+    }) == "https://cdn.example/small.jpg"
+    assert _edamam_image_url({"image": "https://cdn.example/top.jpg"}) == "https://cdn.example/top.jpg"
+    assert _edamam_image_url({}) is None
 
 
 def test_get_nutrition_json_shape(client):
