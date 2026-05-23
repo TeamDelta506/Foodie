@@ -27,4 +27,22 @@
             button.textContent = "…";
         });
     });
+
+    // Week 7 — pass Remember me to OAuth start on login + register (CONTRACTS.md §3)
+    document.querySelectorAll("[data-github-oauth]").forEach(function (githubLink) {
+        var rememberId = githubLink.getAttribute("data-remember-for");
+        var rememberBox = rememberId ? document.getElementById(rememberId) : null;
+        if (!rememberBox) {
+            return;
+        }
+        var githubBase = githubLink.getAttribute("href") || "/login/github";
+        githubLink.addEventListener("click", function () {
+            if (rememberBox.checked) {
+                var sep = githubBase.indexOf("?") >= 0 ? "&" : "?";
+                githubLink.setAttribute("href", githubBase + sep + "remember=y");
+            } else {
+                githubLink.setAttribute("href", githubBase);
+            }
+        });
+    });
 })();
