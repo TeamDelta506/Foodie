@@ -1,4 +1,9 @@
-"""Playwright e2e fixtures — coordinator (CONTRACTS.md §11)."""
+"""Playwright e2e fixtures — Week 7 (CONTRACTS.md §11).
+
+Self-contained: spins up a Werkzeug dev server on a random free port so
+tests run without a separately-started Flask process.  Works on Windows,
+macOS, and Linux.
+"""
 from __future__ import annotations
 
 import os
@@ -8,10 +13,13 @@ from pathlib import Path
 
 import pytest
 
-# Hermetic SQLite + secrets before app import (Study Guide pattern).
+# ── Hermetic SQLite DB (temp dir is cross-platform) ──────────────────────────
 _E2E_DB = Path(tempfile.gettempdir()) / "foodie_e2e_test.db"
 if _E2E_DB.exists():
-    _E2E_DB.unlink()
+    try:
+        _E2E_DB.unlink()
+    except OSError:
+        pass
 
 os.environ["DATABASE_URL"] = f"sqlite:///{_E2E_DB}"
 os.environ["SECRET_KEY"] = "e2e-test-secret-key"
@@ -20,44 +28,46 @@ os.environ["OAUTH_CLIENT_SECRET"] = "e2e-test-oauth-client-secret"
 os.environ["ENABLE_TEST_LOGIN"] = "1"
 os.environ["DISABLE_EDAMAM_API"] = "1"
 
-from sqlmodel import SQLModel  # noqa: E402
+from sqlmodel import SQLModel          # noqa: E402
+from app import app, engine            # noqa: E402
 
-from app import app, engine  # noqa: E402
 
+# ── One-time schema creation ──────────────────────────────────────────────────
 
 @pytest.fixture(scope="session", autouse=True)
-def _e2e_app_config():
+def _e2e_schema():
     app.config["TESTING"] = True
     SQLModel.metadata.drop_all(engine)
     SQLModel.metadata.create_all(engine)
     yield
     SQLModel.metadata.drop_all(engine)
-    if _E2E_DB.exists():
-        try:
-            _E2E_DB.unlink()
-        except OSError:
-            pass  # Windows: file may still be held by the live-server thread
+    try:
+        _E2E_DB.unlink(missing_ok=True)
+    except OSError:
+        pass  # Windows: file may still be held by the live-server thread
 
+
+# ── Embedded Werkzeug server (random free port) ───────────────────────────────
 
 @pytest.fixture(scope="session")
 def live_server():
-    """Threaded Werkzeug server for Playwright."""
+    """Start a threaded Werkzeug server on a random free port."""
     from werkzeug.serving import make_server
 
-    app.config["TESTING"] = True
     server = make_server("127.0.0.1", 0, app)
-    port = server.server_port
+    port   = server.server_port
     thread = threading.Thread(target=server.serve_forever, daemon=True)
     thread.start()
 
-    class _Server:
+    class _Info:
         url = f"http://127.0.0.1:{port}"
 
-    yield _Server()
+    yield _Info()
     server.shutdown()
 
 
+# ── Override pytest-playwright's base_url to point at the live server ─────────
+
 @pytest.fixture(scope="session")
-def base_url(live_server):
-    """Sam's e2e tests expect `base_url`; coordinator fixture is `live_server`."""
+def base_url(live_server) -> str:          # type: ignore[override]
     return live_server.url
