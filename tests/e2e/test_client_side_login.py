@@ -87,7 +87,7 @@ def test_client_side_github_login(page: Page, base_url: str) -> None:
     expect(page.locator('input[name="password"]')).to_be_visible()
 
     # "Remember me" checkbox must be present.
-    expect(page.locator('input[name="remember_me"]')).to_be_visible()
+    expect(page.locator('input[name="remember"]')).to_be_visible()
 
     # GitHub button must be present.
     github_btn = page.get_by_role("link", name=re.compile(r"github", re.IGNORECASE))
@@ -139,8 +139,8 @@ def test_login_page_has_both_auth_paths(page: Page, base_url: str) -> None:
     # Password-based form fields.
     expect(page.locator('input[name="username"]')).to_be_visible()
     expect(page.locator('input[name="password"]')).to_be_visible()
-    expect(page.locator('input[name="remember_me"]')).to_be_visible()
-    expect(page.get_by_role("button", name="Log in")).to_be_visible()
+    expect(page.locator('input[name="remember"]')).to_be_visible()
+    expect(page.get_by_role("button", name="Log in with password")).to_be_visible()
 
     # OAuth path.
     expect(
@@ -173,7 +173,7 @@ def test_remember_me_checkbox(page: Page, base_url: str) -> None:
     goto(page, base_url, "/register")
     page.fill('input[name="username"]', pw_user)
     page.fill('input[name="password"]', pw_pass)
-    page.get_by_role("button", name="Register").click()
+    page.get_by_role("button", name="Create account").click()
     # Now logged in from register — log out.
     page.locator("form[action*='logout'] button").click()
 
@@ -181,7 +181,7 @@ def test_remember_me_checkbox(page: Page, base_url: str) -> None:
     goto(page, base_url, "/login")
     page.fill('input[name="username"]', pw_user)
     page.fill('input[name="password"]', pw_pass)
-    page.check('input[name="remember_me"]')
+    page.check('input[name="remember"]')
     page.get_by_role("button", name="Log in").click()
 
     # Should land on home page and be logged in.
