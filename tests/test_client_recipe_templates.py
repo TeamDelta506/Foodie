@@ -47,6 +47,50 @@ def test_recipes_search_template_has_get_form_with_q(client):
     assert match.find("input", attrs={"name": "q"}) is not None
 
 
+def test_login_page_has_github_remember_and_password_form(client):
+    """Week 7 login UI — GitHub entry, remember checkbox, password form (CONTRACTS.md §3)."""
+    response = client.get("/login")
+    assert response.status_code == 200
+    soup = BeautifulSoup(response.data, "html.parser")
+    github = soup.find("a", id="github-login")
+    assert github is not None
+    assert "Sign in with GitHub" in github.get_text()
+    assert "/login/github" in (github.get("href") or "")
+    remember = soup.find("input", attrs={"name": "remember", "type": "checkbox"})
+    assert remember is not None
+    assert remember.get("value") == "y"
+    pwd_form = soup.find("form", attrs={"action": "/login"})
+    assert pwd_form is not None
+    assert pwd_form.find("input", attrs={"name": "username"}) is not None
+    assert pwd_form.find("input", attrs={"name": "password"}) is not None
+
+
+def test_register_page_has_github_and_remember(client):
+    """Register page offers GitHub sign-in alongside password registration."""
+    response = client.get("/register")
+    assert response.status_code == 200
+    soup = BeautifulSoup(response.data, "html.parser")
+    github = soup.find("a", id="github-register")
+    assert github is not None
+    assert "Sign in with GitHub" in github.get_text()
+    assert "/login/github" in (github.get("href") or "")
+    assert soup.find("input", attrs={"name": "remember", "id": "register-remember"}) is not None
+
+
+def test_base_nav_logged_in_copy_after_test_login(client):
+    """Navbar shows contract copy when authenticated (CONTRACTS.md §9)."""
+    reg = client.post(
+        "/register",
+        data={"username": "week7user", "password": "password123"},
+    )
+    assert reg.status_code == 302
+    response = client.get("/mealplan")
+    assert response.status_code == 200
+    html = response.data.decode()
+    assert "Logged in as" in html
+    assert "week7user" in html
+
+
 def test_base_nav_includes_recipes_discover_link(client):
     """Navbar exposes a discover/search entry (href contains /recipes/search)."""
     response = client.get("/")
