@@ -1,0 +1,13 @@
+{# Cached recipe image from recipes.image_url (Edamam upsert). No placeholder swap. #}
+{% if image_url %}
+<img src="{{ image_url }}"
+     class="{{ css_class|default('foodie-recipe-card-img') }}"
+     alt="{{ alt|default('') }}"
+     width="{{ width|default(240) }}" height="{{ height|default(240) }}"
+     loading="{{ loading|default('lazy') }}"
+     decoding="async"
+     referrerpolicy="no-referrer">
+{% else %}
+<div class="{{ css_class|default('foodie-recipe-card-img') }} d-flex align-items-center justify-content-center text-muted small"
+     role="img" aria-label="No image">No image</div>
+{% endif %}

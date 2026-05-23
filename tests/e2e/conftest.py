@@ -21,12 +21,12 @@ if _E2E_DB.exists():
     except OSError:
         pass
 
-# Set env vars BEFORE importing app so SQLAlchemy + Authlib pick up the right values.
-os.environ["DATABASE_URL"]          = f"sqlite:///{_E2E_DB}"
-os.environ["SECRET_KEY"]            = "e2e-test-secret-key"
-os.environ["GITHUB_CLIENT_ID"]      = "e2e-test-github-client-id"
-os.environ["GITHUB_CLIENT_SECRET"]  = "e2e-test-github-client-secret"
-os.environ["ENABLE_TEST_LOGIN"]     = "1"          # unlocks /test-login backdoor
+os.environ["DATABASE_URL"] = f"sqlite:///{_E2E_DB}"
+os.environ["SECRET_KEY"] = "e2e-test-secret-key"
+os.environ["OAUTH_CLIENT_ID"] = "e2e-test-oauth-client-id"
+os.environ["OAUTH_CLIENT_SECRET"] = "e2e-test-oauth-client-secret"
+os.environ["ENABLE_TEST_LOGIN"] = "1"
+os.environ["DISABLE_EDAMAM_API"] = "1"
 
 from sqlmodel import SQLModel          # noqa: E402
 from app import app, engine            # noqa: E402
