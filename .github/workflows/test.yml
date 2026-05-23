@@ -28,8 +28,6 @@ jobs:
       DATABASE_URL: "sqlite:///:memory:"
       OAUTH_CLIENT_ID: ci-oauth-client-id
       OAUTH_CLIENT_SECRET: ci-oauth-client-secret
-      ENABLE_TEST_LOGIN: "1"
-      DISABLE_EDAMAM_API: "1"
 
     steps:
       - uses: actions/checkout@v4
