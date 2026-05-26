@@ -186,6 +186,12 @@ def test_remember_checkbox(page: Page, base_url: str) -> None:
     page.wait_for_url("**/mealplan**", timeout=8_000)
     expect(page.locator("nav").get_by_text(pw_user)).to_be_visible()
 
+    # Flask-Login remember_token cookie — proves Remember me reached the server.
+    cookies = page.context.cookies()
+    assert any(c["name"] == "remember_token" for c in cookies), (
+        "Expected remember_token cookie after login with Remember me checked."
+    )
+
 
 # ---------------------------------------------------------------------------
 # Test 4 — Post-login landing page is the home page (deliberate, not random)

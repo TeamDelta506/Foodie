@@ -19,6 +19,7 @@
                 </p>
                 <form id="mealplan-add-form" method="post" action="{{ url_for('mealplan') }}" class="row g-3"
                       data-recipe-suggest="{{ url_for('mealplan_recipe_suggest') }}" data-disable-on-submit>
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                     <div class="col-md-3">
                         <label for="day_of_week" class="form-label">Day</label>
                         <select class="form-select" id="day_of_week" name="day_of_week" required>
@@ -265,11 +266,16 @@
       var prevLabel = btn.textContent;
       btn.textContent = "Clearing…";
 
+      var csrfMeta = document.querySelector('meta[name="csrf-token"]');
+      var csrfVal = csrfMeta ? csrfMeta.getAttribute("content") : "";
       fetch("/mealplan/" + encodeURIComponent(day), {
         method: "DELETE",
         credentials: "same-origin",
         redirect: "manual",
-        headers: { Accept: "text/html, application/json" },
+        headers: {
+          Accept: "text/html, application/json",
+          "X-CSRFToken": csrfVal,
+        },
       })
         .then(function (res) {
           if (res.status === 404) {

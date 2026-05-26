@@ -19,6 +19,7 @@ from sqlalchemy import inspect  # noqa: E402
 from sqlmodel import SQLModel  # noqa: E402
 
 from app import app, engine  # noqa: E402
+from tests.conftest import csrf_delete, csrf_post  # noqa: E402
 
 
 @pytest.fixture(autouse=True)
@@ -115,13 +116,31 @@ def test_mealplan_get_requires_authenticated_user(client):
     assert response.status_code in (302, 401)
 
 
+def test_login_github_stores_remember_oauth_in_session(client):
+    """OAuth path: ?remember=y on /login/github sets session flag (CONTRACTS.md §3)."""
+    client.get("/login/github?remember=y")
+    with client.session_transaction() as sess:
+        assert sess.get("remember_oauth") is True
+
+
+def test_mealplan_post_without_csrf_token_returns_400(client):
+    """Flask-WTF rejects state-changing POST with no csrf_token (CONTRACTS.md §10)."""
+    _register(client, "csrf_user")
+    _login(client, "csrf_user")
+    response = client.post(
+        "/mealplan",
+        data={"day_of_week": "0", "recipe_id": "1", "servings": "2"},
+    )
+    assert response.status_code == 400
+
+
 def _register(client, username: str, password: str = "secret") -> None:
-    client.post("/register", data={"username": username, "password": password})
-    client.post("/logout")
+    csrf_post(client, "/register", {"username": username, "password": password})
+    csrf_post(client, "/logout")
 
 
 def _login(client, username: str, password: str = "secret") -> None:
-    client.post("/login", data={"username": username, "password": password})
+    csrf_post(client, "/login", {"username": username, "password": password})
 
 
 def test_mealplan_scoped_to_current_user(client):
@@ -141,9 +160,11 @@ def test_mealplan_scoped_to_current_user(client):
         recipe_id = recipe.id
 
     _login(client, "owner_a")
-    client.post(
+    csrf_post(
+        client,
         "/mealplan",
-        data={"day_of_week": "0", "recipe_id": str(recipe_id), "servings": "2"},
+        {"day_of_week": "0", "recipe_id": str(recipe_id), "servings": "2"},
+        token_url="/mealplan",
     )
 
     _login(client, "owner_b")
@@ -161,5 +182,5 @@ def test_mealplan_delete_missing_day_returns_404(client):
     """DELETE /mealplan/<day> with no plan for current user returns 404, not 403."""
     _register(client, "deleter")
     _login(client, "deleter")
-    response = client.delete("/mealplan/3", follow_redirects=False)
+    response = csrf_delete(client, "/mealplan/3", follow_redirects=False)
     assert response.status_code == 404

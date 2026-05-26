@@ -27,6 +27,5 @@
 
 - EC2 instance disk full — `playwright install chromium` fails locally with ENOSPC; e2e smoke test runs in GitHub Actions CI instead.
 
-- `/login/github` route not implemented yet (Sam) — smoke test only clicks the link, does not assert OAuth completion.
-- Navbar still shows `Hi, {username}` until Asia lands **`Logged in as`** copy.
-- `oauth_identities` table not created yet (Justin) — backdoor creates `users` rows only.
+- Real GitHub OAuth still requires `OAUTH_CLIENT_ID` / `OAUTH_CLIENT_SECRET` in `.env` for manual runs; Playwright uses `/test-login`.
+- Full-stack lifecycle and per-role e2e suites live under `tests/e2e/`; see `team_walkthrough.md`.

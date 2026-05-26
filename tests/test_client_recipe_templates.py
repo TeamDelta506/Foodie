@@ -79,10 +79,9 @@ def test_register_page_has_github_and_remember(client):
 
 def test_base_nav_logged_in_copy_after_test_login(client):
     """Navbar shows contract copy when authenticated (CONTRACTS.md §9)."""
-    reg = client.post(
-        "/register",
-        data={"username": "week7user", "password": "password123"},
-    )
+    from tests.conftest import csrf_post
+
+    reg = csrf_post(client, "/register", {"username": "week7user", "password": "password123"})
     assert reg.status_code == 302
     response = client.get("/mealplan")
     assert response.status_code == 200
@@ -101,7 +100,9 @@ def test_base_nav_includes_recipes_discover_link(client):
 
 def test_mealplan_page_has_seven_day_slots(client):
     """Meal plan UI materializes 7 weekday rows/cards — structural hook data-day attributes."""
-    client.post("/register", data={"username": "htmltest", "password": "password123"})
+    from tests.conftest import csrf_post
+
+    csrf_post(client, "/register", {"username": "htmltest", "password": "password123"})
     response = client.get("/mealplan")
     assert response.status_code == 200
     soup = BeautifulSoup(response.data, "html.parser")
@@ -111,7 +112,9 @@ def test_mealplan_page_has_seven_day_slots(client):
 
 def test_mealplan_page_has_post_form_for_add(client):
     """Logged-in meal plan view includes POST /mealplan form w/ day + recipe + servings fields."""
-    client.post("/register", data={"username": "plantest", "password": "password123"})
+    from tests.conftest import csrf_post
+
+    csrf_post(client, "/register", {"username": "plantest", "password": "password123"})
     response = client.get("/mealplan")
     assert response.status_code == 200
     soup = BeautifulSoup(response.data, "html.parser")
@@ -119,3 +122,4 @@ def test_mealplan_page_has_post_form_for_add(client):
     assert form is not None
     for name in ("day_of_week", "recipe_id", "servings"):
         assert form.find(attrs={"name": name}) is not None
+    assert form.find("input", attrs={"name": "csrf_token"}) is not None

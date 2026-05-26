@@ -18,6 +18,7 @@ os.environ["SECRET_KEY"] = "test-secret"
 import pytest
 from sqlmodel import SQLModel, select
 from app import app, engine, User, Session
+from tests.conftest import csrf_post
 
 
 @pytest.fixture
@@ -59,10 +60,7 @@ def test_login_page_renders(client):
 
 def test_register_creates_user_in_database(client):
     """Registering a user writes a row to the users table."""
-    client.post(
-        "/register",
-        data={"username": "alice", "password": "password123"},
-    )
+    csrf_post(client, "/register", {"username": "alice", "password": "password123"})
 
     with Session(engine) as db:
         user = db.exec(select(User).where(User.username == "alice")).first()
@@ -72,11 +70,12 @@ def test_register_creates_user_in_database(client):
 
 def test_register_rejects_duplicate_username(client):
     """A second register with the same username flashes 'already taken'."""
-    client.post("/register", data={"username": "bob", "password": "password123"})
-    client.post("/logout")
-    response = client.post(
+    csrf_post(client, "/register", {"username": "bob", "password": "password123"})
+    csrf_post(client, "/logout")
+    response = csrf_post(
+        client,
         "/register",
-        data={"username": "bob", "password": "different"},
+        {"username": "bob", "password": "different"},
         follow_redirects=True,
     )
     assert b"already taken" in response.data
@@ -84,12 +83,13 @@ def test_register_rejects_duplicate_username(client):
 
 def test_login_with_wrong_password_shows_invalid(client):
     """Wrong password shows the 'Invalid' flash on the login page."""
-    client.post("/register", data={"username": "dave", "password": "secret"})
-    client.post("/logout")
+    csrf_post(client, "/register", {"username": "dave", "password": "secret"})
+    csrf_post(client, "/logout")
 
-    response = client.post(
+    response = csrf_post(
+        client,
         "/login",
-        data={"username": "dave", "password": "wrong"},
+        {"username": "dave", "password": "wrong"},
         follow_redirects=True,
     )
     assert b"Invalid" in response.data
@@ -97,12 +97,13 @@ def test_login_with_wrong_password_shows_invalid(client):
 
 def test_login_redirects_mealplan_with_session(client):
     """Week 7 — successful password login redirects to /mealplan (CONTRACTS.md §3)."""
-    client.post("/register", data={"username": "carol", "password": "secret"})
-    client.post("/logout")
+    csrf_post(client, "/register", {"username": "carol", "password": "secret"})
+    csrf_post(client, "/logout")
 
-    response = client.post(
+    response = csrf_post(
+        client,
         "/login",
-        data={"username": "carol", "password": "secret"},
+        {"username": "carol", "password": "secret"},
     )
     assert response.status_code == 302
     assert response.location.endswith("/mealplan")
@@ -110,3 +111,50 @@ def test_login_redirects_mealplan_with_session(client):
     # Flask-Login stores the authenticated user id under '_user_id'
     with client.session_transaction() as sess:
         assert "_user_id" in sess
+
+
+def test_login_with_remember_sets_remember_cookie(client):
+    """Remember me sets Flask-Login remember_token (CONTRACTS.md §9–§10)."""
+    csrf_post(client, "/register", {"username": "rem_user", "password": "secret123"})
+    csrf_post(client, "/logout")
+
+    response = csrf_post(
+        client,
+        "/login",
+        {"username": "rem_user", "password": "secret123", "remember": "y"},
+    )
+    assert response.status_code == 302
+    set_cookies = response.headers.getlist("Set-Cookie")
+    assert any("remember_token" in c for c in set_cookies)
+
+
+def test_login_without_remember_omits_remember_cookie(client):
+    """Unchecked Remember me must not issue remember_token."""
+    csrf_post(client, "/register", {"username": "norem_user", "password": "secret123"})
+    csrf_post(client, "/logout")
+
+    response = csrf_post(
+        client,
+        "/login",
+        {"username": "norem_user", "password": "secret123"},
+    )
+    assert response.status_code == 302
+    set_cookies = response.headers.getlist("Set-Cookie")
+    assert not any("remember_token" in c for c in set_cookies)
+
+
+def test_oauth_only_user_cannot_password_login(client):
+    """password_hash=NULL accounts get generic invalid-password flash (CONTRACTS.md §1)."""
+    from app import User, Session
+
+    with Session(engine) as db:
+        db.add(User(username="github_only", password_hash=None))
+        db.commit()
+
+    response = csrf_post(
+        client,
+        "/login",
+        {"username": "github_only", "password": "any-password"},
+        follow_redirects=True,
+    )
+    assert b"Invalid" in response.data

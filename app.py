@@ -38,6 +38,7 @@ from sqlalchemy import (
     CheckConstraint, UniqueConstraint, event as sa_event, func, inspect, text,
 )
 from sqlmodel import SQLModel, Field, Session, create_engine, select
+from flask_wtf.csrf import CSRFProtect
 from werkzeug.exceptions import HTTPException
 from werkzeug.security import generate_password_hash, check_password_hash
 
@@ -58,6 +59,14 @@ _sess_secs = int(os.environ.get("SESSION_LIFETIME_SECONDS", 0))
 app.config["PERMANENT_SESSION_LIFETIME"] = (
     timedelta(seconds=_sess_secs) if _sess_secs else timedelta(days=7)
 )
+# Session cookie hardening (CONTRACTS.md §10).
+app.config["SESSION_COOKIE_HTTPONLY"] = True
+app.config["SESSION_COOKIE_SAMESITE"] = "Lax"
+app.config["SESSION_COOKIE_SECURE"] = os.environ.get("SESSION_COOKIE_SECURE", "").lower() in (
+    "1", "true", "yes",
+)
+
+csrf = CSRFProtect(app)
 
 DATABASE_URL         = os.environ.get("DATABASE_URL", "sqlite:///./foodie_dev.db")
 OAUTH_CLIENT_ID     = os.environ.get("OAUTH_CLIENT_ID") or os.environ.get("GITHUB_CLIENT_ID", "")
@@ -684,6 +693,7 @@ def login():
 @app.route("/logout", methods=["POST"])
 def logout():
     logout_user()
+    flash("You have been logged out.")
     return redirect(url_for("home"))
 
 
@@ -942,6 +952,7 @@ def recipe_detail(recipe_id: int):
 
 @app.route("/recipes/scale", methods=["POST"])
 @login_required
+@csrf.exempt
 def recipes_scale():
     """Scaled ingredient JSON (CONTRACTS.md §3). Auth: required."""
     if not request.is_json:
