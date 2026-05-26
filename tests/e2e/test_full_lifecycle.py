@@ -8,7 +8,7 @@ across four concrete scenarios:
 
   1. First-time OAuth login  — new account created, GitHub identity stored.
   2. Returning OAuth login   — existing row reused, no duplicate created.
-  3. CSRF protection         — tokenless POST to a guarded endpoint is rejected.
+  3. CSRF protection         — authenticated POST without csrf_token is rejected (400).
   4. Session expiry          — after session cookies are cleared, the protected
                                page is no longer accessible.
 
@@ -179,37 +179,32 @@ def test_returning_oauth_login_reuses_row(page: Page, base_url: str) -> None:
 # Scenario 3 — CSRF protection: tokenless POST is rejected
 # ════════════════════════════════════════════════════════════════════════════
 
-def test_csrf_protection_rejects_unauthenticated_post(
+def test_csrf_protection_rejects_tokenless_post(
     playwright, base_url: str
 ) -> None:
     """
-    A POST to a state-changing endpoint sent without a valid session cookie
-    (simulating a cross-site request with no authentication) must be rejected.
+    A POST to a state-changing endpoint with a valid session but no CSRF token
+    must be rejected (Flask-WTF → 400).
 
-    The test uses Playwright's APIRequestContext — a fresh context with no
-    browser session — to send a POST to /mealplan.  The endpoint is protected
-    by Flask-Login's @login_required, so the server must redirect to /login.
+    Uses Playwright's APIRequestContext: first establishes a session via the
+    test-login backdoor, then POSTs to /mealplan without csrf_token.
 
-    Verifies:
-      - A raw POST with no session cookie is not accepted.
-      - The response redirects to /login (or returns 401/403).
-
-    Regression caught: if the @login_required decorator were accidentally
-    removed from the /mealplan POST handler, an unauthenticated attacker could
-    modify any user's meal plan by crafting a POST from any origin.
+    Regression caught: if CSRFProtect were disabled or the mealplan form lost
+    its token check, a malicious site could trick a logged-in browser into
+    changing another user's meal plan via a forged POST.
     """
-    # A fresh APIRequestContext carries no browser cookies — equivalent to a
-    # cross-site request with no valid session.
+    csrf_user = f"lifecycle_csrf_{_RUN_TS}"
     api: APIRequestContext = playwright.request.new_context(base_url=base_url)
     try:
+        login = api.get(f"/test-login?username={csrf_user}")
+        assert login.ok, f"test-login failed: {login.status}"
+
         response = api.post(
             "/mealplan",
             form={"day_of_week": "1", "recipe_id": "1", "servings": "2"},
         )
-        # Playwright follows redirects by default, so after the 302→/login
-        # chain the response URL will contain "/login".
-        assert "/login" in response.url or response.status in (401, 403), (
-            f"Expected auth rejection, got status {response.status} at {response.url!r}"
+        assert response.status == 400, (
+            f"Expected CSRF rejection (400), got {response.status} at {response.url!r}"
         )
     finally:
         api.dispose()
@@ -221,31 +216,23 @@ def test_csrf_protection_rejects_unauthenticated_post(
 
 def test_session_expiry_blocks_protected_route(page: Page, base_url: str) -> None:
     """
-    Once a user's session cookie is gone (expired or cleared), the protected
-    /mealplan route must redirect to /login — the user is no longer
-    authenticated.
+    After PERMANENT_SESSION_LIFETIME elapses, the protected /mealplan route must
+    redirect to /login.
 
-    Flask stores sessions in signed cookies on the client.  True time-based
-    expiry requires the server clock to advance past PERMANENT_SESSION_LIFETIME
-    and then the client to make a new request — difficult to orchestrate in a
-    fast unit test.  We simulate this by clearing all cookies via Playwright's
-    browser-context API, which is equivalent to the browser discarding an
-    expired session cookie.  The code path exercised (Flask-Login's session
-    validation on every request) is identical.
+    Patches the live app's session lifetime to two seconds, logs in via the
+    backdoor, waits for the cookie to expire, then asserts /mealplan is gated.
 
-    Verifies:
-      - A user who is logged in can access /mealplan.
-      - After their session cookies are cleared, /mealplan redirects to /login.
-      - The navbar reverts to showing "Log in" (anonymous state).
-
-    Regression caught: if Flask-Login's `@login_required` were replaced with a
-    weaker check that only reads a plain (unsigned) cookie value, clearing the
-    official session cookie would not trigger a redirect, and any user could
-    forge their own session by crafting a cookie with an arbitrary user_id.
+    Regression caught: if session.permanent were ignored or lifetime were set
+    to an unreasonably long value in production config, users would stay
+    authenticated indefinitely without re-login.
     """
-    session_user = f"lifecycle_sess_{_RUN_TS}"
+    from datetime import timedelta
 
-    # Log in and confirm access.
+    from app import app
+
+    session_user = f"lifecycle_sess_{_RUN_TS}"
+    app.config["PERMANENT_SESSION_LIFETIME"] = timedelta(seconds=2)
+
     goto(page, base_url, f"/test-login?username={session_user}")
     assert "/mealplan" in page.url, f"Expected /mealplan after login, got {page.url!r}"
     expect(page.locator("nav").get_by_text(session_user)).to_be_visible()
@@ -253,12 +240,11 @@ def test_session_expiry_blocks_protected_route(page: Page, base_url: str) -> Non
     goto(page, base_url, "/mealplan")
     assert "/login" not in page.url, "Expected /mealplan to be accessible when logged in."
 
-    # ── Simulate session expiry by clearing all cookies ──────────────────────
-    page.context.clear_cookies()
+    # Wait past the short test-only session lifetime.
+    page.wait_for_timeout(2500)
 
-    # ── Protected route now redirects to login ────────────────────────────────
     goto(page, base_url, "/mealplan")
     assert "/login" in page.url, (
-        f"Expected redirect to /login after session cleared, got {page.url!r}"
+        f"Expected redirect to /login after session expired, got {page.url!r}"
     )
     expect(page.locator("nav").get_by_role("link", name="Log in")).to_be_visible()

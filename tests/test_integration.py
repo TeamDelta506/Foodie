@@ -24,6 +24,7 @@ import responses  # noqa: E402
 
 from app import app, engine  # noqa: E402
 from sqlmodel import SQLModel  # noqa: E402
+from tests.conftest import csrf_delete, csrf_post  # noqa: E402
 
 _EDAMAM_RE = re.compile(r"https://api\.edamam\.com/api/recipes/v2\?.*")
 
@@ -60,9 +61,10 @@ def test_week6_demo_register_search_detail_scale_plan_delete(client):
         status=200,
     )
 
-    assert client.post(
+    assert csrf_post(
+        client,
         "/register",
-        data={"username": "coord_user", "password": "password123"},
+        {"username": "coord_user", "password": "password123"},
         follow_redirects=False,
     ).status_code == 302
 
@@ -95,9 +97,11 @@ def test_week6_demo_register_search_detail_scale_plan_delete(client):
     assert body["target_servings"] == 6
     assert isinstance(body.get("ingredients"), list)
 
-    plan = client.post(
+    plan = csrf_post(
+        client,
         "/mealplan",
-        data={"day_of_week": "1", "recipe_id": str(rid), "servings": "2"},
+        {"day_of_week": "1", "recipe_id": str(rid), "servings": "2"},
+        token_url="/mealplan",
         follow_redirects=False,
     )
     assert plan.status_code == 302
@@ -107,7 +111,7 @@ def test_week6_demo_register_search_detail_scale_plan_delete(client):
     assert board.status_code == 200
     assert str(rid).encode() in board.data
 
-    clear = client.delete("/mealplan/1")
+    clear = csrf_delete(client, "/mealplan/1")
     assert clear.status_code == 302
 
     board_after = client.get("/mealplan")
