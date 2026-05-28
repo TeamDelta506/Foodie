@@ -97,6 +97,42 @@ docker compose exec app printenv EDAMAM_APP_ID EDAMAM_APP_KEY
 
 If either line is empty, check that `.env` exists in the same directory as `docker-compose.yml` and restart: `docker compose up -d`.
 
+---
+
+## 🧱 Running the production stack (Week 8: nginx + gunicorn + Postgres)
+
+This stack runs the app behind **nginx** (TLS on 443) proxying to **gunicorn** over a **unix socket**, with **Postgres** on the internal Docker network.
+
+### 1. Ensure secrets exist
+
+Create `.env` (gitignored) and set at least:
+
+```bash
+SECRET_KEY=your-long-random-secret
+```
+
+Optional (feature-related) values: `EDAMAM_APP_ID`, `EDAMAM_APP_KEY`, `OAUTH_CLIENT_ID`, `OAUTH_CLIENT_SECRET`.
+
+### 2. Generate a self-signed cert (one-time, not committed)
+
+The prod compose file mounts certs from `deploy/nginx/certs/` as `/etc/nginx/certs/` in the nginx container.
+
+If you don't have `openssl` installed locally, this Docker command works:
+
+```bash
+docker run --rm -v "$(pwd)/deploy/nginx/certs:/certs" alpine/openssl req -x509 -newkey rsa:2048 -nodes -keyout /certs/key.pem -out /certs/cert.pem -days 365 -subj "/CN=localhost"
+```
+
+### 3. Start the production stack
+
+From the repo root:
+
+```bash
+docker compose -f docker-compose.prod.yml up --build
+```
+
+Open `https://localhost` (your browser will warn because the cert is self-signed).
+
 ### 3. Run tests
 
 ```bash
