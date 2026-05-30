@@ -66,6 +66,18 @@ def test_users_password_hash_is_nullable():
     assert cols["password_hash"].get("nullable") is True
 
 
+def test_oauth_user_insert_sets_created_at():
+    """New OAuth-only users must persist created_at (Postgres Week 5 volumes)."""
+    from app import Session, User
+
+    with Session(engine) as db:
+        user = User(username="oauth_only_user", password_hash=None)
+        db.add(user)
+        db.commit()
+        db.refresh(user)
+        assert user.created_at is not None
+
+
 def test_oauth_identities_table_and_unique_provider_user():
     """oauth_identities per CONTRACTS.md §1 (Week 7 — Sam/Justin)."""
     inspector = inspect(engine)

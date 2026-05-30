@@ -44,6 +44,10 @@ from werkzeug.security import generate_password_hash, check_password_hash
 
 logger = logging.getLogger(__name__)
 
+
+def _utc_now() -> datetime:
+    return datetime.now(timezone.utc)
+
 # ---------------------------------------------------------------------------
 # Application setup
 # ---------------------------------------------------------------------------
@@ -147,8 +151,8 @@ class User(UserMixin, SQLModel, table=True):
     username:      str         = Field(unique=True, index=True, max_length=80)
     # Nullable — OAuth-only accounts have no local password.
     password_hash: str | None  = Field(default=None, max_length=255, nullable=True)
-    created_at:    datetime | None = Field(
-        default=None,
+    created_at:    datetime = Field(
+        default_factory=_utc_now,
         sa_column=Column(DateTime(timezone=True), nullable=False, server_default=func.now()),
     )
     # Legacy mirror of oauth_identities (Week 7); prefer oauth_identities for lookups.
@@ -1184,6 +1188,22 @@ def _upgrade_week7_auth_schema() -> None:
                 conn.execute(text(
                     "ALTER TABLE users ADD COLUMN github_login VARCHAR(255)"
                 ))
+
+        # Week 5 volumes: created_at is NOT NULL but often has no DB default.
+        # OAuth/register inserts must not rely on server_default alone.
+        if "created_at" in user_col_names:
+            created_at_col = user_cols["created_at"]
+            if created_at_col.get("default") is None:
+                if dialect == "postgresql":
+                    conn.execute(text(
+                        "ALTER TABLE users ALTER COLUMN created_at "
+                        "SET DEFAULT CURRENT_TIMESTAMP"
+                    ))
+                else:
+                    conn.execute(text(
+                        "UPDATE users SET created_at = CURRENT_TIMESTAMP "
+                        "WHERE created_at IS NULL"
+                    ))
 
 
 SQLModel.metadata.create_all(engine)
