@@ -156,9 +156,8 @@
       fetch("/mealplan/" + encodeURIComponent(day), {
         method: "DELETE",
         credentials: "same-origin",
-        redirect: "manual",
         headers: {
-          Accept: "text/html, application/json",
+          Accept: "text/html",
           "X-CSRFToken": csrfVal,
         },
       })
@@ -167,19 +166,12 @@
             showDeleteErr("Nothing was planned for that day (or it was already cleared).");
             return;
           }
-          if (res.status === 401) {
-            window.location.href = "/login";
+          if (res.redirected && res.url && res.url.indexOf("/login") !== -1) {
+            window.location.href = res.url;
             return;
           }
-          if (res.status === 302 || res.status === 303) {
-            var loc = res.headers.get("Location");
-            if (loc) {
-              window.location.href = loc;
-              return;
-            }
-            window.location.reload();
-            return;
-          }
+          // Server returns 302 → /mealplan; follow redirects (default) yields 200 HTML.
+          // redirect: "manual" hid the 302 as status 0, so the UI never refreshed.
           if (res.ok) {
             window.location.reload();
             return;
