@@ -38,7 +38,7 @@
                    class="foodie-recipe-card foodie-recipe-card--compact text-decoration-none text-reset w-100 d-flex flex-column"
                    aria-label="{{ r.name }}">
                     <div class="foodie-recipe-card-media flex-shrink-0">
-                        {% with image_url=r.image_url, width=240, height=240 %}
+                        {% with image_url=r.image_url, recipe_id=r.id, width=240, height=240 %}
                         {% include "partials/recipe_image.html" %}
                         {% endwith %}
                         {% if r.calories is not none %}

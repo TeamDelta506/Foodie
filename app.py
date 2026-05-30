@@ -12,8 +12,10 @@ Route ownership per CONTRACTS.md §7:
   Justin — SQLModel models; Flask-Login; DB schema (Week 7: github_id)
 """
 
+import ipaddress
 import logging
 import os
+import socket
 
 from dotenv import load_dotenv
 
@@ -22,12 +24,13 @@ import random
 import uuid
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
+from urllib.parse import quote, urlparse
 
 import requests as http
 from authlib.integrations.flask_client import OAuth
 from flask import (
     Flask, render_template, request, redirect, url_for, flash, g,
-    send_from_directory, abort, jsonify, session,
+    send_from_directory, abort, jsonify, session, Response,
 )
 from flask_login import (
     LoginManager, UserMixin, login_user, logout_user, current_user,
@@ -190,7 +193,7 @@ class Recipe(SQLModel, table=True):
     id:               int | None  = Field(default=None, primary_key=True)
     api_id:           str         = Field(unique=True, index=True, max_length=255)
     name:             str         = Field(max_length=500)
-    image_url:        str | None  = Field(default=None, max_length=1000)
+    image_url:        str | None  = Field(default=None, max_length=2048)
     calories:         float | None = Field(default=None)
     protein:          float | None = Field(default=None)
     carbs:            float | None = Field(default=None)
@@ -473,6 +476,113 @@ def _edamam_search_recipes(q: str, db: Session) -> tuple[list[Recipe], str | Non
     return recipes, None
 
 
+def _is_demo_recipe(recipe: Recipe) -> bool:
+    return recipe.api_id.startswith("demo.")
+
+
+def _refresh_recipe_image_from_edamam(recipe: Recipe, db: Session) -> str | None:
+    """Renew one recipe's presigned image URL via Edamam's per-recipe endpoint."""
+    if os.environ.get("DISABLE_EDAMAM_API", "").lower() in ("1", "true", "yes"):
+        return None
+    if not _edamam_configured() or _is_demo_recipe(recipe) or not recipe.api_id:
+        return None
+
+    lookup_url = f"{EDAMAM_BASE}/{quote(recipe.api_id, safe='')}"
+    try:
+        resp = http.get(
+            lookup_url,
+            params={
+                "type": "public",
+                "app_id": EDAMAM_APP_ID,
+                "app_key": EDAMAM_APP_KEY,
+            },
+            headers=_edamam_request_headers(),
+            timeout=EDAMAM_TIMEOUT,
+        )
+    except http.RequestException:
+        logger.exception("Edamam image refresh failed for recipe_id=%s", recipe.id)
+        return None
+
+    if resp.status_code == 429:
+        session["_edamam_rate_limited"] = True
+        return None
+    if not resp.ok:
+        logger.warning(
+            "Edamam recipe lookup HTTP %s for recipe_id=%s",
+            resp.status_code,
+            recipe.id,
+        )
+        return None
+
+    try:
+        payload = resp.json()
+    except ValueError:
+        logger.exception("Edamam recipe lookup returned invalid JSON for recipe_id=%s", recipe.id)
+        return None
+
+    recipe_data = payload.get("recipe") if isinstance(payload, dict) else None
+    if not isinstance(recipe_data, dict):
+        return None
+
+    new_url = _edamam_image_url(recipe_data)
+    if not new_url:
+        return None
+
+    if new_url != recipe.image_url:
+        recipe.image_url = new_url
+        db.add(recipe)
+        db.commit()
+        db.refresh(recipe)
+    return new_url
+
+
+def _image_content_type(header_value: str | None, url: str, data: bytes) -> str | None:
+    """Resolve Content-Type; Edamam S3 often serves JPEG as binary/octet-stream."""
+    ct = (header_value or "").split(";")[0].strip().lower()
+    if ct.startswith("image/"):
+        return ct
+    if data[:3] == b"\xff\xd8\xff":
+        return "image/jpeg"
+    if data[:8] == b"\x89PNG\r\n\x1a\n":
+        return "image/png"
+    if data[:6] in (b"GIF87a", b"GIF89a"):
+        return "image/gif"
+    if len(data) >= 12 and data[:4] == b"RIFF" and data[8:12] == b"WEBP":
+        return "image/webp"
+    path = urlparse(url).path.lower()
+    if path.endswith((".jpg", ".jpeg")):
+        return "image/jpeg"
+    if path.endswith(".png"):
+        return "image/png"
+    if path.endswith(".webp"):
+        return "image/webp"
+    if path.endswith(".gif"):
+        return "image/gif"
+    return None
+
+
+def _fetch_remote_image(url: str) -> tuple[Response | None, int | None]:
+    """Fetch a remote image URL. Returns (response, None) or (None, http_status)."""
+    upstream = http.get(
+        url,
+        timeout=EDAMAM_TIMEOUT,
+        headers={"User-Agent": "Foodie/1.0", "Accept": "image/*"},
+    )
+    if not upstream.ok:
+        return None, upstream.status_code
+
+    data = upstream.content
+    content_type = _image_content_type(upstream.headers.get("Content-Type"), url, data)
+    if not content_type or not data:
+        return None, upstream.status_code
+
+    return Response(
+        data,
+        content_type=content_type,
+        headers={"Cache-Control": "public, max-age=86400"},
+    ), None
+
+
 # ---------------------------------------------------------------------------
 # Request helpers
 # ---------------------------------------------------------------------------
@@ -481,6 +591,38 @@ def get_db_session():
     if "db_session" not in g:
         g.db_session = Session(engine)
     return g.db_session
+
+
+def _public_recipe_image_url(recipe_id: int | None, image_url: str | None) -> str | None:
+    """Browser-safe image URL: local paths as-is, remote Edamam URLs via same-origin proxy."""
+    if not image_url:
+        return None
+    url = image_url.strip()
+    if url.startswith("/"):
+        return url
+    if recipe_id is not None:
+        return url_for("recipe_image", recipe_id=recipe_id)
+    return None
+
+
+def _safe_remote_image_url(url: str) -> str | None:
+    """SSRF guard — only fetch remote images from public hosts."""
+    parsed = urlparse(url.strip())
+    if parsed.scheme not in ("http", "https") or not parsed.hostname:
+        return None
+    try:
+        for info in socket.getaddrinfo(parsed.hostname, None):
+            ip = ipaddress.ip_address(info[4][0])
+            if ip.is_private or ip.is_loopback or ip.is_link_local or ip.is_reserved:
+                return None
+    except socket.gaierror:
+        return None
+    return url.strip()
+
+
+@app.template_filter("recipe_image_src")
+def recipe_image_src_filter(image_url: str | None, recipe_id: int | None = None) -> str:
+    return _public_recipe_image_url(recipe_id, image_url) or ""
 
 
 @app.teardown_appcontext
@@ -954,6 +1096,50 @@ def recipe_detail(recipe_id: int):
     )
 
 
+@app.route("/recipes/<int:recipe_id>/image")
+def recipe_image(recipe_id: int):
+    """Same-origin proxy for cached Edamam image URLs (CSP img-src 'self').
+
+    When the stored presigned S3 URL expires (403/404), performs one Edamam
+    lookup by api_id to refresh image_url, then retries the fetch.
+    """
+    db = get_db_session()
+    recipe = db.get(Recipe, recipe_id)
+    if recipe is None:
+        abort(404)
+
+    if not recipe.image_url:
+        _refresh_recipe_image_from_edamam(recipe, db)
+        if not recipe.image_url:
+            abort(404)
+
+    src = recipe.image_url.strip()
+    if src.startswith("/"):
+        return redirect(src)
+
+    safe = _safe_remote_image_url(src)
+    if not safe:
+        abort(404)
+
+    try:
+        body, err_status = _fetch_remote_image(safe)
+        if body is not None:
+            return body
+
+        if err_status in (403, 404, 410):
+            new_url = _refresh_recipe_image_from_edamam(recipe, db)
+            if new_url:
+                safe_retry = _safe_remote_image_url(new_url)
+                if safe_retry:
+                    body, _ = _fetch_remote_image(safe_retry)
+                    if body is not None:
+                        return body
+    except http.RequestException:
+        logger.exception("Image proxy failed for recipe_id=%s", recipe_id)
+
+    abort(502)
+
+
 @app.route("/recipes/scale", methods=["POST"])
 @login_required
 @csrf.exempt
@@ -1136,7 +1322,11 @@ def mealplan_recipe_suggest():
     pick = [r for r in rows if q in r.name.lower()][:20] if q else rows[:20]
 
     return jsonify(recipes=[
-        {"id": r.id, "name": r.name, "image_url": r.image_url or ""}
+        {
+            "id": r.id,
+            "name": r.name,
+            "image_url": _public_recipe_image_url(r.id, r.image_url) or "",
+        }
         for r in pick
     ])
 
@@ -1206,8 +1396,26 @@ def _upgrade_week7_auth_schema() -> None:
                     ))
 
 
+def _upgrade_recipe_image_url_length() -> None:
+    """Widen image_url for long Edamam presigned URLs (Postgres volumes from Week 6/7)."""
+    insp = inspect(engine)
+    if "recipes" not in insp.get_table_names():
+        return
+    if engine.dialect.name != "postgresql":
+        return
+    cols = {c["name"]: c for c in insp.get_columns("recipes")}
+    col = cols.get("image_url")
+    if col is None:
+        return
+    length = getattr(col["type"], "length", None)
+    if length is not None and length < 2048:
+        with engine.begin() as conn:
+            conn.execute(text("ALTER TABLE recipes ALTER COLUMN image_url TYPE VARCHAR(2048)"))
+
+
 SQLModel.metadata.create_all(engine)
 _upgrade_week7_auth_schema()
+_upgrade_recipe_image_url_length()
 with engine.begin() as conn:
     _sync_recipes_id_sequence(conn)
 _purge_legacy_placeholder_demos()
