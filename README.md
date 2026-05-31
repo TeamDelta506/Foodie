@@ -111,6 +111,117 @@ Set the same environment variables on the host (AWS, Render, etc.) or in your de
 
 ---
 
+## 🔒 Running the production stack (nginx + gunicorn + Postgres)
+
+Week 8 adds a full production stack: nginx terminates TLS on port 443, gunicorn runs the Flask workers, and Postgres stores data. The development `flask run` server is replaced.
+
+### Prerequisites
+
+- Docker Desktop installed and running
+- `openssl` available in your terminal (Git Bash on Windows has it; macOS/Linux have it natively)
+- Ports 80 and 443 free on your machine
+
+### One-time setup
+
+**1. Clone and configure environment**
+
+```bash
+git clone https://github.com/TeamDelta506/Foodie.git
+cd Foodie
+cp .env.example .env
+# Edit .env and set EDAMAM_APP_ID, EDAMAM_APP_KEY, and any other values.
+# Never commit .env.
+```
+
+**2. Generate a self-signed TLS certificate**
+
+The cert lives in `nginx/certs/` which is gitignored — each environment generates its own.
+
+```bash
+mkdir -p nginx/certs
+openssl req -x509 -newkey rsa:2048 -nodes \
+  -keyout nginx/certs/key.pem \
+  -out nginx/certs/cert.pem \
+  -days 365 \
+  -subj "/CN=localhost"
+```
+
+On Windows without openssl in PATH, use Git Bash or run the one-liner inside Docker:
+
+```bash
+docker run --rm -v "$(pwd)/nginx/certs:/out" alpine/openssl \
+  req -x509 -newkey rsa:2048 -nodes \
+  -keyout /out/key.pem -out /out/cert.pem \
+  -days 365 -subj "/CN=localhost"
+```
+
+**3. Start the full stack**
+
+```bash
+docker compose up --build
+```
+
+This starts three containers:
+
+| Container | Role |
+|-----------|------|
+| `nginx` | TLS termination, static assets, rate limiting |
+| `app` | gunicorn + Flask (3 workers) |
+| `db` | Postgres 16 (not exposed to the host) |
+
+**4. Open the app**
+
+Navigate to **[https://localhost](https://localhost)**.
+
+Your browser will warn about the self-signed certificate — click "Advanced → Proceed" (Chrome) or "Accept the Risk" (Firefox). This is expected in development; production uses a real Let's Encrypt cert.
+
+### Verifying the stack
+
+```bash
+# All three containers should show "Up":
+docker compose ps
+
+# Security headers should be present on every response:
+curl -sk https://localhost/ -I | grep -E "X-Frame|Strict-Transport|Content-Security"
+
+# nginx access log (shows all requests nginx handled):
+docker compose logs nginx
+
+# gunicorn/Flask log (only requests that reached Python):
+docker compose logs app
+```
+
+### Running the attack-path security test
+
+With the stack running, assert that nginx blocks all 20 known-bad scanner paths:
+
+```bash
+pytest tests/test_attack_paths.py -v
+# Expected: 20 passed, 1 skipped
+```
+
+### Rebuilding after code changes
+
+```bash
+# Rebuild only the app container (nginx and db keep running):
+docker compose up --build app
+
+# Full teardown and rebuild:
+docker compose down
+docker compose up --build
+```
+
+### Releasing to production (tag-driven)
+
+```bash
+git tag v0.8.0
+git push origin v0.8.0
+```
+
+This triggers the `.github/workflows/deploy.yml` pipeline, which builds the Docker image, pushes it to Docker Hub, and deploys to EC2 via SSH. See the workflow file for the required repo secrets.
+
+---
+
 ## 💡 Why This Project
 
 We chose to build a meal planner because it is a practical tool that solves a real everyday problem while also giving us a chance to work on meaningful technical challenges. Sam is particularly motivated by the opportunity to design a system that supports healthy eating habits and aligns with his interest in maintaining a balanced lifestyle. Justin is interested in building a tool he can also use personally to support a healthier routine after transitioning out of active duty military life, and he is especially curious about learning more about application security in a real-world project. Asia chose this project because she finds meal planning genuinely useful in her own life and often struggles with finding recipes; she is also excited to strengthen her frontend skills by working with JavaScript and CSS to create a polished, realistic user experience.
