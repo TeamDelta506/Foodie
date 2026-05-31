@@ -15,3 +15,7 @@ venv/
 S3_content/*
 !S3_content/.gitkeep
 .venv
+
+# TLS certificates — regenerated per environment, never committed
+nginx/certs/
+*.pem

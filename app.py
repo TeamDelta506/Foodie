@@ -39,6 +39,7 @@ from sqlalchemy import (
 )
 from sqlmodel import SQLModel, Field, Session, create_engine, select
 from werkzeug.exceptions import HTTPException
+from werkzeug.middleware.proxy_fix import ProxyFix
 from werkzeug.security import generate_password_hash, check_password_hash
 
 logger = logging.getLogger(__name__)
@@ -48,6 +49,12 @@ logger = logging.getLogger(__name__)
 # ---------------------------------------------------------------------------
 
 app = Flask(__name__)
+
+# Trust one layer of proxy headers from nginx (X-Forwarded-Proto, X-Forwarded-For).
+# Required so SESSION_COOKIE_SECURE works correctly behind nginx — without this,
+# Flask thinks the connection is plain HTTP and refuses to set the secure cookie.
+app.wsgi_app = ProxyFix(app.wsgi_app, x_for=1, x_proto=1, x_host=1, x_prefix=1)
+
 app.config["SECRET_KEY"] = os.environ.get("SECRET_KEY", "dev-secret-not-for-production")
 # Remember-me cookie — 30 days, HttpOnly, SameSite=Lax (Week 7 client-side).
 app.config["REMEMBER_COOKIE_DURATION"]  = timedelta(days=30)
