@@ -60,6 +60,14 @@ app.config["SECRET_KEY"] = os.environ.get("SECRET_KEY", "dev-secret-not-for-prod
 app.config["REMEMBER_COOKIE_DURATION"]  = timedelta(days=30)
 app.config["REMEMBER_COOKIE_HTTPONLY"]  = True
 app.config["REMEMBER_COOKIE_SAMESITE"] = "Lax"
+# Session cookie hardening (Week 8) — active now that nginx terminates TLS and
+# ProxyFix above lets Flask see X-Forwarded-Proto: https correctly.
+# Secure:   cookie only sent over HTTPS (browser drops it on plain HTTP).
+# HttpOnly: JavaScript cannot read the cookie via document.cookie.
+# SameSite: Lax blocks cross-site form-submission CSRF.
+app.config["SESSION_COOKIE_SECURE"]   = True
+app.config["SESSION_COOKIE_HTTPONLY"] = True
+app.config["SESSION_COOKIE_SAMESITE"] = "Lax"
 # Permanent session lifetime — overridable via SESSION_LIFETIME_SECONDS for fast tests.
 _sess_secs = int(os.environ.get("SESSION_LIFETIME_SECONDS", 0))
 app.config["PERMANENT_SESSION_LIFETIME"] = (
