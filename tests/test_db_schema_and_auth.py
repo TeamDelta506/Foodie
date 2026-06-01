@@ -19,6 +19,7 @@ from sqlalchemy import inspect  # noqa: E402
 from sqlmodel import SQLModel  # noqa: E402
 
 from app import app, engine  # noqa: E402
+from tests.csrf_helpers import delete_with_csrf, post_with_csrf  # noqa: E402
 
 
 @pytest.fixture(autouse=True)
@@ -116,12 +117,23 @@ def test_mealplan_get_requires_authenticated_user(client):
 
 
 def _register(client, username: str, password: str = "secret") -> None:
-    client.post("/register", data={"username": username, "password": password})
-    client.post("/logout")
+    post_with_csrf(client, "/register", {"username": username, "password": password})
+    post_with_csrf(client, "/logout")
 
 
 def _login(client, username: str, password: str = "secret") -> None:
-    client.post("/login", data={"username": username, "password": password})
+    post_with_csrf(client, "/login", {"username": username, "password": password})
+
+
+def test_csrf_rejects_post_without_token(client):
+    """POST /mealplan without csrf_token must return 400 (CONTRACTS.md §10)."""
+    _register(client, "csrf_user")
+    _login(client, "csrf_user")
+    response = client.post(
+        "/mealplan",
+        data={"day_of_week": "0", "recipe_id": "1", "servings": "2"},
+    )
+    assert response.status_code == 400
 
 
 def test_mealplan_scoped_to_current_user(client):
@@ -141,9 +153,10 @@ def test_mealplan_scoped_to_current_user(client):
         recipe_id = recipe.id
 
     _login(client, "owner_a")
-    client.post(
+    post_with_csrf(
+        client,
         "/mealplan",
-        data={"day_of_week": "0", "recipe_id": str(recipe_id), "servings": "2"},
+        {"day_of_week": "0", "recipe_id": str(recipe_id), "servings": "2"},
     )
 
     _login(client, "owner_b")
@@ -161,5 +174,5 @@ def test_mealplan_delete_missing_day_returns_404(client):
     """DELETE /mealplan/<day> with no plan for current user returns 404, not 403."""
     _register(client, "deleter")
     _login(client, "deleter")
-    response = client.delete("/mealplan/3", follow_redirects=False)
+    response = delete_with_csrf(client, "/mealplan/3", follow_redirects=False)
     assert response.status_code == 404

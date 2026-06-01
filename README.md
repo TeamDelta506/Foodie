@@ -79,23 +79,31 @@ Optional overrides (see `.env.example`): `SECRET_KEY`, `DATABASE_URL`.
 
 Share the Edamam values with teammates through a **secure** channel (password manager, DM). Do not commit `.env` or post keys in GitHub issues or PRs.
 
-### 2. Start with Docker Compose
+### 2. Start with Docker Compose (production stack)
 
 From the **repo root** (the directory that contains `app.py` and `docker-compose.yml`):
 
 ```bash
+mkdir -p nginx/certs
+openssl req -x509 -newkey rsa:2048 -nodes \
+  -keyout nginx/certs/key.pem -out nginx/certs/cert.pem \
+  -days 365 -subj "/CN=localhost"
 docker compose up --build -d
 ```
 
-Open [http://localhost:5000](http://localhost:5000). Register a user, log in, and try **Discover recipes** search.
+Open [https://localhost](https://localhost) (accept the self-signed certificate warning). Set `SECRET_KEY` in `.env` before starting (see `.env.example`).
 
-Verify Edamam keys are loaded in the app container:
+**Development** (Flask dev server on port 5000, no nginx):
 
 ```bash
-docker compose exec app printenv EDAMAM_APP_ID EDAMAM_APP_KEY
+docker compose -f docker-compose.dev.yml up --build -d
 ```
 
-If either line is empty, check that `.env` exists in the same directory as `docker-compose.yml` and restart: `docker compose up -d`.
+Open [http://localhost:5000](http://localhost:5000). Verify Edamam keys:
+
+```bash
+docker compose -f docker-compose.dev.yml exec app printenv EDAMAM_APP_ID EDAMAM_APP_KEY
+```
 
 ### 3. Run tests
 
@@ -107,7 +115,7 @@ Postgres constraint checks and the full e2e walk are documented in `e2e/db_secur
 
 ### 4. Deployed / shared server
 
-Set the same environment variables on the host (AWS, Render, etc.) or in your deployment secrets — not in source code. All users of that deployment share one Edamam quota; cached recipes in Postgres reduce repeat API calls.
+Set the same environment variables on the host (AWS, Render, etc.) or in your deployment secrets — not in source code. All users of that deployment share one Edamam quota; cached recipes in Postgres reduce repeat API calls. Replace `yourapp.example.com` in `nginx/nginx.conf` and use real TLS certificates (e.g. Let's Encrypt) in `nginx/certs/`.
 
 ---
 

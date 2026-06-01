@@ -1,4 +1,6 @@
 Flask==3.0.0
+gunicorn>=22.0.0
+Flask-WTF>=1.2.1
 Flask-Login>=0.6.3
 sqlmodel==0.0.16
 psycopg2-binary==2.9.9

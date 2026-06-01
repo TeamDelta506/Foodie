@@ -104,11 +104,12 @@ def test_recipes_search_rate_limited_still_renders_200_banner(client):
 
 def test_post_scale_requires_authentication(client):
     """POST /recipes/scale must not succeed anonymously (302/401 gate)."""
-    payload = {"recipe_id": 1, "target_servings": 4}
-    response = client.post(
+    from tests.csrf_helpers import post_json_with_csrf
+
+    response = post_json_with_csrf(
+        client,
         "/recipes/scale",
-        data=json.dumps(payload),
-        headers={"Content-Type": "application/json"},
+        {"recipe_id": 1, "target_servings": 4},
     )
     assert response.status_code in (302, 401)
 

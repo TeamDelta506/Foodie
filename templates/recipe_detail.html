@@ -138,14 +138,17 @@
                 status.classList.add("d-none");
                 btn.disabled = true;
 
+                var csrfMeta = document.querySelector('meta[name="csrf-token"]');
+                var scaleHeaders = {
+                        "Content-Type": "application/json",
+                        Accept: "application/json",
+                    };
+                if (csrfMeta && csrfMeta.content) scaleHeaders["X-CSRFToken"] = csrfMeta.content;
                 fetch(scaleUrl, {
                     method: "POST",
                     credentials: "same-origin",
                     redirect: "manual",
-                    headers: {
-                        "Content-Type": "application/json",
-                        Accept: "application/json",
-                    },
+                    headers: scaleHeaders,
                     body: JSON.stringify({ recipe_id: recipeId, target_servings: servings }),
                 })
                     .then(function (res) {
@@ -200,6 +203,7 @@
             <div class="card-header" id="plan-heading">Add to meal plan</div>
             <div class="card-body p-4">
                 <form method="post" action="{{ url_for('mealplan') }}" class="row g-2 align-items-end">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                     <input type="hidden" name="recipe_id" value="{{ recipe.id }}">
                     <div class="col-md-4">
                         <label for="plan-day" class="form-label">Day</label>

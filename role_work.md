@@ -1,32 +1,25 @@
-# role_work.md — Sowmya Korasikha (Coordinator)
+# role_work.md — Justin db-and-security)
 
 **Week:** 7  
-**Role:** Coordinator
+**Role:** DB-and-security
 
 ## Files touched
 
-- `app.py` — `load_dotenv()`, required env vars, nullable `password_hash`, `GET /test/login/<username>` backdoor
-- `requirements.txt` — `python-dotenv`, `playwright`, `pytest-playwright`
-- `tests/conftest.py` — default env vars for unit tests / CI
-- `tests/e2e/conftest.py` — `TESTING=True`, SQLite live-server fixture
-- `tests/e2e/test_smoke_login_page.py` — coordinator smoke test
-- `templates/login.html` — minimal **Sign in with GitHub** link (stub `href`; Asia restyles, Sam adds route)
-- `.github/workflows/test.yml` — CI env vars for required secrets
-- `.env.example` — (prior PR) OAuth placeholder names
+- `app.py` — `OAuthIdentity` model, nullable `password_hash`, session cookie flags (`SESSION_COOKIE_HTTPONLY`, `SESSION_COOKIE_SAMESITE`, `SESSION_COOKIE_SECURE`), `PERMANENT_SESSION_LIFETIME`, remember-me cookie settings, `CSRFProtect`, `_upgrade_week7_auth_schema()`
+- `scripts/migrate_week7_oauth.sql` — Postgres bridge migration for existing volumes
+- `requirements.txt` — `Flask-WTF`
+- `templates/base.html`, `templates/login.html`, `templates/register.html`, `templates/mealplan.html`, `templates/recipe_detail.html` — CSRF hidden fields and `X-CSRFToken` on fetch calls
+- `tests/csrf_helpers.py` — CSRF token helpers for pytest clients
+- `tests/test_db_schema_and_auth.py` — `oauth_identities` schema assertions, `test_csrf_rejects_post_without_token`
+- `tests/test_auth.py`, `tests/test_integration.py`, `tests/test_client_recipe_templates.py` — POST/DELETE helpers updated for CSRF
+- `tests/e2e/test_protected_page_auth.py` — Playwright protected-page auth gate
+- `e2e/db_security.md` — step 8 browser walk status (Playwright coverage)
 
 ## Playwright test
 
-**File:** `tests/e2e/test_smoke_login_page.py`  
-**Function:** `test_app_starts_login_page_has_clickable_github_button`
+**File:** `tests/e2e/test_protected_page_auth.py`  
+**Function:** `test_mealplan_protected_before_login_after_logout`
 
-**What it verifies:** The app serves `/login` in a real browser, the page title renders, and a **Sign in with GitHub** link is visible, enabled, points at `/login/github`, and accepts a click. This is the cheapest canary that OAuth UI entry exists; it does **not** exercise GitHub or the callback (backdoor / manual gap per `CONTRACTS.md` §11).
+**What it verifies:** In a real Chromium session, `/mealplan` shows the login page (not the weekly planner grid) when the user is logged out; after registering through the UI the same route renders the “Weekly meal plan” heading and seven `[data-day]` slots with the username in the navbar; after clicking **Log out** the navbar returns to **Log in** and a second visit to `/mealplan` again shows only the login form with no planner content. This exercises Flask-Login’s `@login_required` gate through rendered DOM, not HTTP status codes alone.
 
-**Week 6 walkthrough adapted:** None — new minimal smoke path focused on login-page entry only.
-
-## Known gaps
-
-- EC2 instance disk full — `playwright install chromium` fails locally with ENOSPC; e2e smoke test runs in GitHub Actions CI instead.
-
-- `/login/github` route not implemented yet (Sam) — smoke test only clicks the link, does not assert OAuth completion.
-- Navbar still shows `Hi, {username}` until Asia lands **`Logged in as`** copy.
-- `oauth_identities` table not created yet (Justin) — backdoor creates `users` rows only.
+**Week 6 walkthrough adapted:** `e2e/db_security.md` step 8 (auth flow browser walk — register, `/mealplan` while logged in, logout, `/mealplan` while logged out).

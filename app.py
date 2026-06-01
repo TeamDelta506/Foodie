@@ -33,12 +33,14 @@ from flask_login import (
     LoginManager, UserMixin, login_user, logout_user, current_user,
     login_required,
 )
+from flask_wtf.csrf import CSRFProtect
 from sqlalchemy import (
     Column, DateTime, Integer, SmallInteger, ForeignKey,
     CheckConstraint, UniqueConstraint, event as sa_event, func, inspect, text,
 )
 from sqlmodel import SQLModel, Field, Session, create_engine, select
 from werkzeug.exceptions import HTTPException
+from werkzeug.middleware.proxy_fix import ProxyFix
 from werkzeug.security import generate_password_hash, check_password_hash
 
 logger = logging.getLogger(__name__)
@@ -48,7 +50,13 @@ logger = logging.getLogger(__name__)
 # ---------------------------------------------------------------------------
 
 app = Flask(__name__)
+# Trust one proxy hop (nginx) so X-Forwarded-Proto enables secure session cookies over HTTPS.
+app.wsgi_app = ProxyFix(app.wsgi_app, x_for=1, x_proto=1, x_host=1, x_prefix=1)
 app.config["SECRET_KEY"] = os.environ.get("SECRET_KEY", "dev-secret-not-for-production")
+# Session cookie hardening (CONTRACTS.md §10 — Justin / db-and-security).
+app.config["SESSION_COOKIE_HTTPONLY"] = True
+app.config["SESSION_COOKIE_SAMESITE"] = "Lax"
+app.config["SESSION_COOKIE_SECURE"] = os.environ.get("SESSION_COOKIE_SECURE", "0") == "1"
 # Remember-me cookie — 30 days, HttpOnly, SameSite=Lax (Week 7 client-side).
 app.config["REMEMBER_COOKIE_DURATION"]  = timedelta(days=30)
 app.config["REMEMBER_COOKIE_HTTPONLY"]  = True
@@ -58,6 +66,8 @@ _sess_secs = int(os.environ.get("SESSION_LIFETIME_SECONDS", 0))
 app.config["PERMANENT_SESSION_LIFETIME"] = (
     timedelta(seconds=_sess_secs) if _sess_secs else timedelta(days=7)
 )
+
+csrf = CSRFProtect(app)
 
 DATABASE_URL         = os.environ.get("DATABASE_URL", "sqlite:///./foodie_dev.db")
 OAUTH_CLIENT_ID     = os.environ.get("OAUTH_CLIENT_ID") or os.environ.get("GITHUB_CLIENT_ID", "")
@@ -1066,20 +1076,21 @@ def mealplan():
         flash("Meal plan updated.")
         return redirect(url_for("mealplan"))
 
-    # GET
+    # GET — single joined query instead of N+1 per-day recipe lookups
     db = get_db_session()
     rows = db.exec(
-        select(MealPlan).where(MealPlan.user_id == current_user.id)
+        select(MealPlan, Recipe)
+        .join(Recipe, MealPlan.recipe_id == Recipe.id)
+        .where(MealPlan.user_id == current_user.id)
     ).all()
 
     planned = {}
-    for row in rows:
-        recipe = db.get(Recipe, row.recipe_id)
-        planned[row.day_of_week] = {
-            "recipe_id": row.recipe_id,
-            "servings":  row.servings,
-            "name":      recipe.name if recipe else None,
-            "image_url": recipe.image_url if recipe else None,
+    for mp, recipe in rows:
+        planned[mp.day_of_week] = {
+            "recipe_id": mp.recipe_id,
+            "servings":  mp.servings,
+            "name":      recipe.name,
+            "image_url": recipe.image_url,
         }
 
     return render_template("mealplan.html", title="Meal plan", planned=planned)
@@ -1114,15 +1125,14 @@ def mealplan_recipe_suggest():
 
     q    = (request.args.get("q") or "").strip().lower()
     db   = get_db_session()
-    rows = db.exec(
-        select(Recipe).where(Recipe.api_id.not_like("demo.p%"))  # type: ignore[arg-type]
-    ).all()
-
-    pick = [r for r in rows if q in r.name.lower()][:20] if q else rows[:20]
+    stmt = select(Recipe).where(Recipe.api_id.not_like("demo.p%"))  # type: ignore[arg-type]
+    if q:
+        stmt = stmt.where(func.lower(Recipe.name).contains(q))
+    rows = db.exec(stmt.limit(20)).all()
 
     return jsonify(recipes=[
         {"id": r.id, "name": r.name, "image_url": r.image_url or ""}
-        for r in pick
+        for r in rows
     ])
 
 
@@ -1135,19 +1145,28 @@ def _upgrade_week7_auth_schema() -> None:
 
     create_all() does not ALTER existing Postgres volumes — Week 7 needs nullable
     password_hash and GitHub columns on users plus oauth_identities.
+    Skips entirely when the schema is already up to date.
     """
     insp = inspect(engine)
     if "users" not in insp.get_table_names():
         return
     user_cols = {c["name"]: c for c in insp.get_columns("users")}
     user_col_names = set(user_cols)
+
+    pw = user_cols.get("password_hash")
+    pw_needs_fix = pw is not None and not pw.get("nullable", True)
+    needs_github_id = "github_id" not in user_col_names
+    needs_github_login = "github_id" in user_col_names and "github_login" not in user_col_names
+
+    if not pw_needs_fix and not needs_github_id and not needs_github_login:
+        return
+
     dialect = engine.dialect.name
     with engine.begin() as conn:
-        pw = user_cols.get("password_hash")
-        if pw is not None and not pw.get("nullable", True):
+        if pw_needs_fix:
             conn.execute(text("ALTER TABLE users ALTER COLUMN password_hash DROP NOT NULL"))
 
-        if "github_id" not in user_col_names:
+        if needs_github_id:
             if dialect == "postgresql":
                 conn.execute(text(
                     "ALTER TABLE users ADD COLUMN IF NOT EXISTS github_id VARCHAR(64)"
@@ -1164,7 +1183,7 @@ def _upgrade_week7_auth_schema() -> None:
                 conn.execute(text(
                     "ALTER TABLE users ADD COLUMN github_login VARCHAR(255)"
                 ))
-        elif "github_login" not in user_col_names:
+        elif needs_github_login:
             if dialect == "postgresql":
                 conn.execute(text(
                     "ALTER TABLE users ADD COLUMN IF NOT EXISTS github_login VARCHAR(255)"

@@ -208,8 +208,11 @@ def test_csrf_protection_rejects_unauthenticated_post(
         )
         # Playwright follows redirects by default, so after the 302→/login
         # chain the response URL will contain "/login".
-        assert "/login" in response.url or response.status in (401, 403), (
-            f"Expected auth rejection, got status {response.status} at {response.url!r}"
+        assert (
+            "/login" in response.url
+            or response.status in (400, 401, 403)
+        ), (
+            f"Expected auth or CSRF rejection, got status {response.status} at {response.url!r}"
         )
     finally:
         api.dispose()
