@@ -1,16 +1,10 @@
-# GitHub Actions workflow — runs the pytest suite for the skeleton.
+# GitHub Actions workflow — runs the pytest suite.
 #
-# WEEK 5 NOTE: This workflow is currently set to manual-trigger only
-# (workflow_dispatch). It will NOT fire automatically on PRs or pushes.
-# That's intentional — Week 5 focuses on getting the skeleton running
-# and understanding the architecture; CI gating is covered in Week 6.
-#
-# To run the tests yourself this week, run `pytest` locally:
-#     docker compose exec app pytest -v
-#
-# WEEK 6: We'll re-enable the automatic triggers and configure branch
-# protection so CI properly gates merges. The change is one line — swap
-# `workflow_dispatch:` below for the original triggers (commented out).
+# Most tests are hermetic: the unit/integration tests use the Flask test client
+# with in-memory SQLite, and the Playwright e2e tests spin up their own embedded
+# Werkzeug server (see tests/e2e/conftest.py). Only tests/test_attack_paths.py
+# needs the live production stack (nginx -> gunicorn -> Flask) at https://localhost,
+# so we start docker-compose.prod.yml before running pytest.
 
 name: Tests
 
@@ -23,6 +17,13 @@ name: Tests
 jobs:
   test:
     runs-on: ubuntu-latest
+    env:
+      # Flows into the app container via ${SECRET_KEY} in docker-compose.prod.yml,
+      # and is also used by the hermetic pytest process.
+      SECRET_KEY: test-secret-key-for-ci
+      DATABASE_URL: "sqlite:///:memory:"
+      OAUTH_CLIENT_ID: ci-oauth-client-id
+      OAUTH_CLIENT_SECRET: ci-oauth-client-secret
 
     steps:
       - uses: actions/checkout@v4
@@ -36,6 +37,47 @@ jobs:
         run: |
           python -m pip install --upgrade pip
           pip install -r requirements.txt
+          playwright install --with-deps chromium
+
+      - name: Generate self-signed nginx certs
+        # docker-compose.prod.yml mounts ./deploy/nginx/certs; the *.pem files are
+        # gitignored, so a fresh runner has none. Without them nginx fails to boot.
+        run: |
+          mkdir -p deploy/nginx/certs
+          openssl req -x509 -newkey rsa:2048 -nodes \
+            -keyout deploy/nginx/certs/key.pem \
+            -out deploy/nginx/certs/cert.pem \
+            -days 1 \
+            -subj "/CN=localhost"
+
+      - name: Start Docker Compose services
+        run: docker compose -f docker-compose.prod.yml up -d --build
+
+      - name: Wait for the app through nginx
+        # Probe a real route (not /actuator/health — that path is intentionally
+        # blocked at the edge). --fail makes curl treat a non-2xx as failure, so a
+        # 404 cannot be mistaken for "ready".
+        run: |
+          for i in $(seq 1 30); do
+            if curl -k --fail --silent https://localhost/ > /dev/null; then
+              echo "Services are ready!"
+              exit 0
+            fi
+            echo "Waiting for services to start... ($i/30)"
+            sleep 2
+          done
+          echo "Services failed to start"
+          docker compose -f docker-compose.prod.yml ps
+          docker compose -f docker-compose.prod.yml logs
+          exit 1
 
       - name: Run tests
         run: pytest -v
+
+      - name: Dump Docker logs on failure
+        if: failure()
+        run: docker compose -f docker-compose.prod.yml logs
+
+      - name: Tear down Docker Compose services
+        if: always()
+        run: docker compose -f docker-compose.prod.yml down

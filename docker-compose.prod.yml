@@ -1,0 +1,58 @@
+# docker-compose.prod.yml — Foodie (nginx + gunicorn + postgres)
+services:
+  nginx:
+    image: nginx:1.27-alpine
+    ports:
+      - "443:443"
+      - "80:80"
+    volumes:
+      - ./deploy/nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+      - ./deploy/nginx/proxy_params.conf:/etc/nginx/proxy_params.conf:ro
+      - ./deploy/nginx/certs:/etc/nginx/certs:ro
+      - gunicorn-socket:/tmp
+      - ./static:/app/static:ro
+      - ./S3_content:/app/S3_content:ro
+    depends_on:
+      - app
+    restart: unless-stopped
+
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile.prod
+    volumes:
+      - gunicorn-socket:/tmp
+    environment:
+      DATABASE_URL: postgresql://app:app@db:5432/app
+      # Nginx terminates TLS; tell Flask to set Secure cookies.
+      SESSION_COOKIE_SECURE: "true"
+      # Must be set in your host environment or in .env.
+      SECRET_KEY: ${SECRET_KEY}
+      EDAMAM_APP_ID: ${EDAMAM_APP_ID:-}
+      EDAMAM_APP_KEY: ${EDAMAM_APP_KEY:-}
+      OAUTH_CLIENT_ID: ${OAUTH_CLIENT_ID:-}
+      OAUTH_CLIENT_SECRET: ${OAUTH_CLIENT_SECRET:-}
+      # Ensure gunicorn uses the socket that nginx expects.
+      GUNICORN_BIND: unix:/tmp/gunicorn.sock
+    env_file:
+      - path: .env
+        required: false
+    depends_on:
+      - db
+    restart: unless-stopped
+
+  db:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: app
+      POSTGRES_PASSWORD: app
+      POSTGRES_DB: app
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    restart: unless-stopped
+    # Note: db is NOT exposed via 'ports' — only reachable to services on this network.
+
+volumes:
+  gunicorn-socket:
+  postgres-data:
+

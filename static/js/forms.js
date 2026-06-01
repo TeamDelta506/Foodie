@@ -11,17 +11,38 @@
 // The fix is two lines of JavaScript: when a form is submitted, disable
 // its submit button until the response comes back.
 //
-// Uncomment the code below to enable the fix. Try it both ways — with the
-// fix and without — to feel the difference.
-
-/*
-document.querySelectorAll("form[data-disable-on-submit]").forEach(form => {
-    form.addEventListener("submit", () => {
-        const button = form.querySelector("button[type='submit']");
-        if (button) {
+// Enabled: forms that opt in with `data-disable-on-submit` avoid double POSTs
+// while the browser waits for navigation (meal plan, logout, etc.).
+(function () {
+    document.querySelectorAll("form[data-disable-on-submit]").forEach(function (form) {
+        form.addEventListener("submit", function () {
+            var button = form.querySelector("button[type='submit']");
+            if (!button || button.disabled) {
+                return;
+            }
+            if (!button.getAttribute("data-prev-label")) {
+                button.setAttribute("data-prev-label", button.textContent.trim() || "Submit");
+            }
             button.disabled = true;
-            button.textContent = "...";
-        }
+            button.textContent = "…";
+        });
     });
-});
-*/
+
+    // Week 7 — pass Remember me to OAuth start on login + register (CONTRACTS.md §3)
+    document.querySelectorAll("[data-github-oauth]").forEach(function (githubLink) {
+        var rememberId = githubLink.getAttribute("data-remember-for");
+        var rememberBox = rememberId ? document.getElementById(rememberId) : null;
+        if (!rememberBox) {
+            return;
+        }
+        var githubBase = githubLink.getAttribute("href") || "/login/github";
+        githubLink.addEventListener("click", function () {
+            if (rememberBox.checked) {
+                var sep = githubBase.indexOf("?") >= 0 ? "&" : "?";
+                githubLink.setAttribute("href", githubBase + sep + "remember=y");
+            } else {
+                githubLink.setAttribute("href", githubBase);
+            }
+        });
+    });
+})();

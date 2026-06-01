@@ -1,24 +1,57 @@
 {% extends "base.html" %}
 
+{% block title %}About — Foodie{% endblock %}
+
 {% block content %}
-<div class="row">
-    <div class="col-md-8 mx-auto">
-        <h1 class="h3 mb-4">About</h1>
-        <p>This is a placeholder About page. Replace its contents with your team's About content as part of the Week 5 assignment.</p>
+<div class="row justify-content-center">
+    <div class="col-lg-8">
+        <h1 class="h2 foodie-page-heading mb-3">About Foodie</h1>
+        <p class="lead foodie-lead-muted">
+            Foodie is a <strong>recipe scaler and meal planner</strong> for people who want to plan meals and adjust portions without manual math.
+        </p>
 
-        <h2 class="h5 mt-4">Required sections</h2>
-        <ul>
-            <li>Project name and one-or-two-sentence pitch</li>
-            <li>Team members and roles</li>
-            <li>Project type (which of the seven from Week 4 lecture, or a custom variant)</li>
-            <li>Endpoints planned (5–8 routes, one-line description each)</li>
-            <li>Web-based data source (API name, docs link, specific endpoint, free-tier notes)</li>
-            <li>Schema sketch (tables and columns)</li>
-            <li>Link to your team's S3 bucket</li>
-            <li>Link to your team's GitHub org</li>
-        </ul>
+        <div class="foodie-card foodie-card-muted mt-4">
+            <div class="card-body">
+                <h2 class="h5 mb-3">MVP features</h2>
+                <ul class="mb-0">
+                    <li>Recipe search and selection (Edamam Recipe Search API)</li>
+                    <li>Servings-based scaling for ingredient quantities</li>
+                    <li>Weekly meal plan: one recipe per calendar day</li>
+                    <li>Calories and macros (protein, carbs, fat) per recipe</li>
+                </ul>
+            </div>
+        </div>
 
-        <p class="text-muted small">All members of your team must have the same content here. See the assignment instructions in <code>README.md</code>.</p>
+        <h2 class="h5 mt-4 mb-3 foodie-page-heading">Team</h2>
+        <div class="row g-3">
+            <div class="col-md-4">
+                <div class="foodie-card h-100 p-3">
+                    <strong>Sam</strong>
+                    <p class="small foodie-lead-muted mb-0">Server-side, API integration</p>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="foodie-card h-100 p-3">
+                    <strong>Asia</strong>
+                    <p class="small foodie-lead-muted mb-0">Client-side, UI and UX</p>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="foodie-card h-100 p-3">
+                    <strong>Justin</strong>
+                    <p class="small foodie-lead-muted mb-0">Database and security</p>
+                </div>
+            </div>
+        </div>
+
+        <h2 class="h5 mt-4 mb-3 foodie-page-heading">Data source</h2>
+        <p class="foodie-lead-muted">
+            Primary nutrition and recipe metadata come from the <strong>Edamam</strong> Recipe Search API (see Edamam developer documentation for endpoints and free-tier limits). A USDA FoodData Central backup is optional for future work.
+        </p>
+
+        <p class="small text-muted mt-4 mb-0">
+            Course 506 — TeamDelta506. See <code>README.md</code> and <code>CONTRACTS.md</code> in the repository for routes, schema, and coordinator notes.
+        </p>
     </div>
 </div>
 {% endblock %}

@@ -1,21 +1,50 @@
 {% extends "base.html" %}
 
+{% block title %}Log in — Foodie{% endblock %}
+
 {% block content %}
 <div class="row">
     <div class="col-md-5 mx-auto">
-        <h1 class="h3 mb-4">Log in</h1>
-        <form method="POST" action="{{ url_for('login') }}" data-disable-on-submit>
-            <div class="mb-3">
-                <label for="username" class="form-label">Username</label>
-                <input type="text" class="form-control" id="username" name="username" required autofocus>
+        <div class="foodie-card foodie-card--login">
+            <div class="card-body p-4 p-md-5">
+                <h1 class="h3 foodie-page-heading mb-1">Log in</h1>
+                <p class="foodie-lead-muted small mb-4">Sign in with GitHub or your Foodie password.</p>
+
+                <a href="/login/github" id="github-login" class="btn btn-foodie-github w-100" role="link"
+                   data-github-oauth data-remember-for="login-remember">
+                    <span class="foodie-github-icon" aria-hidden="true">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
+                            <path d="M12 0C5.37 0 0 5.37 0 12c0 5.31 3.435 9.795 8.205 11.385.6.105.825-.255.825-.57 0-.285-.015-1.23-.015-2.235-3.015.555-3.795-.735-4.035-1.41-.135-.345-.72-1.41-1.23-1.695-.42-.225-1.02-.78-.015-.795.945-.015 1.62.87 1.845 1.23 1.08 1.815 2.805 1.305 3.495.99.105-.78.42-1.305.765-1.605-2.67-.3-5.46-1.335-5.46-5.925 0-1.305.465-2.385 1.23-3.225-.12-.3-.54-1.53.12-3.18 0 0 1.005-.315 3.3 1.23.96-.27 1.98-.405 3-.405s2.04.135 3 .405c2.295-1.56 3.3-1.23 3.3-1.23.66 1.65.24 2.88.12 3.18.765.84 1.23 1.905 1.23 3.225 0 4.605-2.805 5.625-5.475 5.925.435.375.81 1.095.81 2.22 0 1.605-.015 2.895-.015 3.3 0 .315.225.69.825.57A12.02 12.02 0 0 0 24 12c0-6.63-5.37-12-12-12z"/>
+                        </svg>
+                    </span>
+                    Sign in with GitHub
+                </a>
+
+                <div class="foodie-login-divider my-4" role="separator">
+                    <span>or use password</span>
+                </div>
+
+                <form method="POST" action="{{ url_for('login') }}" data-disable-on-submit id="login-form">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                    <div class="mb-3">
+                        <label for="username" class="form-label">Username</label>
+                        <input type="text" class="form-control" id="username" name="username" required autocomplete="username" autofocus>
+                    </div>
+                    <div class="mb-3">
+                        <label for="password" class="form-label">Password</label>
+                        <input type="password" class="form-control" id="password" name="password" required autocomplete="current-password">
+                    </div>
+                    <div class="form-check mb-4">
+                        <input class="form-check-input" type="checkbox" name="remember" value="y" id="login-remember">
+                        <label class="form-check-label" for="login-remember">Remember me</label>
+                        <div class="form-text">Keep me signed in for 30 days on this device.</div>
+                    </div>
+                    <button type="submit" class="btn btn-foodie-primary w-100">Log in with password</button>
+                </form>
+
+                <a href="{{ url_for('register') }}" class="btn btn-foodie-outline w-100 mt-3">Need an account?</a>
             </div>
-            <div class="mb-3">
-                <label for="password" class="form-label">Password</label>
-                <input type="password" class="form-control" id="password" name="password" required>
-            </div>
-            <button type="submit" class="btn btn-primary">Log in</button>
-            <a href="{{ url_for('register') }}" class="btn btn-link">Need an account?</a>
-        </form>
+        </div>
     </div>
 </div>
 {% endblock %}

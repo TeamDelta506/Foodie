@@ -1,0 +1,66 @@
+{% extends "base.html" %}
+
+{% block title %}Discover recipes — Foodie{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-lg-10 mx-auto">
+        <h1 class="h2 foodie-page-heading mb-2">Discover recipes</h1>
+        <p class="foodie-lead-muted mb-4">
+            Search the recipe catalog. Recipe data and image URLs are cached in the database after each search.
+        </p>
+
+        {% if show_demo_banner %}
+        <div class="alert foodie-hint shadow-sm small mb-4" role="note">
+            <strong>Preview mode:</strong> sample recipes below are for UI review only. Remove demo data in <code>app.py</code> when the Edamam cache is live.
+        </div>
+        {% endif %}
+
+        <form method="get" action="{{ url_for('recipes_search') }}" class="foodie-card mb-4">
+            <div class="card-body p-4">
+                <label for="recipe-search-q" class="form-label fw-semibold">Search</label>
+                <div class="input-group">
+                    <input type="search" class="form-control form-control-lg" id="recipe-search-q" name="q"
+                           value="{{ q or '' }}" placeholder="e.g. lentil soup, salmon bowl" autocomplete="off">
+                    <button type="submit" class="btn btn-foodie-primary btn-lg px-4">Search</button>
+                </div>
+            </div>
+        </form>
+
+        {% if recipes %}
+        {% if featured %}
+        <h2 class="h6 text-uppercase text-muted fw-semibold mb-3">Popular picks</h2>
+        {% endif %}
+        <div class="row row-cols-2 row-cols-md-3 row-cols-lg-4 g-3 foodie-recipe-grid--compact">
+            {% for r in recipes %}
+            <div class="col d-flex">
+                <a href="{{ url_for('recipe_detail', recipe_id=r.id) }}"
+                   class="foodie-recipe-card foodie-recipe-card--compact text-decoration-none text-reset w-100 d-flex flex-column"
+                   aria-label="{{ r.name }}">
+                    <div class="foodie-recipe-card-media flex-shrink-0">
+                        {% with image_url=r.image_url, recipe_id=r.id, width=240, height=240 %}
+                        {% include "partials/recipe_image.html" %}
+                        {% endwith %}
+                        {% if r.calories is not none %}
+                        <span class="foodie-cal-pill">{{ '%.0f'|format(r.calories) }} kcal</span>
+                        {% endif %}
+                    </div>
+                    <div class="foodie-recipe-card-body flex-grow-1 d-flex align-items-center">
+                        <h3 class="h6 mb-0 foodie-recipe-card-title">{{ r.name }}</h3>
+                    </div>
+                </a>
+            </div>
+            {% endfor %}
+        </div>
+        {% elif q %}
+        <div class="alert alert-light border foodie-card-muted" role="status">
+            No recipes matched your search. Try different keywords or check back later.
+        </div>
+        {% else %}
+        <div class="alert border foodie-hint shadow-sm mb-0" role="status">
+            Popular recipes will appear here once Edamam is available. Try searching above, or check back after your API quota resets.
+        </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}

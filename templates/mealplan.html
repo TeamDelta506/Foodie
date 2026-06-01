@@ -1,0 +1,118 @@
+{% extends "base.html" %}
+
+{% block title %}Meal plan — Foodie{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-lg-10 mx-auto">
+        <h1 class="h2 foodie-page-heading mb-2">Weekly meal plan</h1>
+        <p class="foodie-lead-muted mb-4">
+            One meal per day (Monday through Sunday). Saving a day replaces any recipe already planned for that day.
+        </p>
+
+        <div class="foodie-card foodie-card--mealplan mb-4">
+            <div class="card-header">Add or replace a day</div>
+            <div class="card-body p-4 pt-3">
+                <p id="recipe-id-help" class="small foodie-lead-muted mb-3 pb-3 border-bottom border-secondary-subtle">
+                    Type to search your cached recipes by name, then tap a row to select it.
+                    <a href="{{ url_for('recipes_search') }}">Discover</a> shows full cards and nutrition.
+                </p>
+                <form id="mealplan-add-form" method="post" action="{{ url_for('mealplan') }}" class="row g-3"
+                      data-recipe-suggest="{{ url_for('mealplan_recipe_suggest') }}" data-disable-on-submit>
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                    <div class="col-md-3">
+                        <label for="day_of_week" class="form-label">Day</label>
+                        <select class="form-select" id="day_of_week" name="day_of_week" required>
+                            <option value="0">Monday</option>
+                            <option value="1">Tuesday</option>
+                            <option value="2">Wednesday</option>
+                            <option value="3">Thursday</option>
+                            <option value="4">Friday</option>
+                            <option value="5">Saturday</option>
+                            <option value="6">Sunday</option>
+                        </select>
+                    </div>
+                    <div class="col-md-5">
+                        <label for="mealplan-recipe-search" class="form-label">Recipe</label>
+                        <div class="foodie-recipe-field">
+                            <input type="search" class="form-control" id="mealplan-recipe-search"
+                                   placeholder="Type a recipe name…" autocomplete="off"
+                                   aria-describedby="recipe-id-help mealplan-recipe-err" aria-controls="mealplan-suggest-panel"
+                                   aria-expanded="false">
+                            <input type="hidden" name="recipe_id" id="mealplan-recipe-id" value="">
+                            <div id="mealplan-suggest-panel" class="foodie-suggest-panel d-none" role="listbox" aria-label="Matching recipes"></div>
+                        </div>
+                        <p id="mealplan-recipe-err" class="form-text text-danger d-none mb-0 mt-1" role="alert">Choose a recipe from the suggestions.</p>
+                        <p id="mealplan-recipe-picked" class="form-text small mb-0 mt-1 text-success d-none" aria-live="polite"></p>
+                    </div>
+                    <div class="col-md-2">
+                        <label for="servings" class="form-label">Servings</label>
+                        <input type="number" class="form-control" id="servings" name="servings" min="1" step="1" value="2" required>
+                    </div>
+                    <div class="col-md-2">
+                        <button type="submit" class="btn btn-foodie-primary w-100">Save to plan</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <h2 class="h5 foodie-page-heading mb-3">This week</h2>
+        <div id="mealplan-delete-alert" class="alert alert-warning d-none mb-3" role="alert"></div>
+        <div class="list-group shadow-sm rounded overflow-hidden border foodie-week-list">
+            {% set labels = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'] %}
+            {% for d in range(7) %}
+            <div class="list-group-item py-3" data-day="{{ d }}">
+                <div class="d-flex flex-wrap justify-content-between align-items-start gap-2">
+                    {% set slot = planned[d] if planned and d in planned else none %}
+                    <div class="flex-grow-1 min-w-0">
+                        <span class="fw-semibold foodie-day-label d-block">{{ labels[d] }}</span>
+                        {% if slot %}
+                        <div class="foodie-mealplan-slot d-flex align-items-center gap-2 mt-1">
+                            {% if slot.image_url %}
+                            <a href="{{ url_for('recipe_detail', recipe_id=slot.recipe_id) }}"
+                               class="foodie-mealplan-thumb-link flex-shrink-0"
+                               aria-label="View {{ slot.name or 'recipe' }}">
+                                {% with image_url=slot.image_url, recipe_id=slot.recipe_id, css_class='foodie-mealplan-thumb', width=48, height=48 %}
+                                {% include "partials/recipe_image.html" %}
+                                {% endwith %}
+                            </a>
+                            {% endif %}
+                            <p class="mb-0 small foodie-lead-muted min-w-0">
+                                {% if slot.name %}
+                                <a href="{{ url_for('recipe_detail', recipe_id=slot.recipe_id) }}"
+                                   class="foodie-mealplan-recipe-link">{{ slot.name }}</a>
+                                {% else %}
+                                <a href="{{ url_for('recipe_detail', recipe_id=slot.recipe_id) }}"
+                                   class="foodie-mealplan-recipe-link">View recipe</a>
+                                {% endif %}
+                                · {{ slot.servings }} serving{{ 's' if slot.servings != 1 else '' }}
+                            </p>
+                        </div>
+                        {% else %}
+                        <p class="mb-0 small foodie-lead-muted mt-1">Nothing planned</p>
+                        {% endif %}
+                    </div>
+                    {% if slot %}
+                    <div class="flex-shrink-0">
+                        <button type="button" class="btn btn-sm btn-outline-danger"
+                                data-mealplan-clear-day="{{ d }}"
+                                aria-label="Clear {{ labels[d] }} from meal plan">
+                            Clear day
+                        </button>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+        <p class="small foodie-lead-muted mt-3 mb-0">
+            Each recipe page has a link to <strong>view scaled nutrition</strong> for different portion sizes.
+            <strong>Clear day</strong> removes that weekday from your plan on the server, then refreshes this page.
+        </p>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script src="{{ url_for('static', filename='js/mealplan.js') }}"></script>
+{% endblock %}

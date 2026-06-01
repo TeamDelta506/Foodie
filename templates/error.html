@@ -1,0 +1,58 @@
+{% extends "base.html" %}
+
+{% block title %}{{ page_title }}{% endblock %}
+
+{% block hero %}
+<section class="foodie-hero foodie-hero--error text-center text-white mb-0" aria-labelledby="foodie-error-heading">
+    <div class="foodie-hero-bg" style="background-image: url('{{ url_for('static', filename='img/hero-image.jpg') }}');" aria-hidden="true"></div>
+    <div class="foodie-hero-scrim" aria-hidden="true"></div>
+    <div class="container foodie-hero-inner py-5">
+        <div class="foodie-hero-glass col-lg-9 mx-auto rounded-4 px-3 px-md-5 py-4 py-md-5">
+            <p class="foodie-error-code text-white-50 fw-bold mb-2" aria-hidden="true">{{ error_code }}</p>
+            <h1 id="foodie-error-heading" class="display-5 fw-bold mb-3">{{ error_heading }}</h1>
+            <p class="lead mx-auto mb-3 col-lg-10 mb-lg-3 foodie-error-lead">
+                {{ error_lead }}
+            </p>
+            {% if error_code == 404 and request.path %}
+            <p class="small text-white-50 mb-4 font-monospace text-break">
+                <span class="text-white-50">Requested:</span> {{ request.path }}
+            </p>
+            {% endif %}
+            <div class="d-flex flex-wrap justify-content-center gap-2">
+                <a href="{{ url_for('home') }}" class="btn btn-lg btn-light text-success fw-semibold px-4 shadow-sm">Back to home</a>
+                <a href="{{ url_for('recipes_search') }}" class="btn btn-lg btn-outline-light px-4">Discover recipes</a>
+            </div>
+        </div>
+    </div>
+</section>
+{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center g-4 pt-2">
+    <div class="col-lg-10">
+        <h2 class="h4 foodie-page-heading text-center mb-4">What you can do next</h2>
+        <div class="row g-4 justify-content-center">
+            <div class="col-md-5">
+                <article class="foodie-tile p-4 d-flex flex-column h-100 text-center">
+                    <div class="foodie-tile-icon mb-3" aria-hidden="true">&#127968;</div>
+                    <h3 class="h5 foodie-tile-title">Home</h3>
+                    <p class="foodie-lead-muted small flex-grow-1">
+                        Return to the main page for sign-in, highlights, and shortcuts.
+                    </p>
+                    <a href="{{ url_for('home') }}" class="btn btn-foodie-primary mt-2">Go home</a>
+                </article>
+            </div>
+            <div class="col-md-5">
+                <article class="foodie-tile p-4 d-flex flex-column h-100 text-center">
+                    <div class="foodie-tile-icon mb-3" aria-hidden="true">&#128269;</div>
+                    <h3 class="h5 foodie-tile-title">Search</h3>
+                    <p class="foodie-lead-muted small flex-grow-1">
+                        Browse the recipe catalog from a fresh starting point.
+                    </p>
+                    <a href="{{ url_for('recipes_search') }}" class="btn btn-foodie-outline mt-2">Open search</a>
+                </article>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
