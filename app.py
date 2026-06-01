@@ -43,6 +43,7 @@ from sqlalchemy import (
 from sqlmodel import SQLModel, Field, Session, create_engine, select
 from flask_wtf.csrf import CSRFProtect
 from werkzeug.exceptions import HTTPException
+from werkzeug.middleware.proxy_fix import ProxyFix
 from werkzeug.security import generate_password_hash, check_password_hash
 
 logger = logging.getLogger(__name__)
@@ -56,6 +57,12 @@ def _utc_now() -> datetime:
 # ---------------------------------------------------------------------------
 
 app = Flask(__name__)
+
+# Trust one layer of nginx proxy headers so Flask sees HTTPS correctly.
+# Without this, SESSION_COOKIE_SECURE refuses to set the cookie (Flask thinks
+# the connection is plain HTTP) and url_for() generates http:// links.
+app.wsgi_app = ProxyFix(app.wsgi_app, x_for=1, x_proto=1, x_host=1, x_prefix=1)
+
 app.config["SECRET_KEY"] = os.environ.get("SECRET_KEY", "dev-secret-not-for-production")
 # Remember-me cookie — 30 days, HttpOnly, SameSite=Lax (Week 7 client-side).
 app.config["REMEMBER_COOKIE_DURATION"]  = timedelta(days=30)
@@ -69,9 +76,7 @@ app.config["PERMANENT_SESSION_LIFETIME"] = (
 # Session cookie hardening (CONTRACTS.md §10).
 app.config["SESSION_COOKIE_HTTPONLY"] = True
 app.config["SESSION_COOKIE_SAMESITE"] = "Lax"
-app.config["SESSION_COOKIE_SECURE"] = os.environ.get("SESSION_COOKIE_SECURE", "").lower() in (
-    "1", "true", "yes",
-)
+app.config["SESSION_COOKIE_SECURE"] = True   # active now that ProxyFix passes X-Forwarded-Proto
 
 csrf = CSRFProtect(app)
 
