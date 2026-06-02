@@ -1,42 +1,42 @@
-# Course 506 Week 5 Skeleton — two-container app.
+# docker-compose.yml — the three-container production stack
 #
-# Run with: docker compose up
-# The Flask app will be available at http://localhost:5000
+# Browser ──HTTPS──► nginx ──unix socket──► gunicorn ──► Flask ──► Postgres
 #
-# The two services:
-#   app — Flask, talks to the database via the hostname "db"
-#   db  — Postgres, holds the users table
-#
-# In production you'd run Postgres on a managed service (RDS, etc.) instead of
-# in a container, but Compose mirrors that architecture closely.
+# Generate TLS certs first (see nginx/nginx.conf), then:
+#   docker compose up --build
 
 services:
-  app:
-    build: .
+  nginx:
+    image: nginx:1.27-alpine
     ports:
-      - "5000:5000"
+      - "443:443"
+      - "80:80"
+    volumes:
+      - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+      - ./nginx/proxy_params.conf:/etc/nginx/proxy_params.conf:ro
+      - ./nginx/certs:/etc/nginx/certs:ro
+      - gunicorn-socket:/tmp
+      - ./static:/app/static:ro
+    depends_on:
+      - app
+    restart: unless-stopped
+
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    volumes:
+      - gunicorn-socket:/tmp
     environment:
-      DATABASE_URL: postgresql://app:app@db:5432/app
-      SECRET_KEY: dev-secret-not-for-production
-      # Edamam keys — set in .env (see .env.example) or export in your shell
-      # before running docker compose up.  App runs without them but recipe
-      # search will return an upstream-error flash instead of real results.
-      EDAMAM_APP_ID: ${EDAMAM_APP_ID:-}
-      EDAMAM_APP_KEY: ${EDAMAM_APP_KEY:-}
-      OAUTH_CLIENT_ID: ${OAUTH_CLIENT_ID:-}
-      OAUTH_CLIENT_SECRET: ${OAUTH_CLIENT_SECRET:-}
+      - DATABASE_URL=postgresql://app:app@db:5432/app
+      - SECRET_KEY=${SECRET_KEY}
+      - SESSION_COOKIE_SECURE=1
     env_file:
-      # Optional override file; gitignored. Copy .env.example → .env and set
-      # EDAMAM_APP_ID / EDAMAM_APP_KEY for recipe search (see README Team setup).
       - path: .env
         required: false
     depends_on:
-      db:
-        condition: service_healthy
-    volumes:
-      # Mount the source so changes are picked up without rebuilding.
-      # Flask's debug mode auto-reloads on file changes.
-      - .:/app
+      - db
+    restart: unless-stopped
 
   db:
     image: postgres:16-alpine
@@ -51,6 +51,8 @@ services:
       interval: 2s
       timeout: 2s
       retries: 10
+    restart: unless-stopped
 
 volumes:
+  gunicorn-socket:
   pgdata:

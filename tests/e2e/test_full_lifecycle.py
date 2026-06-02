@@ -41,7 +41,7 @@ _RUN_TS    = int(time.time())
 OAUTH_USER = f"lifecycle_{_RUN_TS}"
 
 
-# ── Helpers ──────────────────────────────────────────────────────────────────
+# ── Helpers ───────────────────────────────────────────────────────────────
 
 def goto(page: Page, base_url: str, path: str) -> None:
     page.goto(f"{base_url}{path}")
@@ -203,6 +203,8 @@ def test_csrf_protection_rejects_tokenless_post(
             "/mealplan",
             form={"day_of_week": "1", "recipe_id": "1", "servings": "2"},
         )
+        # Playwright follows redirects by default, so after the 302→/login
+        # chain the response URL will contain "/login".
         assert response.status == 400, (
             f"Expected CSRF rejection (400), got {response.status} at {response.url!r}"
         )

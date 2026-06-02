@@ -66,7 +66,7 @@ If tables are missing after `up`, restart the `app` service once so `SQLModel.me
 | 5 | **Pass (Postgres)** | `ingredients` count 1 → 0 after `DELETE FROM recipes` (CASCADE). |
 | 6 | **Pass (Postgres)** | `mealplans` count 1 → 0 after `DELETE FROM users` (CASCADE). |
 | 7 | **Pass (Postgres)** | `DELETE FROM recipes` while referenced by `mealplans` → FK violation on `mealplans_recipe_id_fkey` (RESTRICT). |
-| 8 | **Pass (Flask test client); browser pending** | Register/login stores `_user_id` (not `user_id`); anonymous `GET /mealplan` → 302 → `/login?next=%2Fmealplan`. **Manual:** repeat in browser after Compose serves this branch; confirm cookie in devtools. |
+| 8 | **Pass (Flask test client + Playwright)** | Register/login stores `_user_id` (not `user_id`); anonymous `GET /mealplan` → 302 → `/login?next=%2Fmealplan`. **Automated:** `tests/e2e/test_protected_page_auth.py` verifies login form vs planner DOM before/after login and after logout. |
 | 9 | **Pass (Flask test client + pytest)** | User A `POST /mealplan` → row in DB. User B `GET /mealplan` → 200, no A recipe in HTML; B has 0 rows in DB. User B `DELETE /mealplan/0` → **404**; A's row unchanged. Covered by `test_mealplan_scoped_to_current_user` and `test_mealplan_delete_missing_day_returns_404`. |
 
 **Pytest (2026-05-16):**
@@ -87,4 +87,4 @@ python3 -m pytest tests/test_db_schema_and_auth.py tests/test_auth.py -v
 | `LoginManager` + `@login_manager.user_loader` | Done |
 | Meal-plan ownership scoped to `current_user.id` | Done |
 | Postgres constraints verified via raw SQL | Done (see steps 1–7) |
-| Browser auth cookie walk | **Todo** after `docker compose up` from correct repo path |
+| Browser auth cookie walk | **Pass (Playwright)** — `tests/e2e/test_protected_page_auth.py`; manual devtools cookie check still optional |

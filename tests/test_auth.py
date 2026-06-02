@@ -20,6 +20,8 @@ from sqlmodel import SQLModel, select
 from app import app, engine, User, Session
 from tests.conftest import csrf_post
 
+from tests.csrf_helpers import fetch_csrf_token, post_with_csrf
+
 
 @pytest.fixture
 def client():
@@ -60,7 +62,11 @@ def test_login_page_renders(client):
 
 def test_register_creates_user_in_database(client):
     """Registering a user writes a row to the users table."""
-    csrf_post(client, "/register", {"username": "alice", "password": "password123"})
+    post_with_csrf(
+        client,
+        "/register",
+        {"username": "alice", "password": "password123"},
+    )
 
     with Session(engine) as db:
         user = db.exec(select(User).where(User.username == "alice")).first()
@@ -70,8 +76,8 @@ def test_register_creates_user_in_database(client):
 
 def test_register_rejects_duplicate_username(client):
     """A second register with the same username flashes 'already taken'."""
-    csrf_post(client, "/register", {"username": "bob", "password": "password123"})
-    csrf_post(client, "/logout")
+    post_with_csrf(client, "/register", {"username": "bob", "password": "password123"})
+    post_with_csrf(client, "/logout")
     response = csrf_post(
         client,
         "/register",
@@ -83,8 +89,8 @@ def test_register_rejects_duplicate_username(client):
 
 def test_login_with_wrong_password_shows_invalid(client):
     """Wrong password shows the 'Invalid' flash on the login page."""
-    csrf_post(client, "/register", {"username": "dave", "password": "secret"})
-    csrf_post(client, "/logout")
+    post_with_csrf(client, "/register", {"username": "dave", "password": "secret"})
+    post_with_csrf(client, "/logout")
 
     response = csrf_post(
         client,
@@ -97,8 +103,8 @@ def test_login_with_wrong_password_shows_invalid(client):
 
 def test_login_redirects_mealplan_with_session(client):
     """Week 7 — successful password login redirects to /mealplan (CONTRACTS.md §3)."""
-    csrf_post(client, "/register", {"username": "carol", "password": "secret"})
-    csrf_post(client, "/logout")
+    post_with_csrf(client, "/register", {"username": "carol", "password": "secret"})
+    post_with_csrf(client, "/logout")
 
     response = csrf_post(
         client,
