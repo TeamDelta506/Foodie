@@ -10,12 +10,12 @@ my pull request teswts for #27 are failing. please analyze and fix
 
 ---
 
-_**Agent (default)**_
+_**Agent (gpt-5.5)**_
 
 Investigating PR #27's failing tests: checking CI status and running tests locally.
 
 
-_**Agent (default)**_
+_**Agent (gpt-5.5)**_
 
 <tool-use data-tool-type="shell" data-tool-name="run_terminal_command_v2">
 <details><summary>Tool use: **run_terminal_command_v2** • Run command: cd "c:\Users\jkrac\OneDrive\Documents\GC-SDE\TCSS 506\Foodie" && gh pr view 27 --json title,state,headRefName,baseRefName,statusCheckRollup,url</summary>
@@ -42,7 +42,7 @@ The token '&amp;&amp;' is not a valid statement separator in this version.
 
 </details></tool-use>
 
-_**Agent (default)**_
+_**Agent (gpt-5.5)**_
 
 <tool-use data-tool-type="search" data-tool-name="glob_file_search">
 <details>
@@ -62,7 +62,7 @@ Directory: **c:\Users\jkrac\OneDrive\Documents\GC-SDE\TCSS 506\Foodie** (1 file)
 
 </details></tool-use>
 
-_**Agent (default)**_
+_**Agent (gpt-5.5)**_
 
 <tool-use data-tool-type="shell" data-tool-name="run_terminal_command_v2">
 <details><summary>Tool use: **run_terminal_command_v2** • Run command: cd "c:\Users\jkrac\OneDrive\Documents\GC-SDE\TCSS 506\Foodie" && gh pr checks 27</summary>
@@ -89,7 +89,7 @@ The token '&amp;&amp;' is not a valid statement separator in this version.
 
 </details></tool-use>
 
-_**Agent (default)**_
+_**Agent (gpt-5.5)**_
 
 <tool-use data-tool-type="shell" data-tool-name="run_terminal_command_v2">
 <details><summary>Tool use: **run_terminal_command_v2** • Run command: Set-Location "c:\Users\jkrac\OneDrive\Documents\GC-SDE\TCSS 506\Foodie"; gh pr view 27 --json title,state,headRefName,baseRefName,statusCheckRollup,url</summary>
@@ -117,7 +117,7 @@ At C:\Users\jkrac\AppData\Local\Temp\ps-script-bf237e9c-8ac1-4d3d-a71f-a97d5c723
 
 </details></tool-use>
 
-_**Agent (default)**_
+_**Agent (gpt-5.5)**_
 
 <tool-use data-tool-type="read" data-tool-name="read_file_v2">
 <details><summary>Tool use: **read_file_v2** • Read file: c:\Users\jkrac\OneDrive\Documents\GC-SDE\TCSS 506\Foodie\.github\workflows\test.yml</summary>
@@ -130,7 +130,7 @@ _**Agent (default)**_
 
 </details></tool-use>
 
-_**Agent (default)**_
+_**Agent (gpt-5.5)**_
 
 <tool-use data-tool-type="shell" data-tool-name="run_terminal_command_v2">
 <details><summary>Tool use: **run_terminal_command_v2** • Run command: Set-Location "c:\Users\jkrac\OneDrive\Documents\GC-SDE\TCSS 506\Foodie"; gh pr checks 27</summary>
@@ -158,17 +158,17 @@ At C:\Users\jkrac\AppData\Local\Temp\ps-script-bed1b555-03a6-4ea4-9258-8a1acfd71
 
 </details></tool-use>
 
-_**Agent (default)**_
+_**Agent (gpt-5.5)**_
 
 <think><details><summary>Thought Process</summary>
 The `gh` CLI is unavailable. I'll check the git branch, run tests locally, and review CI investigator transcripts.</details></think>
 
-_**Agent (default)**_
+_**Agent (gpt-5.5)**_
 
 `gh` isn't available locally. Running tests locally and inspecting the branch and recent changes.
 
 
-_**Agent (default)**_
+_**Agent (gpt-5.5)**_
 
 <tool-use data-tool-type="search" data-tool-name="glob_file_search">
 <details>
@@ -199,7 +199,7 @@ Directory: **c:\Users\jkrac\OneDrive\Documents\GC-SDE\TCSS 506\Foodie** (12 file
 
 </details></tool-use>
 
-_**Agent (default)**_
+_**Agent (gpt-5.5)**_
 
 <tool-use data-tool-type="shell" data-tool-name="run_terminal_command_v2">
 <details><summary>Tool use: **run_terminal_command_v2** • Run command: Set-Location "c:\Users\jkrac\OneDrive\Documents\GC-SDE\TCSS 506\Foodie"; git branch -a; git log --oneline -5; git status</summary>
@@ -256,7 +256,7 @@ nothing added to commit but untracked files present (use "git add" to track)
 
 </details></tool-use>
 
-_**Agent (default)**_
+_**Agent (gpt-5.5)**_
 
 <tool-use data-tool-type="unknown" data-tool-name="ripgrep_raw_search">
 <details>
@@ -301,12 +301,12 @@ Status: **completed**
 
 </details></tool-use>
 
-_**Agent (default)**_
+_**Agent (gpt-5.5)**_
 
 <think><details><summary>Thought Process</summary>
 The failing tests are on branch `week6/db&security`, which corresponds to PR #27.</details></think>
 
-_**Agent (default)**_
+_**Agent (gpt-5.5)**_
 
 <tool-use data-tool-type="shell" data-tool-name="run_terminal_command_v2">
 <details><summary>Tool use: **run_terminal_command_v2** • Run command: Set-Location "c:\Users\jkrac\OneDrive\Documents\GC-SDE\TCSS 506\Foodie"; $env:SECRET_KEY="test-secret-key-for-ci"; $env:DATABASE_URL="sqlite:///:memory:"; $env:OAUTH_CLIENT_ID="ci-oauth-client-id"; $env:OAUTH_CLIENT_SECRET="ci-oauth-client-secret"; python -m pytest -v 2>&1</summary>
@@ -497,7 +497,7 @@ ERROR tests/test_server_edamam_routes.py
 
 </details></tool-use>
 
-_**Agent (default)**_
+_**Agent (gpt-5.5)**_
 
 <tool-use data-tool-type="shell" data-tool-name="run_terminal_command_v2">
 <details><summary>Tool use: **run_terminal_command_v2** • Run command: Set-Location "c:\Users\jkrac\OneDrive\Documents\GC-SDE\TCSS 506\Foodie"; git diff origin/master...HEAD --stat</summary>
@@ -544,17 +544,17 @@ Set-Location "c:\Users\jkrac\OneDrive\Documents\GC-SDE\TCSS 506\Foodie"; git dif
 
 </details></tool-use>
 
-_**Agent (default)**_
+_**Agent (gpt-5.5)**_
 
 <think><details><summary>Thought Process</summary>
 Syntax errors were found in the test files. They appear to be caused by merge conflicts or duplicate content appended during the merge.</details></think>
 
-_**Agent (default)**_
+_**Agent (gpt-5.5)**_
 
 Several test files have syntax errors—likely from a bad merge with duplicated content. Inspecting and fixing them.
 
 
-_**Agent (default)**_
+_**Agent (gpt-5.5)**_
 
 <tool-use data-tool-type="read" data-tool-name="read_file_v2">
 <details><summary>Tool use: **read_file_v2** • Read file: c:\Users\jkrac\OneDrive\Documents\GC-SDE\TCSS 506\Foodie\tests\test_auth.py</summary>
@@ -567,7 +567,7 @@ _**Agent (default)**_
 
 </details></tool-use>
 
-_**Agent (default)**_
+_**Agent (gpt-5.5)**_
 
 <tool-use data-tool-type="read" data-tool-name="read_file_v2">
 <details><summary>Tool use: **read_file_v2** • Read file: c:\Users\jkrac\OneDrive\Documents\GC-SDE\TCSS 506\Foodie\tests\test_integration.py</summary>
@@ -580,7 +580,7 @@ _**Agent (default)**_
 
 </details></tool-use>
 
-_**Agent (default)**_
+_**Agent (gpt-5.5)**_
 
 <tool-use data-tool-type="read" data-tool-name="read_file_v2">
 <details><summary>Tool use: **read_file_v2** • Read file: c:\Users\jkrac\OneDrive\Documents\GC-SDE\TCSS 506\Foodie\tests\test_client_recipe_templates.py</summary>
@@ -593,7 +593,7 @@ _**Agent (default)**_
 
 </details></tool-use>
 
-_**Agent (default)**_
+_**Agent (gpt-5.5)**_
 
 <tool-use data-tool-type="read" data-tool-name="read_file_v2">
 <details><summary>Tool use: **read_file_v2** • Read file: c:\Users\jkrac\OneDrive\Documents\GC-SDE\TCSS 506\Foodie\tests\test_db_schema_and_auth.py</summary>
@@ -606,7 +606,7 @@ _**Agent (default)**_
 
 </details></tool-use>
 
-_**Agent (default)**_
+_**Agent (gpt-5.5)**_
 
 <tool-use data-tool-type="read" data-tool-name="read_file_v2">
 <details><summary>Tool use: **read_file_v2** • Read file: c:\Users\jkrac\OneDrive\Documents\GC-SDE\TCSS 506\Foodie\tests\test_server_edamam_routes.py</summary>
@@ -619,12 +619,12 @@ _**Agent (default)**_
 
 </details></tool-use>
 
-_**Agent (default)**_
+_**Agent (gpt-5.5)**_
 
 <think><details><summary>Thought Process</summary>
 The tests fail because multiple test files contain merge conflict artifacts. Duplicate code was kept incompletely from both versions.</details></think>
 
-_**Agent (default)**_
+_**Agent (gpt-5.5)**_
 
 <tool-use data-tool-type="read" data-tool-name="read_file_v2">
 <details><summary>Tool use: **read_file_v2** • Read file: c:\Users\jkrac\OneDrive\Documents\GC-SDE\TCSS 506\Foodie\tests\conftest.py</summary>
@@ -637,7 +637,7 @@ _**Agent (default)**_
 
 </details></tool-use>
 
-_**Agent (default)**_
+_**Agent (gpt-5.5)**_
 
 <tool-use data-tool-type="read" data-tool-name="read_file_v2">
 <details><summary>Tool use: **read_file_v2** • Read file: c:\Users\jkrac\OneDrive\Documents\GC-SDE\TCSS 506\Foodie\tests\csrf_helpers.py</summary>
@@ -650,7 +650,7 @@ _**Agent (default)**_
 
 </details></tool-use>
 
-_**Agent (default)**_
+_**Agent (gpt-5.5)**_
 
 <tool-use data-tool-type="read" data-tool-name="read_file_v2">
 <details><summary>Tool use: **read_file_v2** • Read file: c:\Users\jkrac\OneDrive\Documents\GC-SDE\TCSS 506\Foodie\tests\test_client_recipe_templates.py</summary>
@@ -663,7 +663,7 @@ _**Agent (default)**_
 
 </details></tool-use>
 
-_**Agent (default)**_
+_**Agent (gpt-5.5)**_
 
 <tool-use data-tool-type="shell" data-tool-name="run_terminal_command_v2">
 <details><summary>Tool use: **run_terminal_command_v2** • Run command: Set-Location "c:\Users\jkrac\OneDrive\Documents\GC-SDE\TCSS 506\Foodie"; git show origin/master:tests/test_auth.py | Select-Object -First 100</summary>
@@ -783,12 +783,12 @@ def test_login_redirects_mealplan_with_session(client):
 
 </details></tool-use>
 
-_**Agent (default)**_
+_**Agent (gpt-5.5)**_
 
 <think><details><summary>Thought Process</summary>
 Merge conflict artifacts are causing the test failures. I'll remove them.</details></think>
 
-_**Agent (default)**_
+_**Agent (gpt-5.5)**_
 
 <tool-use data-tool-type="read" data-tool-name="read_file_v2">
 <details><summary>Tool use: **read_file_v2** • Read file: c:\Users\jkrac\OneDrive\Documents\GC-SDE\TCSS 506\Foodie\tests\test_db_schema_and_auth.py</summary>
@@ -801,7 +801,7 @@ _**Agent (default)**_
 
 </details></tool-use>
 
-_**Agent (default)**_
+_**Agent (gpt-5.5)**_
 
 <tool-use data-tool-type="read" data-tool-name="read_file_v2">
 <details><summary>Tool use: **read_file_v2** • Read file: c:\Users\jkrac\OneDrive\Documents\GC-SDE\TCSS 506\Foodie\tests\test_server_edamam_routes.py</summary>
@@ -814,7 +814,7 @@ _**Agent (default)**_
 
 </details></tool-use>
 
-_**Agent (default)**_
+_**Agent (gpt-5.5)**_
 
 <tool-use data-tool-type="shell" data-tool-name="run_terminal_command_v2">
 <details><summary>Tool use: **run_terminal_command_v2** • Run command: Set-Location "c:\Users\jkrac\OneDrive\Documents\GC-SDE\TCSS 506\Foodie"; git show origin/master:tests/test_integration.py</summary>
@@ -954,7 +954,7 @@ def test_week6_demo_register_search_detail_scale_plan_delete(client):
 
 </details></tool-use>
 
-_**Agent (default)**_
+_**Agent (gpt-5.5)**_
 
 <tool-use data-tool-type="unknown" data-tool-name="ripgrep_raw_search">
 <details>
@@ -1056,14 +1056,14 @@ Status: **completed**
 
 </details></tool-use>
 
-_**Agent (default)**_
+_**Agent (gpt-5.5)**_
 
 <think><details><summary>Thought Process</summary>
 The failing tests appear to involve authentication. I'm starting to identify specific fixes needed.
 
 Five test files need cleanup. `test_auth.py` should use only `csrf_post` from conftest and drop duplicate imports. `test_integration.py` needs CSRF helpers from conftest. Three template and schema test files contain trailing duplicate code to delete.</details></think>
 
-_**Agent (default)**_
+_**Agent (gpt-5.5)**_
 
 <tool-use data-tool-type="unknown" data-tool-name="ripgrep_raw_search">
 <details>
@@ -1136,7 +1136,7 @@ Status: **completed**
 
 </details></tool-use>
 
-_**Agent (default)**_
+_**Agent (gpt-5.5)**_
 
 <tool-use data-tool-type="shell" data-tool-name="run_terminal_command_v2">
 <details><summary>Tool use: **run_terminal_command_v2** • Run command: Set-Location "c:\Users\jkrac\OneDrive\Documents\GC-SDE\TCSS 506\Foodie"; git show origin/master:tests/test_auth.py</summary>
@@ -1316,7 +1316,7 @@ def test_oauth_only_user_cannot_password_login(client):
 
 </details></tool-use>
 
-_**Agent (default)**_
+_**Agent (gpt-5.5)**_
 
 <tool-use data-tool-type="read" data-tool-name="read_file_v2">
 <details><summary>Tool use: **read_file_v2** • Read file: c:\Users\jkrac\OneDrive\Documents\GC-SDE\TCSS 506\Foodie\tests\test_client_recipe_templates.py</summary>
@@ -1329,14 +1329,14 @@ _**Agent (default)**_
 
 </details></tool-use>
 
-_**Agent (default)**_
+_**Agent (gpt-5.5)**_
 
 <think><details><summary>Thought Process</summary>
 Beginning analysis of test_client_recipe_templates.py.
 
 The file contains an invalid docstring starting at line 124 that breaks the script. I will remove everything from line 124 onward and keep the first half with its valid `post_with_csrf` tests. I may also add a CSRF token assertion from the duplicate branch.</details></think>
 
-_**Agent (default)**_
+_**Agent (gpt-5.5)**_
 
 <tool-use data-tool-type="unknown" data-tool-name="ripgrep_raw_search">
 <details>
@@ -1381,7 +1381,7 @@ Status: **completed**
 
 </details></tool-use>
 
-_**Agent (default)**_
+_**Agent (gpt-5.5)**_
 
 <tool-use data-tool-type="read" data-tool-name="read_file_v2">
 <details><summary>Tool use: **read_file_v2** • Read file: c:\Users\jkrac\OneDrive\Documents\GC-SDE\TCSS 506\Foodie\app.py</summary>
@@ -1394,12 +1394,12 @@ _**Agent (default)**_
 
 </details></tool-use>
 
-_**Agent (default)**_
+_**Agent (gpt-5.5)**_
 
 <think><details><summary>Thought Process</summary>
 The Scale endpoint is CSRF exempt. The master version uses a plain client.post, but the user must be logged in.</details></think>
 
-_**Agent (default)**_
+_**Agent (gpt-5.5)**_
 
 <tool-use data-tool-type="read" data-tool-name="read_file_v2">
 <details><summary>Tool use: **read_file_v2** • Read file: c:\Users\jkrac\OneDrive\Documents\GC-SDE\TCSS 506\Foodie\app.py</summary>
@@ -1412,12 +1412,12 @@ _**Agent (default)**_
 
 </details></tool-use>
 
-_**Agent (default)**_
+_**Agent (gpt-5.5)**_
 
 <think><details><summary>Thought Process</summary>
 app.py contains duplicate `CSRFProtect` imports at lines 39 and 45.</details></think>
 
-_**Agent (default)**_
+_**Agent (gpt-5.5)**_
 
 <tool-use data-tool-type="unknown" data-tool-name="ripgrep_raw_search">
 <details>
@@ -1478,7 +1478,7 @@ Status: **completed**
 
 </details></tool-use>
 
-_**Agent (default)**_
+_**Agent (gpt-5.5)**_
 
 <tool-use data-tool-type="shell" data-tool-name="run_terminal_command_v2">
 <details><summary>Tool use: **run_terminal_command_v2** • Run command: Set-Location "c:\Users\jkrac\OneDrive\Documents\GC-SDE\TCSS 506\Foodie"; git show origin/master:app.py | Select-Object -First 90</summary>
@@ -1588,7 +1588,7 @@ engine = create_engine(DATABASE_URL, echo=False)
 
 </details></tool-use>
 
-_**Agent (default)**_
+_**Agent (gpt-5.5)**_
 
 <think><details><summary>Thought Process</summary>
 app.py contains duplicate imports and duplicate CSRF initialization that also need fixing.
@@ -1597,12 +1597,12 @@ The branch's env-based SESSION_COOKIE_SECURE override is needed because CI tests
 
 The duplicate session cookie blocks in app.py should be consolidated into a single block. This block will include ProxyFix, remember cookie settings, session lifetime, and the HTTP-only and SameSite flags.</details></think>
 
-_**Agent (default)**_
+_**Agent (gpt-5.5)**_
 
 Fixing merge artifacts: duplicated test file content and broken merges in `test_auth.py` and `test_integration.py`. Cleaning up `app.py` duplicates next.
 
 
-_**Agent (default)**_
+_**Agent (gpt-5.5)**_
 
 <tool-use data-tool-type="write" data-tool-name="edit_file_v2">
 
@@ -1617,7 +1617,7 @@ _**Agent (default)**_
 
 </details></tool-use>
 
-_**Agent (default)**_
+_**Agent (gpt-5.5)**_
 
 <tool-use data-tool-type="write" data-tool-name="edit_file_v2">
 
@@ -1632,7 +1632,7 @@ _**Agent (default)**_
 
 </details></tool-use>
 
-_**Agent (default)**_
+_**Agent (gpt-5.5)**_
 
 <tool-use data-tool-type="write" data-tool-name="edit_file_v2">
 
@@ -1647,7 +1647,7 @@ _**Agent (default)**_
 
 </details></tool-use>
 
-_**Agent (default)**_
+_**Agent (gpt-5.5)**_
 
 <tool-use data-tool-type="write" data-tool-name="edit_file_v2">
 
@@ -1662,7 +1662,7 @@ _**Agent (default)**_
 
 </details></tool-use>
 
-_**Agent (default)**_
+_**Agent (gpt-5.5)**_
 
 <tool-use data-tool-type="read" data-tool-name="read_file_v2">
 <details><summary>Tool use: **read_file_v2** • Read file: c:\Users\jkrac\OneDrive\Documents\GC-SDE\TCSS 506\Foodie\tests\test_db_schema_and_auth.py</summary>
@@ -1675,7 +1675,7 @@ _**Agent (default)**_
 
 </details></tool-use>
 
-_**Agent (default)**_
+_**Agent (gpt-5.5)**_
 
 <tool-use data-tool-type="read" data-tool-name="read_file_v2">
 <details><summary>Tool use: **read_file_v2** • Read file: c:\Users\jkrac\OneDrive\Documents\GC-SDE\TCSS 506\Foodie\tests\test_server_edamam_routes.py</summary>
@@ -1688,7 +1688,7 @@ _**Agent (default)**_
 
 </details></tool-use>
 
-_**Agent (default)**_
+_**Agent (gpt-5.5)**_
 
 <think><details><summary>Thought Process</summary>
 The duplicate tests in test_db_schema_and_auth.py likely include extra cases such as test_oauth_user_insert_sets_created_at and test_login_github_stores_remember_oauth_in_session. These must be handled carefully before truncating the file at line 179.
@@ -1699,7 +1699,7 @@ The duplicate also contains a CSRF test using `csrf_post` instead of `post_with_
 
 `test_server_edamam_routes.py` also needs merging. The first half ends at line 137. The duplicate adds image proxy tests that may be intentional additions from Sam's branch. The corrected file should keep lines 1 through 137 and append the unique image tests from the duplicate without re-duplicating the basic tests. An erroneous triple quote at line 138 must also be fixed.</details></think>
 
-_**Agent (default)**_
+_**Agent (gpt-5.5)**_
 
 <tool-use data-tool-type="read" data-tool-name="read_file_v2">
 <details><summary>Tool use: **read_file_v2** • Read file: c:\Users\jkrac\OneDrive\Documents\GC-SDE\TCSS 506\Foodie\tests\test_server_edamam_routes.py</summary>
@@ -1712,7 +1712,7 @@ _**Agent (default)**_
 
 </details></tool-use>
 
-_**Agent (default)**_
+_**Agent (gpt-5.5)**_
 
 <tool-use data-tool-type="shell" data-tool-name="run_terminal_command_v2">
 <details><summary>Tool use: **run_terminal_command_v2** • Run command: Set-Location "c:\Users\jkrac\OneDrive\Documents\GC-SDE\TCSS 506\Foodie"; git show origin/week6/db&security:tests/test_server_edamam_routes.py 2>$null | Measure-Object -Line; git show "origin/week6/db&security:tests/test_server_edamam_routes.py" | Select-Object -Last 30</summary>
@@ -1740,19 +1740,19 @@ quotation marks ("&amp;") to pass it as part of a string.
 
 </details></tool-use>
 
-_**Agent (default)**_
+_**Agent (gpt-5.5)**_
 
 <think><details><summary>Thought Process</summary>
 The test_server_edamam_routes.py file needs to be merged properly.
 
 Remove the erroneous triple quote at line 138 of test_server_edamam_routes.py. Merge in the unique recipe-by-ID lookup, image tests, and CSRF-exempt scale test from the duplicate. For test_db_schema_and_auth.py, delete everything after line 178 and add the missing OAuth user insert and GitHub login session tests.</details></think>
 
-_**Agent (default)**_
+_**Agent (gpt-5.5)**_
 
 Merging `test_server_edamam_routes.py` to keep image-proxy tests and removing the duplicate tail from `test_db_schema_and_auth.py`.
 
 
-_**Agent (default)**_
+_**Agent (gpt-5.5)**_
 
 <tool-use data-tool-type="write" data-tool-name="edit_file_v2">
 
@@ -1767,7 +1767,7 @@ _**Agent (default)**_
 
 </details></tool-use>
 
-_**Agent (default)**_
+_**Agent (gpt-5.5)**_
 
 <tool-use data-tool-type="read" data-tool-name="read_file_v2">
 <details><summary>Tool use: **read_file_v2** • Read file: c:\Users\jkrac\OneDrive\Documents\GC-SDE\TCSS 506\Foodie\tests\test_db_schema_and_auth.py</summary>
@@ -1780,12 +1780,12 @@ _**Agent (default)**_
 
 </details></tool-use>
 
-_**Agent (default)**_
+_**Agent (gpt-5.5)**_
 
 <think><details><summary>Thought Process</summary>
 The first replacement only partially worked. A duplicate remains at line 180.</details></think>
 
-_**Agent (default)**_
+_**Agent (gpt-5.5)**_
 
 <tool-use data-tool-type="read" data-tool-name="read_file_v2">
 <details><summary>Tool use: **read_file_v2** • Read file: c:\Users\jkrac\OneDrive\Documents\GC-SDE\TCSS 506\Foodie\tests\test_db_schema_and_auth.py</summary>
@@ -1798,12 +1798,12 @@ _**Agent (default)**_
 
 </details></tool-use>
 
-_**Agent (default)**_
+_**Agent (gpt-5.5)**_
 
 <think><details><summary>Thought Process</summary>
 A replacement operation corrupted the file by merging incorrectly.</details></think>
 
-_**Agent (default)**_
+_**Agent (gpt-5.5)**_
 
 <tool-use data-tool-type="read" data-tool-name="read_file_v2">
 <details><summary>Tool use: **read_file_v2** • Read file: c:\Users\jkrac\OneDrive\Documents\GC-SDE\TCSS 506\Foodie\tests\test_db_schema_and_auth.py</summary>
@@ -1816,12 +1816,12 @@ _**Agent (default)**_
 
 </details></tool-use>
 
-_**Agent (default)**_
+_**Agent (gpt-5.5)**_
 
 <think><details><summary>Thought Process</summary>
 Rewriting test_db_schema_and_auth.py cleanly.</details></think>
 
-_**Agent (default)**_
+_**Agent (gpt-5.5)**_
 
 <tool-use data-tool-type="write" data-tool-name="edit_file_v2">
 
@@ -1836,7 +1836,7 @@ _**Agent (default)**_
 
 </details></tool-use>
 
-_**Agent (default)**_
+_**Agent (gpt-5.5)**_
 
 <tool-use data-tool-type="write" data-tool-name="edit_file_v2">
 
@@ -1851,7 +1851,7 @@ _**Agent (default)**_
 
 </details></tool-use>
 
-_**Agent (default)**_
+_**Agent (gpt-5.5)**_
 
 <tool-use data-tool-type="write" data-tool-name="edit_file_v2">
 
@@ -1866,7 +1866,7 @@ _**Agent (default)**_
 
 </details></tool-use>
 
-_**Agent (default)**_
+_**Agent (gpt-5.5)**_
 
 <tool-use data-tool-type="read" data-tool-name="read_file_v2">
 <details><summary>Tool use: **read_file_v2** • Read file: c:\Users\jkrac\OneDrive\Documents\GC-SDE\TCSS 506\Foodie\tests\test_db_schema_and_auth.py</summary>
@@ -1879,12 +1879,12 @@ _**Agent (default)**_
 
 </details></tool-use>
 
-_**Agent (default)**_
+_**Agent (gpt-5.5)**_
 
 Rewriting `test_db_schema_and_auth.py` — the file is still corrupted.
 
 
-_**Agent (default)**_
+_**Agent (gpt-5.5)**_
 
 <tool-use data-tool-type="write" data-tool-name="edit_file_v2">
 
@@ -1899,7 +1899,7 @@ _**Agent (default)**_
 
 </details></tool-use>
 
-_**Agent (default)**_
+_**Agent (gpt-5.5)**_
 
 <tool-use data-tool-type="write" data-tool-name="edit_file_v2">
 
@@ -1914,7 +1914,7 @@ _**Agent (default)**_
 
 </details></tool-use>
 
-_**Agent (default)**_
+_**Agent (gpt-5.5)**_
 
 <tool-use data-tool-type="write" data-tool-name="edit_file_v2">
 
@@ -1929,7 +1929,7 @@ _**Agent (default)**_
 
 </details></tool-use>
 
-_**Agent (default)**_
+_**Agent (gpt-5.5)**_
 
 <tool-use data-tool-type="write" data-tool-name="edit_file_v2">
 
@@ -1944,7 +1944,7 @@ _**Agent (default)**_
 
 </details></tool-use>
 
-_**Agent (default)**_
+_**Agent (gpt-5.5)**_
 
 <tool-use data-tool-type="shell" data-tool-name="run_terminal_command_v2">
 <details><summary>Tool use: **run_terminal_command_v2** • Run command: Set-Location "c:\Users\jkrac\OneDrive\Documents\GC-SDE\TCSS 506\Foodie"; pip install -r requirements.txt -q; $env:SECRET_KEY="test-secret-key-for-ci"; $env:DATABASE_URL="sqlite:///:memory:"; $env:OAUTH_CLIENT_ID="ci-oauth-client-id"; $env:OAUTH_CLIENT_SECRET="ci-oauth-client-secret"; python -m pytest -v --ignore=tests/test_attack_paths.py --ignore=tests/e2e 2>&1</summary>
@@ -2087,7 +2087,7 @@ ERROR tests/test_server_edamam_routes.py
 
 </details></tool-use>
 
-_**Agent (default)**_
+_**Agent (gpt-5.5)**_
 
 <tool-use data-tool-type="read" data-tool-name="read_file_v2">
 <details><summary>Tool use: **read_file_v2** • Read file: c:\Users\jkrac\OneDrive\Documents\GC-SDE\TCSS 506\Foodie\requirements.txt</summary>
@@ -2100,7 +2100,7 @@ _**Agent (default)**_
 
 </details></tool-use>
 
-_**Agent (default)**_
+_**Agent (gpt-5.5)**_
 
 <tool-use data-tool-type="shell" data-tool-name="run_terminal_command_v2">
 <details><summary>Tool use: **run_terminal_command_v2** • Run command: Set-Location "c:\Users\jkrac\OneDrive\Documents\GC-SDE\TCSS 506\Foodie"; pip install python-dotenv flask flask-login flask-wtf sqlmodel responses beautifulsoup4 authlib requests werkzeug pytest playwright -q 2>&1</summary>
@@ -2129,7 +2129,7 @@ At C:\Users\jkrac\AppData\Local\Temp\ps-script-5e36df7a-1d91-48b8-b17d-4a496a6a7
 
 </details></tool-use>
 
-_**Agent (default)**_
+_**Agent (gpt-5.5)**_
 
 <tool-use data-tool-type="shell" data-tool-name="run_terminal_command_v2">
 <details><summary>Tool use: **run_terminal_command_v2** • Run command: Set-Location "c:\Users\jkrac\OneDrive\Documents\GC-SDE\TCSS 506\Foodie"; $env:SECRET_KEY="test-secret-key-for-ci"; $env:DATABASE_URL="sqlite:///:memory:"; $env:OAUTH_CLIENT_ID="ci-oauth-client-id"; $env:OAUTH_CLIENT_SECRET="ci-oauth-client-secret"; python -m pytest -v --ignore=tests/test_attack_paths.py --ignore=tests/e2e 2>&1</summary>
@@ -2204,7 +2204,7 @@ tests/test_auth.py::test_login_with_remember_sets_remember_cookie
 
 </details></tool-use>
 
-_**Agent (default)**_
+_**Agent (gpt-5.5)**_
 
 <tool-use data-tool-type="unknown" data-tool-name="ripgrep_raw_search">
 <details>
@@ -2244,7 +2244,7 @@ Status: **completed**
 
 </details></tool-use>
 
-_**Agent (default)**_
+_**Agent (gpt-5.5)**_
 
 <tool-use data-tool-type="shell" data-tool-name="run_terminal_command_v2">
 <details><summary>Tool use: **run_terminal_command_v2** • Run command: Set-Location "c:\Users\jkrac\OneDrive\Documents\GC-SDE\TCSS 506\Foodie"; python -m py_compile tests/*.py tests/e2e/*.py app.py 2>&1</summary>
@@ -2271,7 +2271,7 @@ At C:\Users\jkrac\AppData\Local\Temp\ps-script-d6361c67-4e54-4475-b731-56f40685a
 
 </details></tool-use>
 
-_**Agent (default)**_
+_**Agent (gpt-5.5)**_
 
 <tool-use data-tool-type="shell" data-tool-name="run_terminal_command_v2">
 <details><summary>Tool use: **run_terminal_command_v2** • Run command: Set-Location "c:\Users\jkrac\OneDrive\Documents\GC-SDE\TCSS 506\Foodie"; git diff --stat</summary>
@@ -2298,7 +2298,7 @@ Set-Location "c:\Users\jkrac\OneDrive\Documents\GC-SDE\TCSS 506\Foodie"; git dif
 
 </details></tool-use>
 
-_**Agent (default)**_
+_**Agent (gpt-5.5)**_
 
 <tool-use data-tool-type="unknown" data-tool-name="ripgrep_raw_search">
 <details>
@@ -2338,7 +2338,7 @@ Status: **completed**
 
 </details></tool-use>
 
-_**Agent (default)**_
+_**Agent (gpt-5.5)**_
 
 <tool-use data-tool-type="read" data-tool-name="read_file_v2">
 <details><summary>Tool use: **read_file_v2** • Read file: c:\Users\jkrac\OneDrive\Documents\GC-SDE\TCSS 506\Foodie\tests\e2e\test_full_lifecycle.py</summary>
@@ -2351,12 +2351,12 @@ _**Agent (default)**_
 
 </details></tool-use>
 
-_**Agent (default)**_
+_**Agent (gpt-5.5)**_
 
 <think><details><summary>Thought Process</summary>
 End-to-end tests appear correct. The CI pipeline runs full pytest with Docker. Fixing syntax errors should resolve the failures.</details></think>
 
-_**Agent (default)**_
+_**Agent (gpt-5.5)**_
 
 ## Root cause
 
@@ -2395,18 +2395,41 @@ yes please create the commit
 
 ---
 
-_**Agent (default)**_
+_**Agent (gpt-5.5)**_
 
 <think><details><summary>Thought Process</summary>
 Proceeding to create the git commit.</details></think>
 
-_**Agent (default)**_
+_**Agent (gpt-5.5)**_
 
 <tool-use data-tool-type="shell" data-tool-name="run_terminal_command_v2">
 <details><summary>Tool use: **run_terminal_command_v2** • Run command: Set-Location "c:\Users\jkrac\OneDrive\Documents\GC-SDE\TCSS 506\Foodie"; git status</summary>
 
 ```bash
 Set-Location "c:\Users\jkrac\OneDrive\Documents\GC-SDE\TCSS 506\Foodie"; git status
+```
+
+```
+On branch week6/db&amp;security
+Your branch is up to date with 'origin/week6/db&amp;security'.
+
+Changes not staged for commit:
+  (use "git add &lt;file&gt;..." to update what will be committed)
+  (use "git restore &lt;file&gt;..." to discard changes in working directory)
+	modified:   app.py
+	modified:   tests/test_auth.py
+	modified:   tests/test_client_recipe_templates.py
+	modified:   tests/test_db_schema_and_auth.py
+	modified:   tests/test_integration.py
+	modified:   tests/test_server_edamam_routes.py
+
+Untracked files:
+  (use "git add &lt;file&gt;..." to include in what will be committed)
+	.cursorindexingignore
+	.specstory/
+
+no changes added to commit (use "git add" and/or "git commit -a")
+
 ```
 </details>
 </tool-use>
@@ -2416,7 +2439,7 @@ Set-Location "c:\Users\jkrac\OneDrive\Documents\GC-SDE\TCSS 506\Foodie"; git sta
 
 </details></tool-use>
 
-_**Agent (default)**_
+_**Agent (gpt-5.5)**_
 
 <tool-use data-tool-type="shell" data-tool-name="run_terminal_command_v2">
 <details><summary>Tool use: **run_terminal_command_v2** • Run command: Set-Location "c:\Users\jkrac\OneDrive\Documents\GC-SDE\TCSS 506\Foodie"; git diff</summary>
@@ -3106,13 +3129,22 @@ index 5fb84f1..030f8c0 100644
 
 </details></tool-use>
 
-_**Agent (default)**_
+_**Agent (gpt-5.5)**_
 
 <tool-use data-tool-type="shell" data-tool-name="run_terminal_command_v2">
 <details><summary>Tool use: **run_terminal_command_v2** • Run command: Set-Location "c:\Users\jkrac\OneDrive\Documents\GC-SDE\TCSS 506\Foodie"; git log --oneline -5</summary>
 
 ```bash
 Set-Location "c:\Users\jkrac\OneDrive\Documents\GC-SDE\TCSS 506\Foodie"; git log --oneline -5
+```
+
+```
+62044f0 Merge branch 'master' into week6/db&amp;security
+ac6e7a3 Merge pull request #25 from TeamDelta506/samuel-hardening
+765aca3 Merge pull request #26 from TeamDelta506/justin-hardening
+c57c77d CI: start prod stack for attack-path tests.
+271de39 Block scanner/sensitive paths at nginx edge.
+
 ```
 </details>
 </tool-use>
@@ -3121,3 +3153,916 @@ Set-Location "c:\Users\jkrac\OneDrive\Documents\GC-SDE\TCSS 506\Foodie"; git log
 <summary>Tool use: **run_terminal_command_v2**</summary>
 
 </details></tool-use>
+
+_**Agent (gpt-5.5)**_
+
+<think><details><summary>Thought Process</summary>
+Staging six modified files for the commit.
+
+Preparing the commit message for the merge artifacts fix. Considering a multi-line HEREDOC versus a single-line style. Will use git add for the staged files.</details></think>
+
+_**Agent (gpt-5.5)**_
+
+<tool-use data-tool-type="shell" data-tool-name="run_terminal_command_v2">
+<details><summary>Tool use: **run_terminal_command_v2** • Run command: Set-Location "c:\Users\jkrac\OneDrive\Documents\GC-SDE\TCSS 506\Foodie"; git add app.py tests/test_auth.py tests/test_client_recipe_templates.py tests/test_db_schema_and_auth.py tests/test_integration.py tests/test_server_edamam_routes.py; git commit --trailer "Co-authored-by: Cursor <cursoragent@cursor.com>" -m "Fix merge artifacts breaking CI pytest collection." -m "After merging master into week6/db&security, several test files contained duplicated modules and half-merged CSRF helper calls, which caused syntax errors during collection. Remove duplicate test content, unify CSRF usage, and dedupe CSRFProtect setup in app.py."</summary>
+
+```bash
+Set-Location "c:\Users\jkrac\OneDrive\Documents\GC-SDE\TCSS 506\Foodie"; git add app.py tests/test_auth.py tests/test_client_recipe_templates.py tests/test_db_schema_and_auth.py tests/test_integration.py tests/test_server_edamam_routes.py; git commit --trailer "Co-authored-by: Cursor <cursoragent@cursor.com>" -m "Fix merge artifacts breaking CI pytest collection." -m "After merging master into week6/db&security, several test files contained duplicated modules and half-merged CSRF helper calls, which caused syntax errors during collection. Remove duplicate test content, unify CSRF usage, and dedupe CSRFProtect setup in app.py."
+```
+
+```
+[week6/db&amp;security 30e4155] Fix merge artifacts breaking CI pytest collection.
+ 6 files changed, 18 insertions(+), 490 deletions(-)
+
+```
+</details>
+</tool-use>
+
+<tool-use data-tool-type="shell" data-tool-name="run_terminal_command_v2"><details>
+<summary>Tool use: **run_terminal_command_v2**</summary>
+
+</details></tool-use>
+
+_**Agent (gpt-5.5)**_
+
+<tool-use data-tool-type="shell" data-tool-name="run_terminal_command_v2">
+<details><summary>Tool use: **run_terminal_command_v2** • Run command: Set-Location "c:\Users\jkrac\OneDrive\Documents\GC-SDE\TCSS 506\Foodie"; git status</summary>
+
+```bash
+Set-Location "c:\Users\jkrac\OneDrive\Documents\GC-SDE\TCSS 506\Foodie"; git status
+```
+
+```
+On branch week6/db&amp;security
+Your branch is ahead of 'origin/week6/db&amp;security' by 1 commit.
+  (use "git push" to publish your local commits)
+
+Untracked files:
+  (use "git add &lt;file&gt;..." to include in what will be committed)
+	.cursorindexingignore
+	.specstory/
+
+nothing added to commit but untracked files present (use "git add" to track)
+
+```
+</details>
+</tool-use>
+
+<tool-use data-tool-type="shell" data-tool-name="run_terminal_command_v2"><details>
+<summary>Tool use: **run_terminal_command_v2**</summary>
+
+</details></tool-use>
+
+_**Agent (gpt-5.5)**_
+
+Created commit `30e4155` on `week6/db&security`:
+
+**Fix merge artifacts breaking CI pytest collection.**
+
+After merging master into week6/db&security, several test files contained duplicated modules and half-merged CSRF helper calls, which caused syntax errors during collection. Remove duplicate test content, unify CSRF usage, and dedupe CSRFProtect setup in app.py.
+
+**6 files changed** (`app.py` + 5 test files), 490 lines removed.
+
+Your branch is **1 commit ahead** of `origin/week6/db&security`. Push when you’re ready so PR #27’s CI can rerun:
+
+```powershell
+git push
+```
+
+---
+
+_**User**_
+
+checks are still failing for Pull request #27
+
+---
+
+_**Agent (gpt-5.5)**_
+
+<think><details><summary>Thought Process</summary>
+Pull request #27 checks remain failing.</details></think>
+
+_**Agent (gpt-5.5)**_
+
+Investigating PR #27's failing checks: fetching CI details and reproducing the test run locally.
+
+
+_**Agent (gpt-5.5)**_
+
+<tool-use data-tool-type="search" data-tool-name="glob_file_search">
+<details>
+<summary>Tool use: **glob_file_search** • Searched codebase "" • **1** result in **1** directory</summary>
+
+Directory: **c:\Users\jkrac\OneDrive\Documents\GC-SDE\TCSS 506\Foodie** (1 file)
+
+| File |
+|------|
+| `../.specstory\history\2026-06-02_01-14-40Z-pull-request-#27-test-failures.md` |
+
+</details>
+</tool-use>
+
+<tool-use data-tool-type="search" data-tool-name="glob_file_search"><details>
+<summary>Tool use: **glob_file_search**</summary>
+
+</details></tool-use>
+
+_**Agent (gpt-5.5)**_
+
+<tool-use data-tool-type="shell" data-tool-name="run_terminal_command_v2">
+<details><summary>Tool use: **run_terminal_command_v2** • Run command: Set-Location "c:\Users\jkrac\OneDrive\Documents\GC-SDE\TCSS 506\Foodie"; git fetch origin 2>&1; git log --oneline -3; git status</summary>
+
+```bash
+Set-Location "c:\Users\jkrac\OneDrive\Documents\GC-SDE\TCSS 506\Foodie"; git fetch origin 2>&1; git log --oneline -3; git status
+```
+
+```
+7a2c7ef updated to resolve the conflicts for tests
+30e4155 Fix merge artifacts breaking CI pytest collection.
+62044f0 Merge branch 'master' into week6/db&amp;security
+On branch week6/db&amp;security
+Your branch is up to date with 'origin/week6/db&amp;security'.
+
+nothing to commit, working tree clean
+
+```
+</details>
+</tool-use>
+
+<tool-use data-tool-type="shell" data-tool-name="run_terminal_command_v2"><details>
+<summary>Tool use: **run_terminal_command_v2**</summary>
+
+</details></tool-use>
+
+_**Agent (gpt-5.5)**_
+
+<tool-use data-tool-type="read" data-tool-name="read_file_v2">
+<details><summary>Tool use: **read_file_v2** • Read file: C:\Users\jkrac\.cursor\skills-cursor\babysit\SKILL.md</summary>
+
+</details>
+</tool-use>
+
+<tool-use data-tool-type="read" data-tool-name="read_file_v2"><details>
+<summary>Tool use: **read_file_v2**</summary>
+
+</details></tool-use>
+
+_**Agent (gpt-5.5)**_
+
+<tool-use data-tool-type="read" data-tool-name="read_file_v2">
+<details><summary>Tool use: **read_file_v2** • Read file: c:\Users\jkrac\OneDrive\Documents\GC-SDE\TCSS 506\Foodie\.specstory\history\2026-06-02_01-14-40Z-pull-request-#27-test-failures.md</summary>
+
+</details>
+</tool-use>
+
+<tool-use data-tool-type="read" data-tool-name="read_file_v2"><details>
+<summary>Tool use: **read_file_v2**</summary>
+
+</details></tool-use>
+
+_**Agent (gpt-5.5)**_
+
+<tool-use data-tool-type="unknown" data-tool-name="ripgrep_raw_search">
+<details>
+<summary>Tool use: **ripgrep_raw_search**</summary>
+
+
+Parameters:
+
+```json
+{
+  "caseInsensitive": false,
+  "path": "c:\\Users\\jkrac\\OneDrive\\Documents\\GC-SDE\\TCSS 506\\Foodie",
+  "pattern": "\u003c\u003c\u003c\u003c\u003c\u003c|======|\u003e\u003e\u003e\u003e\u003e\u003e"
+}
+```
+Additional data:
+
+```json
+{
+  "isPruned": true,
+  "outputMode": "content",
+  "path": "c:\\Users\\jkrac\\OneDrive\\Documents\\GC-SDE\\TCSS 506\\Foodie",
+  "pattern": "\u003c\u003c\u003c\u003c\u003c\u003c|======|\u003e\u003e\u003e\u003e\u003e\u003e",
+  "topFiles": [
+    {
+      "matchCount": 1,
+      "uri": "tests/test_attack_paths.py"
+    },
+    {
+      "matchCount": 1,
+      "uri": "tests/e2e/test_oauth_login_happy_path.py"
+    },
+    {
+      "matchCount": 1,
+      "uri": "tests/e2e/test_full_lifecycle.py"
+    },
+    {
+      "matchCount": 13,
+      "uri": ".specstory\\history\\2026-06-02_01-14-40Z-pull-request-#27-test-failures.md"
+    },
+    {
+      "matchCount": 1,
+      "uri": "tests/e2e/test_client_side_login.py"
+    }
+  ],
+  "totalFiles": 5,
+  "totalMatches": 17
+}
+```
+Status: **completed**
+
+
+</details>
+</tool-use>
+
+<tool-use data-tool-type="unknown" data-tool-name="ripgrep_raw_search"><details>
+<summary>Tool use: **ripgrep_raw_search**</summary>
+
+</details></tool-use>
+
+_**Agent (gpt-5.5)**_
+
+<tool-use data-tool-type="shell" data-tool-name="run_terminal_command_v2">
+<details><summary>Tool use: **run_terminal_command_v2** • Run command: where.exe gh 2>$null; Get-Command gh -ErrorAction SilentlyContinue | Select-Object Source</summary>
+
+```bash
+where.exe gh 2>$null; Get-Command gh -ErrorAction SilentlyContinue | Select-Object Source
+```
+</details>
+</tool-use>
+
+<tool-use data-tool-type="shell" data-tool-name="run_terminal_command_v2"><details>
+<summary>Tool use: **run_terminal_command_v2**</summary>
+
+</details></tool-use>
+
+_**Agent (gpt-5.5)**_
+
+<tool-use data-tool-type="unknown" data-tool-name="web_fetch">
+<details>
+<summary>Tool use: **web_fetch**</summary>
+
+
+Parameters:
+
+```json
+{
+  "url": "https://api.github.com/repos/TeamDelta506/Foodie/pulls/27"
+}
+```
+Result:
+
+```json
+{
+  "markdown": "{\"url\":\"https://api.github.com/repos/TeamDelta506/Foodie/pulls/27\",\"id\":3783746888,\"node_id\":\"PR_kwDOSZCeTs7hh2VI\",\"html_url\":\"https://github.com/TeamDelta506/Foodie/pull/27\",\"diff_url\":\"https://github.com/TeamDelta506/Foodie/pull/27.diff\",\"patch_url\":\"https://github.com/TeamDelta506/Foodie/pull/27.patch\",\"issue_url\":\"https://api.github.com/repos/TeamDelta506/Foodie/issues/27\",\"number\":27,\"state\":\"open\",\"locked\":false,\"title\":\"Add production stack with nginx, gunicorn, and TLS.\",\"user\":{\"login\":\"jkracker91-ux\",\"id\":237473359,\"node_id\":\"U_kgDODieOTw\",\"avatar_url\":\"https://avatars.githubusercontent.com/u/237473359?v=4\",\"gravatar_id\":\"\",\"url\":\"https://api.github.com/users/jkracker91-ux\",\"html_url\":\"https://github.com/jkracker91-ux\",\"followers_url\":\"https://api.github.com/users/jkracker91-ux/followers\",\"following_url\":\"https://api.github.com/users/jkracker91-ux/following{/other_user}\",\"gists_url\":\"https://api.github.com/users/jkracker91-ux/gists{/gist_id}\",\"starred_url\":\"https://api.github.com/users/jkracker91-ux/starred{/owner}{/repo}\",\"subscriptions_url\":\"https://api.github.com/users/jkracker91-ux/subscriptions\",\"organizations_url\":\"https://api.github.com/users/jkracker91-ux/orgs\",\"repos_url\":\"https://api.github.com/users/jkracker91-ux/repos\",\"events_url\":\"https://api.github.com/users/jkracker91-ux/events{/privacy}\",\"received_events_url\":\"https://api.github.com/users/jkracker91-ux/received_events\",\"type\":\"User\",\"user_view_type\":\"public\",\"site_admin\":false},\"body\":\"Three-container docker-compose (nginx, app, gunicorn via yourapp factory, Postgres), dev compose override, hardening docs, and related test/template updates.\",\"created_at\":\"2026-06-01T20:58:09Z\",\"updated_at\":\"2026-06-02T01:24:42Z\",\"closed_at\":null,\"merged_at\":null,\"merge_commit_sha\":\"0f3c14b586ef32a16b9cf232dddd73089d3ee539\",\"assignees\":[],\"requested_reviewers\":[],\"requested_teams\":[],\"labels\":[],\"milestone\":null,\"draft\":false,\"commits_url\":\"https://api.github.com/repos/TeamDelta506/Foodie/pulls/27/commits\",\"review_comments_url\":\"https://api.github.com/repos/TeamDelta506/Foodie/pulls/27/comments\",\"review_comment_url\":\"https://api.github.com/repos/TeamDelta506/Foodie/pulls/comments{/number}\",\"comments_url\":\"https://api.github.com/repos/TeamDelta506/Foodie/issues/27/comments\",\"statuses_url\":\"https://api.github.com/repos/TeamDelta506/Foodie/statuses/7a2c7ef0a8675300e3aceeda08974802e6e48887\",\"head\":{\"label\":\"TeamDelta506:week6/db\u0026security\",\"ref\":\"week6/db\u0026security\",\"sha\":\"7a2c7ef0a8675300e3aceeda08974802e6e48887\",\"user\":{\"login\":\"TeamDelta506\",\"id\":279349874,\"node_id\":\"O_kgDOEKaKcg\",\"avatar_url\":\"https://avatars.githubusercontent.com/u/279349874?v=4\",\"gravatar_id\":\"\",\"url\":\"https://api.github.com/users/TeamDelta506\",\"html_url\":\"https://github.com/TeamDelta506\",\"followers_url\":\"https://api.github.com/users/TeamDelta506/followers\",\"following_url\":\"https://api.github.com/users/TeamDelta506/following{/other_user}\",\"gists_url\":\"https://api.github.com/users/TeamDelta506/gists{/gist_id}\",\"starred_url\":\"https://api.github.com/users/TeamDelta506/starred{/owner}{/repo}\",\"subscriptions_url\":\"https://api.github.com/users/TeamDelta506/subscriptions\",\"organizations_url\":\"https://api.github.com/users/TeamDelta506/orgs\",\"repos_url\":\"https://api.github.com/users/TeamDelta506/repos\",\"events_url\":\"https://api.github.com/users/TeamDelta506/events{/privacy}\",\"received_events_url\":\"https://api.github.com/users/TeamDelta506/received_events\",\"type\":\"Organization\",\"user_view_type\":\"public\",\"site_admin\":false},\"repo\":{\"id\":1234214478,\"node_id\":\"R_kgDOSZCeTg\",\"name\":\"Foodie\",\"full_name\":\"TeamDelta506/Foodie\",\"private\":false,\"owner\":{\"login\":\"TeamDelta506\",\"id\":279349874,\"node_id\":\"O_kgDOEKaKcg\",\"avatar_url\":\"https://avatars.githubusercontent.com/u/279349874?v=4\",\"gravatar_id\":\"\",\"url\":\"https://api.github.com/users/TeamDelta506\",\"html_url\":\"https://github.com/TeamDelta506\",\"followers_url\":\"https://api.github.com/users/TeamDelta506/followers\",\"following_url\":\"https://api.github.com/users/TeamDelta506/following{/other_user}\",\"gists_url\":\"https://api.github.com/users/TeamDelta506/gists{/gist_id}\",\"starred_url\":\"https://api.github.com/users/TeamDelta506/starred{/owner}{/repo}\",\"subscriptions_url\":\"https://api.github.com/users/TeamDelta506/subscriptions\",\"organizations_url\":\"https://api.github.com/users/TeamDelta506/orgs\",\"repos_url\":\"https://api.github.com/users/TeamDelta506/repos\",\"events_url\":\"https://api.github.com/users/TeamDelta506/events{/privacy}\",\"received_events_url\":\"https://api.github.com/users/TeamDelta506/received_events\",\"type\":\"Organization\",\"user_view_type\":\"public\",\"site_admin\":false},\"html_url\":\"https://github.com/TeamDelta506/Foodie\",\"description\":null,\"fork\":false,\"url\":\"https://api.github.com/repos/TeamDelta506/Foodie\",\"forks_url\":\"https://api.github.com/repos/TeamDelta506/Foodie/forks\",\"keys_url\":\"https://api.github.com/repos/TeamDelta506/Foodie/keys{/key_id}\",\"collaborators_url\":\"https://api.github.com/repos/TeamDelta506/Foodie/collaborators{/collaborator}\",\"teams_url\":\"https://api.github.com/repos/TeamDelta506/Foodie/teams\",\"hooks_url\":\"https://api.github.com/repos/TeamDelta506/Foodie/hooks\",\"issue_events_url\":\"https://api.github.com/repos/TeamDelta506/Foodie/issues/events{/number}\",\"events_url\":\"https://api.github.com/repos/TeamDelta506/Foodie/events\",\"assignees_url\":\"https://api.github.com/repos/TeamDelta506/Foodie/assignees{/user}\",\"branches_url\":\"https://api.github.com/repos/TeamDelta506/Foodie/branches{/branch}\",\"tags_url\":\"https://api.github.com/repos/TeamDelta506/Foodie/tags\",\"blobs_url\":\"https://api.github.com/repos/TeamDelta506/Foodie/git/blobs{/sha}\",\"git_tags_url\":\"https://api.github.com/repos/TeamDelta506/Foodie/git/tags{/sha}\",\"git_refs_url\":\"https://api.github.com/repos/TeamDelta506/Foodie/git/refs{/sha}\",\"trees_url\":\"https://api.github.com/repos/TeamDelta506/Foodie/git/trees{/sha}\",\"statuses_url\":\"https://api.github.com/repos/TeamDelta506/Foodie/statuses/{sha}\",\"languages_url\":\"https://api.github.com/repos/TeamDelta506/Foodie/languages\",\"stargazers_url\":\"https://api.github.com/repos/TeamDelta506/Foodie/stargazers\",\"contributors_url\":\"https://api.github.com/repos/TeamDelta506/Foodie/contributors\",\"subscribers_url\":\"https://api.github.com/repos/TeamDelta506/Foodie/subscribers\",\"subscription_url\":\"https://api.github.com/repos/TeamDelta506/Foodie/subscription\",\"commits_url\":\"https://api.github.com/repos/TeamDelta506/Foodie/commits{/sha}\",\"git_commits_url\":\"https://api.github.com/repos/TeamDelta506/Foodie/git/commits{/sha}\",\"comments_url\":\"https://api.github.com/repos/TeamDelta506/Foodie/comments{/number}\",\"issue_comment_url\":\"https://api.github.com/repos/TeamDelta506/Foodie/issues/comments{/number}\",\"contents_url\":\"https://api.github.com/repos/TeamDelta506/Foodie/contents/{+path}\",\"compare_url\":\"https://api.github.com/repos/TeamDelta506/Foodie/compare/{base}...{head}\",\"merges_url\":\"https://api.github.com/repos/TeamDelta506/Foodie/merges\",\"archive_url\":\"https://api.github.com/repos/TeamDelta506/Foodie/{archive_format}{/ref}\",\"downloads_url\":\"https://api.github.com/repos/TeamDelta506/Foodie/downloads\",\"issues_url\":\"https://api.github.com/repos/TeamDelta506/Foodie/issues{/number}\",\"pulls_url\":\"https://api.github.com/repos/TeamDelta506/Foodie/pulls{/number}\",\"milestones_url\":\"https://api.github.com/repos/TeamDelta506/Foodie/milestones{/number}\",\"notifications_url\":\"https://api.github.com/repos/TeamDelta506/Foodie/notifications{?since,all,participating}\",\"labels_url\":\"https://api.github.com/repos/TeamDelta506/Foodie/labels{/name}\",\"releases_url\":\"https://api.github.com/repos/TeamDelta506/Foodie/releases{/id}\",\"deployments_url\":\"https://api.github.com/repos/TeamDelta506/Foodie/deployments\",\"created_at\":\"2026-05-09T22:28:32Z\",\"updated_at\":\"2026-06-01T23:02:58Z\",\"pushed_at\":\"2026-06-02T01:24:41Z\",\"git_url\":\"git://github.com/TeamDelta506/Foodie.git\",\"ssh_url\":\"git@github.com:TeamDelta506/Foodie.git\",\"clone_url\":\"https://github.com/TeamDelta506/Foodie.git\",\"svn_url\":\"https://github.com/TeamDelta506/Foodie\",\"homepage\":null,\"size\":2993,\"stargazers_count\":0,\"watchers_count\":0,\"language\":\"Python\",\"has_issues\":true,\"has_projects\":true,\"has_downloads\":true,\"has_wiki\":true,\"has_pages\":false,\"has_discussions\":false,\"forks_count\":0,\"mirror_url\":null,\"archived\":false,\"disabled\":false,\"open_issues_count\":1,\"license\":null,\"allow_forking\":true,\"is_template\":false,\"web_commit_signoff_required\":false,\"has_pull_requests\":true,\"pull_request_creation_policy\":\"all\",\"topics\":[],\"visibility\":\"public\",\"forks\":0,\"open_issues\":1,\"watchers\":0,\"default_branch\":\"master\"}},\"base\":{\"label\":\"TeamDelta506:master\",\"ref\":\"master\",\"sha\":\"ac6e7a3d6a6814bcb4bd17d981c02a3713e20d22\",\"user\":{\"login\":\"TeamDelta506\",\"id\":279349874,\"node_id\":\"O_kgDOEKaKcg\",\"avatar_url\":\"https://avatars.githubusercontent.com/u/279349874?v=4\",\"gravatar_id\":\"\",\"url\":\"https://api.github.com/users/TeamDelta506\",\"html_url\":\"https://github.com/TeamDelta506\",\"followers_url\":\"https://api.github.com/users/TeamDelta506/followers\",\"following_url\":\"https://api.github.com/users/TeamDelta506/following{/other_user}\",\"gists_url\":\"https://api.github.com/users/TeamDelta506/gists{/gist_id}\",\"starred_url\":\"https://api.github.com/users/TeamDelta506/starred{/owner}{/repo}\",\"subscriptions_url\":\"https://api.github.com/users/TeamDelta506/subscriptions\",\"organizations_url\":\"https://api.github.com/users/TeamDelta506/orgs\",\"repos_url\":\"https://api.github.com/users/TeamDelta506/repos\",\"events_url\":\"https://api.github.com/users/TeamDelta506/events{/privacy}\",\"received_events_url\":\"https://api.github.com/users/TeamDelta506/received_events\",\"type\":\"Organization\",\"user_view_type\":\"public\",\"site_admin\":false},\"repo\":{\"id\":1234214478,\"node_id\":\"R_kgDOSZCeTg\",\"name\":\"Foodie\",\"full_name\":\"TeamDelta506/Foodie\",\"private\":false,\"owner\":{\"login\":\"TeamDelta506\",\"id\":279349874,\"node_id\":\"O_kgDOEKaKcg\",\"avatar_url\":\"https://avatars.githubusercontent.com/u/279349874?v=4\",\"gravatar_id\":\"\",\"url\":\"https://api.github.com/users/TeamDelta506\",\"html_url\":\"https://github.com/TeamDelta506\",\"followers_url\":\"https://api.github.com/users/TeamDelta506/followers\",\"following_url\":\"https://api.github.com/users/TeamDelta506/following{/other_user}\",\"gists_url\":\"https://api.github.com/users/TeamDelta506/gists{/gist_id}\",\"starred_url\":\"https://api.github.com/users/TeamDelta506/starred{/owner}{/repo}\",\"subscriptions_url\":\"https://api.github.com/users/TeamDelta506/subscriptions\",\"organizations_url\":\"https://api.github.com/users/TeamDelta506/orgs\",\"repos_url\":\"https://api.github.com/users/TeamDelta506/repos\",\"events_url\":\"https://api.github.com/users/TeamDelta506/events{/privacy}\",\"received_events_url\":\"https://api.github.com/users/TeamDelta506/received_events\",\"type\":\"Organization\",\"user_view_type\":\"public\",\"site_admin\":false},\"html_url\":\"https://github.com/TeamDelta506/Foodie\",\"description\":null,\"fork\":false,\"url\":\"https://api.github.com/repos/TeamDelta506/Foodie\",\"forks_url\":\"https://api.github.com/repos/TeamDelta506/Foodie/forks\",\"keys_url\":\"https://api.github.com/repos/TeamDelta506/Foodie/keys{/key_id}\",\"collaborators_url\":\"https://api.github.com/repos/TeamDelta506/Foodie/collaborators{/collaborator}\",\"teams_url\":\"https://api.github.com/repos/TeamDelta506/Foodie/teams\",\"hooks_url\":\"https://api.github.com/repos/TeamDelta506/Foodie/hooks\",\"issue_events_url\":\"https://api.github.com/repos/TeamDelta506/Foodie/issues/events{/number}\",\"events_url\":\"https://api.github.com/repos/TeamDelta506/Foodie/events\",\"assignees_url\":\"https://api.github.com/repos/TeamDelta506/Foodie/assignees{/user}\",\"branches_url\":\"https://api.github.com/repos/TeamDelta506/Foodie/branches{/branch}\",\"tags_url\":\"https://api.github.com/repos/TeamDelta506/Foodie/tags\",\"blobs_url\":\"https://api.github.com/repos/TeamDelta506/Foodie/git/blobs{/sha}\",\"git_tags_url\":\"https://api.github.com/repos/TeamDelta506/Foodie/git/tags{/sha}\",\"git_refs_url\":\"https://api.github.com/repos/TeamDelta506/Foodie/git/refs{/sha}\",\"trees_url\":\"https://api.github.com/repos/TeamDelta506/Foodie/git/trees{/sha}\",\"statuses_url\":\"https://api.github.com/repos/TeamDelta506/Foodie/statuses/{sha}\",\"languages_url\":\"https://api.github.com/repos/TeamDelta506/Foodie/languages\",\"stargazers_url\":\"https://api.github.com/repos/TeamDelta506/Foodie/stargazers\",\"contributors_url\":\"https://api.github.com/repos/TeamDelta506/Foodie/contributors\",\"subscribers_url\":\"https://api.github.com/repos/TeamDelta506/Foodie/subscribers\",\"subscription_url\":\"https://api.github.com/repos/TeamDelta506/Foodie/subscription\",\"commits_url\":\"https://api.github.com/repos/TeamDelta506/Foodie/commits{/sha}\",\"git_commits_url\":\"https://api.github.com/repos/TeamDelta506/Foodie/git/commits{/sha}\",\"comments_url\":\"https://api.github.com/repos/TeamDelta506/Foodie/comments{/number}\",\"issue_comment_url\":\"https://api.github.com/repos/TeamDelta506/Foodie/issues/comments{/number}\",\"contents_url\":\"https://api.github.com/repos/TeamDelta506/Foodie/contents/{+path}\",\"compare_url\":\"https://api.github.com/repos/TeamDelta506/Foodie/compare/{base}...{head}\",\"merges_url\":\"https://api.github.com/repos/TeamDelta506/Foodie/merges\",\"archive_url\":\"https://api.github.com/repos/TeamDelta506/Foodie/{archive_format}{/ref}\",\"downloads_url\":\"https://api.github.com/repos/TeamDelta506/Foodie/downloads\",\"issues_url\":\"https://api.github.com/repos/TeamDelta506/Foodie/issues{/number}\",\"pulls_url\":\"https://api.github.com/repos/TeamDelta506/Foodie/pulls{/number}\",\"milestones_url\":\"https://api.github.com/repos/TeamDelta506/Foodie/milestones{/number}\",\"notifications_url\":\"https://api.github.com/repos/TeamDelta506/Foodie/notifications{?since,all,participating}\",\"labels_url\":\"https://api.github.com/repos/TeamDelta506/Foodie/labels{/name}\",\"releases_url\":\"https://api.github.com/repos/TeamDelta506/Foodie/releases{/id}\",\"deployments_url\":\"https://api.github.com/repos/TeamDelta506/Foodie/deployments\",\"created_at\":\"2026-05-09T22:28:32Z\",\"updated_at\":\"2026-06-01T23:02:58Z\",\"pushed_at\":\"2026-06-02T01:24:41Z\",\"git_url\":\"git://github.com/TeamDelta506/Foodie.git\",\"ssh_url\":\"git@github.com:TeamDelta506/Foodie.git\",\"clone_url\":\"https://github.com/TeamDelta506/Foodie.git\",\"svn_url\":\"https://github.com/TeamDelta506/Foodie\",\"homepage\":null,\"size\":2993,\"stargazers_count\":0,\"watchers_count\":0,\"language\":\"Python\",\"has_issues\":true,\"has_projects\":true,\"has_downloads\":true,\"has_wiki\":true,\"has_pages\":false,\"has_discussions\":false,\"forks_count\":0,\"mirror_url\":null,\"archived\":false,\"disabled\":false,\"open_issues_count\":1,\"license\":null,\"allow_forking\":true,\"is_template\":false,\"web_commit_signoff_required\":false,\"has_pull_requests\":true,\"pull_request_creation_policy\":\"all\",\"topics\":[],\"visibility\":\"public\",\"forks\":0,\"open_issues\":1,\"watchers\":0,\"default_branch\":\"master\"}},\"_links\":{\"self\":{\"href\":\"https://api.github.com/repos/TeamDelta506/Foodie/pulls/27\"},\"html\":{\"href\":\"https://github.com/TeamDelta506/Foodie/pull/27\"},\"issue\":{\"href\":\"https://api.github.com/repos/TeamDelta506/Foodie/issues/27\"},\"comments\":{\"href\":\"https://api.github.com/repos/TeamDelta506/Foodie/issues/27/comments\"},\"review_comments\":{\"href\":\"https://api.github.com/repos/TeamDelta506/Foodie/pulls/27/comments\"},\"review_comment\":{\"href\":\"https://api.github.com/repos/TeamDelta506/Foodie/pulls/comments{/number}\"},\"commits\":{\"href\":\"https://api.github.com/repos/TeamDelta506/Foodie/pulls/27/commits\"},\"statuses\":{\"href\":\"https://api.github.com/repos/TeamDelta506/Foodie/statuses/7a2c7ef0a8675300e3aceeda08974802e6e48887\"}},\"author_association\":\"CONTRIBUTOR\",\"auto_merge\":null,\"assignee\":null,\"active_lock_reason\":null,\"merged\":false,\"mergeable\":true,\"rebaseable\":false,\"mergeable_state\":\"unstable\",\"merged_by\":null,\"comments\":0,\"review_comments\":0,\"maintainer_can_modify\":false,\"commits\":4,\"additions\":4438,\"deletions\":732,\"changed_files\":30}",
+  "url": "https://api.github.com/repos/TeamDelta506/Foodie/pulls/27"
+}
+```
+User decision: **accepted**
+
+Status: **completed**
+
+
+</details>
+</tool-use>
+
+<tool-use data-tool-type="unknown" data-tool-name="web_fetch"><details>
+<summary>Tool use: **web_fetch**</summary>
+
+</details></tool-use>
+
+_**Agent (gpt-5.5)**_
+
+<tool-use data-tool-type="shell" data-tool-name="run_terminal_command_v2">
+<details><summary>Tool use: **run_terminal_command_v2** • Run command: Set-Location "c:\Users\jkrac\OneDrive\Documents\GC-SDE\TCSS 506\Foodie"; git show 7a2c7ef --stat; git show 7a2c7ef --no-stat -p -- tests/ | Select-Object -First 150</summary>
+
+```bash
+Set-Location "c:\Users\jkrac\OneDrive\Documents\GC-SDE\TCSS 506\Foodie"; git show 7a2c7ef --stat; git show 7a2c7ef --no-stat -p -- tests/ | Select-Object -First 150
+```
+
+```
+commit 7a2c7ef0a8675300e3aceeda08974802e6e48887
+Author: Justin Kracker &lt;jkracker91@gmail.com&gt;
+Date:   Mon Jun 1 18:24:42 2026 -0700
+
+    updated to resolve the conflicts for tests
+
+ .cursorindexingignore                              |    3 +
+ .specstory/.project.json                           |    7 +
+ .specstory/cli/config.toml                         |   82 +
+ ...-06-02_01-13-16Z-foodie-project-continuation.md |    9 +
+ ...-02_01-14-40Z-pull-request-#27-test-failures.md | 3123 ++++++++++++++++++++
+ .specstory/statistics.json                         |   22 +
+ 6 files changed, 3246 insertions(+)
+fatal: unrecognized argument: --no-stat
+
+```
+</details>
+</tool-use>
+
+<tool-use data-tool-type="shell" data-tool-name="run_terminal_command_v2"><details>
+<summary>Tool use: **run_terminal_command_v2**</summary>
+
+</details></tool-use>
+
+_**Agent (gpt-5.5)**_
+
+<tool-use data-tool-type="shell" data-tool-name="run_terminal_command_v2">
+<details><summary>Tool use: **run_terminal_command_v2** • Run command: Set-Location "c:\Users\jkrac\OneDrive\Documents\GC-SDE\TCSS 506\Foodie"; $env:SECRET_KEY="test-secret-key-for-ci"; $env:DATABASE_URL="sqlite:///:memory:"; $env:OAUTH_CLIENT_ID="ci-oauth-client-id"; $env:OAUTH_CLIENT_SECRET="ci-oauth-client-secret"; python -m pytest -v 2>&1</summary>
+
+```bash
+Set-Location "c:\Users\jkrac\OneDrive\Documents\GC-SDE\TCSS 506\Foodie"; $env:SECRET_KEY="test-secret-key-for-ci"; $env:DATABASE_URL="sqlite:///:memory:"; $env:OAUTH_CLIENT_ID="ci-oauth-client-id"; $env:OAUTH_CLIENT_SECRET="ci-oauth-client-secret"; python -m pytest -v 2>&1
+```
+
+```
+============================= test session starts =============================
+platform win32 -- Python 3.14.0, pytest-9.0.2, pluggy-1.6.0 -- C:\Users\jkrac\AppData\Local\Programs\Python\Python314\python.exe
+cachedir: .pytest_cache
+rootdir: C:\Users\jkrac\OneDrive\Documents\GC-SDE\TCSS 506\Foodie
+plugins: anyio-4.12.1
+collecting ... collected 72 items / 1 error
+
+=================================== ERRORS ====================================
+______________ ERROR collecting tests/e2e/test_full_lifecycle.py ______________
+C:\Users\jkrac\AppData\Local\Programs\Python\Python314\Lib\site-packages\_pytest\python.py:507: in importtestmodule
+    mod = import_path(
+C:\Users\jkrac\AppData\Local\Programs\Python\Python314\Lib\site-packages\_pytest\pathlib.py:587: in import_path
+    importlib.import_module(module_name)
+C:\Users\jkrac\AppData\Local\Programs\Python\Python314\Lib\importlib\__init__.py:88: in import_module
+    return _bootstrap._gcd_import(name[level:], package, level)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+&lt;frozen importlib._bootstrap&gt;:1398: in _gcd_import
+    ???
+&lt;frozen importlib._bootstrap&gt;:1371: in _find_and_load
+    ???
+&lt;frozen importlib._bootstrap&gt;:1342: in _find_and_load_unlocked
+    ???
+&lt;frozen importlib._bootstrap&gt;:938: in _load_unlocked
+    ???
+C:\Users\jkrac\AppData\Local\Programs\Python\Python314\Lib\site-packages\_pytest\assertion\rewrite.py:188: in exec_module
+    source_stat, co = _rewrite_test(fn, self.config)
+                      ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+C:\Users\jkrac\AppData\Local\Programs\Python\Python314\Lib\site-packages\_pytest\assertion\rewrite.py:357: in _rewrite_test
+    tree = ast.parse(source, filename=strfn)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+C:\Users\jkrac\AppData\Local\Programs\Python\Python314\Lib\ast.py:46: in parse
+    return compile(source, filename, mode, flags,
+E     File "C:\Users\jkrac\OneDrive\Documents\GC-SDE\TCSS 506\Foodie\tests\e2e\test_full_lifecycle.py", line 211
+E       ), (
+E          ^
+E   SyntaxError: '(' was never closed
+=========================== short test summary info ===========================
+ERROR tests/e2e/test_full_lifecycle.py
+!!!!!!!!!!!!!!!!!!! Interrupted: 1 error during collection !!!!!!!!!!!!!!!!!!!!
+============================== 1 error in 0.98s ===============================
+
+```
+</details>
+</tool-use>
+
+<tool-use data-tool-type="shell" data-tool-name="run_terminal_command_v2"><details>
+<summary>Tool use: **run_terminal_command_v2**</summary>
+
+</details></tool-use>
+
+_**Agent (gpt-5.5)**_
+
+<think><details><summary>Thought Process</summary>
+A syntax error was found in test_full_lifecycle.</details></think>
+
+_**Agent (gpt-5.5)**_
+
+<tool-use data-tool-type="unknown" data-tool-name="web_fetch">
+<details>
+<summary>Tool use: **web_fetch**</summary>
+
+
+Parameters:
+
+```json
+{
+  "url": "https://api.github.com/repos/TeamDelta506/Foodie/commits/7a2c7ef0a8675300e3aceeda08974802e6e48887/status"
+}
+```
+Result:
+
+```json
+{
+  "markdown": "{\"state\":\"pending\",\"statuses\":[],\"sha\":\"7a2c7ef0a8675300e3aceeda08974802e6e48887\",\"total_count\":0,\"repository\":{\"id\":1234214478,\"node_id\":\"R_kgDOSZCeTg\",\"name\":\"Foodie\",\"full_name\":\"TeamDelta506/Foodie\",\"private\":false,\"owner\":{\"login\":\"TeamDelta506\",\"id\":279349874,\"node_id\":\"O_kgDOEKaKcg\",\"avatar_url\":\"https://avatars.githubusercontent.com/u/279349874?v=4\",\"gravatar_id\":\"\",\"url\":\"https://api.github.com/users/TeamDelta506\",\"html_url\":\"https://github.com/TeamDelta506\",\"followers_url\":\"https://api.github.com/users/TeamDelta506/followers\",\"following_url\":\"https://api.github.com/users/TeamDelta506/following{/other_user}\",\"gists_url\":\"https://api.github.com/users/TeamDelta506/gists{/gist_id}\",\"starred_url\":\"https://api.github.com/users/TeamDelta506/starred{/owner}{/repo}\",\"subscriptions_url\":\"https://api.github.com/users/TeamDelta506/subscriptions\",\"organizations_url\":\"https://api.github.com/users/TeamDelta506/orgs\",\"repos_url\":\"https://api.github.com/users/TeamDelta506/repos\",\"events_url\":\"https://api.github.com/users/TeamDelta506/events{/privacy}\",\"received_events_url\":\"https://api.github.com/users/TeamDelta506/received_events\",\"type\":\"Organization\",\"user_view_type\":\"public\",\"site_admin\":false},\"html_url\":\"https://github.com/TeamDelta506/Foodie\",\"description\":null,\"fork\":false,\"url\":\"https://api.github.com/repos/TeamDelta506/Foodie\",\"forks_url\":\"https://api.github.com/repos/TeamDelta506/Foodie/forks\",\"keys_url\":\"https://api.github.com/repos/TeamDelta506/Foodie/keys{/key_id}\",\"collaborators_url\":\"https://api.github.com/repos/TeamDelta506/Foodie/collaborators{/collaborator}\",\"teams_url\":\"https://api.github.com/repos/TeamDelta506/Foodie/teams\",\"hooks_url\":\"https://api.github.com/repos/TeamDelta506/Foodie/hooks\",\"issue_events_url\":\"https://api.github.com/repos/TeamDelta506/Foodie/issues/events{/number}\",\"events_url\":\"https://api.github.com/repos/TeamDelta506/Foodie/events\",\"assignees_url\":\"https://api.github.com/repos/TeamDelta506/Foodie/assignees{/user}\",\"branches_url\":\"https://api.github.com/repos/TeamDelta506/Foodie/branches{/branch}\",\"tags_url\":\"https://api.github.com/repos/TeamDelta506/Foodie/tags\",\"blobs_url\":\"https://api.github.com/repos/TeamDelta506/Foodie/git/blobs{/sha}\",\"git_tags_url\":\"https://api.github.com/repos/TeamDelta506/Foodie/git/tags{/sha}\",\"git_refs_url\":\"https://api.github.com/repos/TeamDelta506/Foodie/git/refs{/sha}\",\"trees_url\":\"https://api.github.com/repos/TeamDelta506/Foodie/git/trees{/sha}\",\"statuses_url\":\"https://api.github.com/repos/TeamDelta506/Foodie/statuses/{sha}\",\"languages_url\":\"https://api.github.com/repos/TeamDelta506/Foodie/languages\",\"stargazers_url\":\"https://api.github.com/repos/TeamDelta506/Foodie/stargazers\",\"contributors_url\":\"https://api.github.com/repos/TeamDelta506/Foodie/contributors\",\"subscribers_url\":\"https://api.github.com/repos/TeamDelta506/Foodie/subscribers\",\"subscription_url\":\"https://api.github.com/repos/TeamDelta506/Foodie/subscription\",\"commits_url\":\"https://api.github.com/repos/TeamDelta506/Foodie/commits{/sha}\",\"git_commits_url\":\"https://api.github.com/repos/TeamDelta506/Foodie/git/commits{/sha}\",\"comments_url\":\"https://api.github.com/repos/TeamDelta506/Foodie/comments{/number}\",\"issue_comment_url\":\"https://api.github.com/repos/TeamDelta506/Foodie/issues/comments{/number}\",\"contents_url\":\"https://api.github.com/repos/TeamDelta506/Foodie/contents/{+path}\",\"compare_url\":\"https://api.github.com/repos/TeamDelta506/Foodie/compare/{base}...{head}\",\"merges_url\":\"https://api.github.com/repos/TeamDelta506/Foodie/merges\",\"archive_url\":\"https://api.github.com/repos/TeamDelta506/Foodie/{archive_format}{/ref}\",\"downloads_url\":\"https://api.github.com/repos/TeamDelta506/Foodie/downloads\",\"issues_url\":\"https://api.github.com/repos/TeamDelta506/Foodie/issues{/number}\",\"pulls_url\":\"https://api.github.com/repos/TeamDelta506/Foodie/pulls{/number}\",\"milestones_url\":\"https://api.github.com/repos/TeamDelta506/Foodie/milestones{/number}\",\"notifications_url\":\"https://api.github.com/repos/TeamDelta506/Foodie/notifications{?since,all,participating}\",\"labels_url\":\"https://api.github.com/repos/TeamDelta506/Foodie/labels{/name}\",\"releases_url\":\"https://api.github.com/repos/TeamDelta506/Foodie/releases{/id}\",\"deployments_url\":\"https://api.github.com/repos/TeamDelta506/Foodie/deployments\"},\"commit_url\":\"https://api.github.com/repos/TeamDelta506/Foodie/commits/7a2c7ef0a8675300e3aceeda08974802e6e48887\",\"url\":\"https://api.github.com/repos/TeamDelta506/Foodie/commits/7a2c7ef0a8675300e3aceeda08974802e6e48887/status\"}",
+  "url": "https://api.github.com/repos/TeamDelta506/Foodie/commits/7a2c7ef0a8675300e3aceeda08974802e6e48887/status"
+}
+```
+User decision: **accepted**
+
+Status: **completed**
+
+
+</details>
+</tool-use>
+
+<tool-use data-tool-type="unknown" data-tool-name="web_fetch"><details>
+<summary>Tool use: **web_fetch**</summary>
+
+</details></tool-use>
+
+_**Agent (gpt-5.5)**_
+
+<tool-use data-tool-type="read" data-tool-name="read_file_v2">
+<details><summary>Tool use: **read_file_v2** • Read file: c:\Users\jkrac\OneDrive\Documents\GC-SDE\TCSS 506\Foodie\tests\e2e\test_full_lifecycle.py</summary>
+
+</details>
+</tool-use>
+
+<tool-use data-tool-type="read" data-tool-name="read_file_v2"><details>
+<summary>Tool use: **read_file_v2**</summary>
+
+</details></tool-use>
+
+_**Agent (gpt-5.5)**_
+
+<tool-use data-tool-type="unknown" data-tool-name="ripgrep_raw_search">
+<details>
+<summary>Tool use: **ripgrep_raw_search**</summary>
+
+
+Parameters:
+
+```json
+{
+  "caseInsensitive": false,
+  "path": "c:\\Users\\jkrac\\OneDrive\\Documents\\GC-SDE\\TCSS 506\\Foodie\\tests",
+  "pattern": "SyntaxError|invalid syntax"
+}
+```
+Additional data:
+
+```json
+{
+  "isPruned": true,
+  "outputMode": "content",
+  "path": "c:\\Users\\jkrac\\OneDrive\\Documents\\GC-SDE\\TCSS 506\\Foodie\\tests",
+  "pattern": "SyntaxError|invalid syntax",
+  "topFiles": [],
+  "totalFiles": 0,
+  "totalMatches": 0
+}
+```
+Status: **completed**
+
+
+</details>
+</tool-use>
+
+<tool-use data-tool-type="unknown" data-tool-name="ripgrep_raw_search"><details>
+<summary>Tool use: **ripgrep_raw_search**</summary>
+
+</details></tool-use>
+
+_**Agent (gpt-5.5)**_
+
+<think><details><summary>Thought Process</summary>
+A broken assert at lines 208–215 is causing the check failures.
+
+The first assert is missing its closing parenthesis, and two competing assertions were merged incorrectly.</details></think>
+
+_**Agent (gpt-5.5)**_
+
+<tool-use data-tool-type="read" data-tool-name="read_file_v2">
+<details><summary>Tool use: **read_file_v2** • Read file: c:\Users\jkrac\OneDrive\Documents\GC-SDE\TCSS 506\Foodie\tests\e2e\test_full_lifecycle.py</summary>
+
+</details>
+</tool-use>
+
+<tool-use data-tool-type="read" data-tool-name="read_file_v2"><details>
+<summary>Tool use: **read_file_v2**</summary>
+
+</details></tool-use>
+
+_**Agent (gpt-5.5)**_
+
+<tool-use data-tool-type="unknown" data-tool-name="web_fetch">
+<details>
+<summary>Tool use: **web_fetch**</summary>
+
+
+Parameters:
+
+```json
+{
+  "url": "https://api.github.com/repos/TeamDelta506/Foodie/actions/runs?branch=week6/db%26security\u0026per_page=3"
+}
+```
+Result:
+
+```json
+{
+  "markdown": "{\"total_count\":8,\"workflow_runs\":[{\"id\":26792555581,\"name\":\"Tests\",\"node_id\":\"WFR_kwLOSZCeTs8AAAAGPPX0PQ\",\"head_branch\":\"week6/db\u0026security\",\"head_sha\":\"7a2c7ef0a8675300e3aceeda08974802e6e48887\",\"path\":\".github/workflows/test.yml\",\"display_title\":\"Add production stack with nginx, gunicorn, and TLS.\",\"run_number\":64,\"event\":\"pull_request\",\"status\":\"completed\",\"conclusion\":\"failure\",\"workflow_id\":273929828,\"check_suite_id\":71847246755,\"check_suite_node_id\":\"CS_kwDOSZCeTs8AAAAQum37ow\",\"url\":\"https://api.github.com/repos/TeamDelta506/Foodie/actions/runs/26792555581\",\"html_url\":\"https://github.com/TeamDelta506/Foodie/actions/runs/26792555581\",\"pull_requests\":[{\"url\":\"https://api.github.com/repos/TeamDelta506/Foodie/pulls/27\",\"id\":3783746888,\"number\":27,\"head\":{\"ref\":\"week6/db\u0026security\",\"sha\":\"7a2c7ef0a8675300e3aceeda08974802e6e48887\",\"repo\":{\"id\":1234214478,\"url\":\"https://api.github.com/repos/TeamDelta506/Foodie\",\"name\":\"Foodie\"}},\"base\":{\"ref\":\"master\",\"sha\":\"ac6e7a3d6a6814bcb4bd17d981c02a3713e20d22\",\"repo\":{\"id\":1234214478,\"url\":\"https://api.github.com/repos/TeamDelta506/Foodie\",\"name\":\"Foodie\"}}}],\"created_at\":\"2026-06-02T01:24:46Z\",\"updated_at\":\"2026-06-02T01:26:02Z\",\"actor\":{\"login\":\"jkracker91-ux\",\"id\":237473359,\"node_id\":\"U_kgDODieOTw\",\"avatar_url\":\"https://avatars.githubusercontent.com/u/237473359?v=4\",\"gravatar_id\":\"\",\"url\":\"https://api.github.com/users/jkracker91-ux\",\"html_url\":\"https://github.com/jkracker91-ux\",\"followers_url\":\"https://api.github.com/users/jkracker91-ux/followers\",\"following_url\":\"https://api.github.com/users/jkracker91-ux/following{/other_user}\",\"gists_url\":\"https://api.github.com/users/jkracker91-ux/gists{/gist_id}\",\"starred_url\":\"https://api.github.com/users/jkracker91-ux/starred{/owner}{/repo}\",\"subscriptions_url\":\"https://api.github.com/users/jkracker91-ux/subscriptions\",\"organizations_url\":\"https://api.github.com/users/jkracker91-ux/orgs\",\"repos_url\":\"https://api.github.com/users/jkracker91-ux/repos\",\"events_url\":\"https://api.github.com/users/jkracker91-ux/events{/privacy}\",\"received_events_url\":\"https://api.github.com/users/jkracker91-ux/received_events\",\"type\":\"User\",\"user_view_type\":\"public\",\"site_admin\":false},\"run_attempt\":1,\"referenced_workflows\":[],\"run_started_at\":\"2026-06-02T01:24:46Z\",\"triggering_actor\":{\"login\":\"jkracker91-ux\",\"id\":237473359,\"node_id\":\"U_kgDODieOTw\",\"avatar_url\":\"https://avatars.githubusercontent.com/u/237473359?v=4\",\"gravatar_id\":\"\",\"url\":\"https://api.github.com/users/jkracker91-ux\",\"html_url\":\"https://github.com/jkracker91-ux\",\"followers_url\":\"https://api.github.com/users/jkracker91-ux/followers\",\"following_url\":\"https://api.github.com/users/jkracker91-ux/following{/other_user}\",\"gists_url\":\"https://api.github.com/users/jkracker91-ux/gists{/gist_id}\",\"starred_url\":\"https://api.github.com/users/jkracker91-ux/starred{/owner}{/repo}\",\"subscriptions_url\":\"https://api.github.com/users/jkracker91-ux/subscriptions\",\"organizations_url\":\"https://api.github.com/users/jkracker91-ux/orgs\",\"repos_url\":\"https://api.github.com/users/jkracker91-ux/repos\",\"events_url\":\"https://api.github.com/users/jkracker91-ux/events{/privacy}\",\"received_events_url\":\"https://api.github.com/users/jkracker91-ux/received_events\",\"type\":\"User\",\"user_view_type\":\"public\",\"site_admin\":false},\"jobs_url\":\"https://api.github.com/repos/TeamDelta506/Foodie/actions/runs/26792555581/jobs\",\"logs_url\":\"https://api.github.com/repos/TeamDelta506/Foodie/actions/runs/26792555581/logs\",\"check_suite_url\":\"https://api.github.com/repos/TeamDelta506/Foodie/check-suites/71847246755\",\"artifacts_url\":\"https://api.github.com/repos/TeamDelta506/Foodie/actions/runs/26792555581/artifacts\",\"cancel_url\":\"https://api.github.com/repos/TeamDelta506/Foodie/actions/runs/26792555581/cancel\",\"rerun_url\":\"https://api.github.com/repos/TeamDelta506/Foodie/actions/runs/26792555581/rerun\",\"previous_attempt_url\":null,\"workflow_url\":\"https://api.github.com/repos/TeamDelta506/Foodie/actions/workflows/273929828\",\"head_commit\":{\"id\":\"7a2c7ef0a8675300e3aceeda08974802e6e48887\",\"tree_id\":\"43ecf6bc1c8e58ac509b5302256ebfceff2c99b5\",\"message\":\"updated to resolve the conflicts for tests\",\"timestamp\":\"2026-06-02T01:24:42Z\",\"author\":{\"name\":\"Justin Kracker\",\"email\":\"jkracker91@gmail.com\"},\"committer\":{\"name\":\"Justin Kracker\",\"email\":\"jkracker91@gmail.com\"}},\"repository\":{\"id\":1234214478,\"node_id\":\"R_kgDOSZCeTg\",\"name\":\"Foodie\",\"full_name\":\"TeamDelta506/Foodie\",\"private\":false,\"owner\":{\"login\":\"TeamDelta506\",\"id\":279349874,\"node_id\":\"O_kgDOEKaKcg\",\"avatar_url\":\"https://avatars.githubusercontent.com/u/279349874?v=4\",\"gravatar_id\":\"\",\"url\":\"https://api.github.com/users/TeamDelta506\",\"html_url\":\"https://github.com/TeamDelta506\",\"followers_url\":\"https://api.github.com/users/TeamDelta506/followers\",\"following_url\":\"https://api.github.com/users/TeamDelta506/following{/other_user}\",\"gists_url\":\"https://api.github.com/users/TeamDelta506/gists{/gist_id}\",\"starred_url\":\"https://api.github.com/users/TeamDelta506/starred{/owner}{/repo}\",\"subscriptions_url\":\"https://api.github.com/users/TeamDelta506/subscriptions\",\"organizations_url\":\"https://api.github.com/users/TeamDelta506/orgs\",\"repos_url\":\"https://api.github.com/users/TeamDelta506/repos\",\"events_url\":\"https://api.github.com/users/TeamDelta506/events{/privacy}\",\"received_events_url\":\"https://api.github.com/users/TeamDelta506/received_events\",\"type\":\"Organization\",\"user_view_type\":\"public\",\"site_admin\":false},\"html_url\":\"https://github.com/TeamDelta506/Foodie\",\"description\":null,\"fork\":false,\"url\":\"https://api.github.com/repos/TeamDelta506/Foodie\",\"forks_url\":\"https://api.github.com/repos/TeamDelta506/Foodie/forks\",\"keys_url\":\"https://api.github.com/repos/TeamDelta506/Foodie/keys{/key_id}\",\"collaborators_url\":\"https://api.github.com/repos/TeamDelta506/Foodie/collaborators{/collaborator}\",\"teams_url\":\"https://api.github.com/repos/TeamDelta506/Foodie/teams\",\"hooks_url\":\"https://api.github.com/repos/TeamDelta506/Foodie/hooks\",\"issue_events_url\":\"https://api.github.com/repos/TeamDelta506/Foodie/issues/events{/number}\",\"events_url\":\"https://api.github.com/repos/TeamDelta506/Foodie/events\",\"assignees_url\":\"https://api.github.com/repos/TeamDelta506/Foodie/assignees{/user}\",\"branches_url\":\"https://api.github.com/repos/TeamDelta506/Foodie/branches{/branch}\",\"tags_url\":\"https://api.github.com/repos/TeamDelta506/Foodie/tags\",\"blobs_url\":\"https://api.github.com/repos/TeamDelta506/Foodie/git/blobs{/sha}\",\"git_tags_url\":\"https://api.github.com/repos/TeamDelta506/Foodie/git/tags{/sha}\",\"git_refs_url\":\"https://api.github.com/repos/TeamDelta506/Foodie/git/refs{/sha}\",\"trees_url\":\"https://api.github.com/repos/TeamDelta506/Foodie/git/trees{/sha}\",\"statuses_url\":\"https://api.github.com/repos/TeamDelta506/Foodie/statuses/{sha}\",\"languages_url\":\"https://api.github.com/repos/TeamDelta506/Foodie/languages\",\"stargazers_url\":\"https://api.github.com/repos/TeamDelta506/Foodie/stargazers\",\"contributors_url\":\"https://api.github.com/repos/TeamDelta506/Foodie/contributors\",\"subscribers_url\":\"https://api.github.com/repos/TeamDelta506/Foodie/subscribers\",\"subscription_url\":\"https://api.github.com/repos/TeamDelta506/Foodie/subscription\",\"commits_url\":\"https://api.github.com/repos/TeamDelta506/Foodie/commits{/sha}\",\"git_commits_url\":\"https://api.github.com/repos/TeamDelta506/Foodie/git/commits{/sha}\",\"comments_url\":\"https://api.github.com/repos/TeamDelta506/Foodie/comments{/number}\",\"issue_comment_url\":\"https://api.github.com/repos/TeamDelta506/Foodie/issues/comments{/number}\",\"contents_url\":\"https://api.github.com/repos/TeamDelta506/Foodie/contents/{+path}\",\"compare_url\":\"https://api.github.com/repos/TeamDelta506/Foodie/compare/{base}...{head}\",\"merges_url\":\"https://api.github.com/repos/TeamDelta506/Foodie/merges\",\"archive_url\":\"https://api.github.com/repos/TeamDelta506/Foodie/{archive_format}{/ref}\",\"downloads_url\":\"https://api.github.com/repos/TeamDelta506/Foodie/downloads\",\"issues_url\":\"https://api.github.com/repos/TeamDelta506/Foodie/issues{/number}\",\"pulls_url\":\"https://api.github.com/repos/TeamDelta506/Foodie/pulls{/number}\",\"milestones_url\":\"https://api.github.com/repos/TeamDelta506/Foodie/milestones{/number}\",\"notifications_url\":\"https://api.github.com/repos/TeamDelta506/Foodie/notifications{?since,all,participating}\",\"labels_url\":\"https://api.github.com/repos/TeamDelta506/Foodie/labels{/name}\",\"releases_url\":\"https://api.github.com/repos/TeamDelta506/Foodie/releases{/id}\",\"deployments_url\":\"https://api.github.com/repos/TeamDelta506/Foodie/deployments\"},\"head_repository\":{\"id\":1234214478,\"node_id\":\"R_kgDOSZCeTg\",\"name\":\"Foodie\",\"full_name\":\"TeamDelta506/Foodie\",\"private\":false,\"owner\":{\"login\":\"TeamDelta506\",\"id\":279349874,\"node_id\":\"O_kgDOEKaKcg\",\"avatar_url\":\"https://avatars.githubusercontent.com/u/279349874?v=4\",\"gravatar_id\":\"\",\"url\":\"https://api.github.com/users/TeamDelta506\",\"html_url\":\"https://github.com/TeamDelta506\",\"followers_url\":\"https://api.github.com/users/TeamDelta506/followers\",\"following_url\":\"https://api.github.com/users/TeamDelta506/following{/other_user}\",\"gists_url\":\"https://api.github.com/users/TeamDelta506/gists{/gist_id}\",\"starred_url\":\"https://api.github.com/users/TeamDelta506/starred{/owner}{/repo}\",\"subscriptions_url\":\"https://api.github.com/users/TeamDelta506/subscriptions\",\"organizations_url\":\"https://api.github.com/users/TeamDelta506/orgs\",\"repos_url\":\"https://api.github.com/users/TeamDelta506/repos\",\"events_url\":\"https://api.github.com/users/TeamDelta506/events{/privacy}\",\"received_events_url\":\"https://api.github.com/users/TeamDelta506/received_events\",\"type\":\"Organization\",\"user_view_type\":\"public\",\"site_admin\":false},\"html_url\":\"https://github.com/TeamDelta506/Foodie\",\"description\":null,\"fork\":false,\"url\":\"https://api.github.com/repos/TeamDelta506/Foodie\",\"forks_url\":\"https://api.github.com/repos/TeamDelta506/Foodie/forks\",\"keys_url\":\"https://api.github.com/repos/TeamDelta506/Foodie/keys{/key_id}\",\"collaborators_url\":\"https://api.github.com/repos/TeamDelta506/Foodie/collaborators{/collaborator}\",\"teams_url\":\"https://api.github.com/repos/TeamDelta506/Foodie/teams\",\"hooks_url\":\"https://api.github.com/repos/TeamDelta506/Foodie/hooks\",\"issue_events_url\":\"https://api.github.com/repos/TeamDelta506/Foodie/issues/events{/number}\",\"events_url\":\"https://api.github.com/repos/TeamDelta506/Foodie/events\",\"assignees_url\":\"https://api.github.com/repos/TeamDelta506/Foodie/assignees{/user}\",\"branches_url\":\"https://api.github.com/repos/TeamDelta506/Foodie/branches{/branch}\",\"tags_url\":\"https://api.github.com/repos/TeamDelta506/Foodie/tags\",\"blobs_url\":\"https://api.github.com/repos/TeamDelta506/Foodie/git/blobs{/sha}\",\"git_tags_url\":\"https://api.github.com/repos/TeamDelta506/Foodie/git/tags{/sha}\",\"git_refs_url\":\"https://api.github.com/repos/TeamDelta506/Foodie/git/refs{/sha}\",\"trees_url\":\"https://api.github.com/repos/TeamDelta506/Foodie/git/trees{/sha}\",\"statuses_url\":\"https://api.github.com/repos/TeamDelta506/Foodie/statuses/{sha}\",\"languages_url\":\"https://api.github.com/repos/TeamDelta506/Foodie/languages\",\"stargazers_url\":\"https://api.github.com/repos/TeamDelta506/Foodie/stargazers\",\"contributors_url\":\"https://api.github.com/repos/TeamDelta506/Foodie/contributors\",\"subscribers_url\":\"https://api.github.com/repos/TeamDelta506/Foodie/subscribers\",\"subscription_url\":\"https://api.github.com/repos/TeamDelta506/Foodie/subscription\",\"commits_url\":\"https://api.github.com/repos/TeamDelta506/Foodie/commits{/sha}\",\"git_commits_url\":\"https://api.github.com/repos/TeamDelta506/Foodie/git/commits{/sha}\",\"comments_url\":\"https://api.github.com/repos/TeamDelta506/Foodie/comments{/number}\",\"issue_comment_url\":\"https://api.github.com/repos/TeamDelta506/Foodie/issues/comments{/number}\",\"contents_url\":\"https://api.github.com/repos/TeamDelta506/Foodie/contents/{+path}\",\"compare_url\":\"https://api.github.com/repos/TeamDelta506/Foodie/compare/{base}...{head}\",\"merges_url\":\"https://api.github.com/repos/TeamDelta506/Foodie/merges\",\"archive_url\":\"https://api.github.com/repos/TeamDelta506/Foodie/{archive_format}{/ref}\",\"downloads_url\":\"https://api.github.com/repos/TeamDelta506/Foodie/downloads\",\"issues_url\":\"https://api.github.com/repos/TeamDelta506/Foodie/issues{/number}\",\"pulls_url\":\"https://api.github.com/repos/TeamDelta506/Foodie/pulls{/number}\",\"milestones_url\":\"https://api.github.com/repos/TeamDelta506/Foodie/milestones{/number}\",\"notifications_url\":\"https://api.github.com/repos/TeamDelta506/Foodie/notifications{?since,all,participating}\",\"labels_url\":\"https://api.github.com/repos/TeamDelta506/Foodie/labels{/name}\",\"releases_url\":\"https://api.github.com/repos/TeamDelta506/Foodie/releases{/id}\",\"deployments_url\":\"https://api.github.com/repos/TeamDelta506/Foodie/deployments\"}},{\"id\":26792527910,\"name\":\"Tests\",\"node_id\":\"WFR_kwLOSZCeTs8AAAAGPPWIJg\",\"head_branch\":\"week6/db\u0026security\",\"head_sha\":\"30e41550cfa04559f2d453378b925d38a5fc96fa\",\"path\":\".github/workflows/test.yml\",\"display_title\":\"Add production stack with nginx, gunicorn, and TLS.\",\"run_number\":63,\"event\":\"pull_request\",\"status\":\"completed\",\"conclusion\":\"failure\",\"workflow_id\":273929828,\"check_suite_id\":71847160972,\"check_suite_node_id\":\"CS_kwDOSZCeTs8AAAAQumysjA\",\"url\":\"https://api.github.com/repos/TeamDelta506/Foodie/actions/runs/26792527910\",\"html_url\":\"https://github.com/TeamDelta506/Foodie/actions/runs/26792527910\",\"pull_requests\":[{\"url\":\"https://api.github.com/repos/TeamDelta506/Foodie/pulls/27\",\"id\":3783746888,\"number\":27,\"head\":{\"ref\":\"week6/db\u0026security\",\"sha\":\"7a2c7ef0a8675300e3aceeda08974802e6e48887\",\"repo\":{\"id\":1234214478,\"url\":\"https://api.github.com/repos/TeamDelta506/Foodie\",\"name\":\"Foodie\"}},\"base\":{\"ref\":\"master\",\"sha\":\"ac6e7a3d6a6814bcb4bd17d981c02a3713e20d22\",\"repo\":{\"id\":1234214478,\"url\":\"https://api.github.com/repos/TeamDelta506/Foodie\",\"name\":\"Foodie\"}}}],\"created_at\":\"2026-06-02T01:23:53Z\",\"updated_at\":\"2026-06-02T01:25:03Z\",\"actor\":{\"login\":\"jkracker91-ux\",\"id\":237473359,\"node_id\":\"U_kgDODieOTw\",\"avatar_url\":\"https://avatars.githubusercontent.com/u/237473359?v=4\",\"gravatar_id\":\"\",\"url\":\"https://api.github.com/users/jkracker91-ux\",\"html_url\":\"https://github.com/jkracker91-ux\",\"followers_url\":\"https://api.github.com/users/jkracker91-ux/followers\",\"following_url\":\"https://api.github.com/users/jkracker91-ux/following{/other_user}\",\"gists_url\":\"https://api.github.com/users/jkracker91-ux/gists{/gist_id}\",\"starred_url\":\"https://api.github.com/users/jkracker91-ux/starred{/owner}{/repo}\",\"subscriptions_url\":\"https://api.github.com/users/jkracker91-ux/subscriptions\",\"organizations_url\":\"https://api.github.com/users/jkracker91-ux/orgs\",\"repos_url\":\"https://api.github.com/users/jkracker91-ux/repos\",\"events_url\":\"https://api.github.com/users/jkracker91-ux/events{/privacy}\",\"received_events_url\":\"https://api.github.com/users/jkracker91-ux/received_events\",\"type\":\"User\",\"user_view_type\":\"public\",\"site_admin\":false},\"run_attempt\":1,\"referenced_workflows\":[],\"run_started_at\":\"2026-06-02T01:23:53Z\",\"triggering_actor\":{\"login\":\"jkracker91-ux\",\"id\":237473359,\"node_id\":\"U_kgDODieOTw\",\"avatar_url\":\"https://avatars.githubusercontent.com/u/237473359?v=4\",\"gravatar_id\":\"\",\"url\":\"https://api.github.com/users/jkracker91-ux\",\"html_url\":\"https://github.com/jkracker91-ux\",\"followers_url\":\"https://api.github.com/users/jkracker91-ux/followers\",\"following_url\":\"https://api.github.com/users/jkracker91-ux/following{/other_user}\",\"gists_url\":\"https://api.github.com/users/jkracker91-ux/gists{/gist_id}\",\"starred_url\":\"https://api.github.com/users/jkracker91-ux/starred{/owner}{/repo}\",\"subscriptions_url\":\"https://api.github.com/users/jkracker91-ux/subscriptions\",\"organizations_url\":\"https://api.github.com/users/jkracker91-ux/orgs\",\"repos_url\":\"https://api.github.com/users/jkracker91-ux/repos\",\"events_url\":\"https://api.github.com/users/jkracker91-ux/events{/privacy}\",\"received_events_url\":\"https://api.github.com/users/jkracker91-ux/received_events\",\"type\":\"User\",\"user_view_type\":\"public\",\"site_admin\":false},\"jobs_url\":\"https://api.github.com/repos/TeamDelta506/Foodie/actions/runs/26792527910/jobs\",\"logs_url\":\"https://api.github.com/repos/TeamDelta506/Foodie/actions/runs/26792527910/logs\",\"check_suite_url\":\"https://api.github.com/repos/TeamDelta506/Foodie/check-suites/71847160972\",\"artifacts_url\":\"https://api.github.com/repos/TeamDelta506/Foodie/actions/runs/26792527910/artifacts\",\"cancel_url\":\"https://api.github.com/repos/TeamDelta506/Foodie/actions/runs/26792527910/cancel\",\"rerun_url\":\"https://api.github.com/repos/TeamDelta506/Foodie/actions/runs/26792527910/rerun\",\"previous_attempt_url\":null,\"workflow_url\":\"https://api.github.com/repos/TeamDelta506/Foodie/actions/workflows/273929828\",\"head_commit\":{\"id\":\"30e41550cfa04559f2d453378b925d38a5fc96fa\",\"tree_id\":\"e586858acd29aea53ddaccba6b8a06fe76ab6d7a\",\"message\":\"Fix merge artifacts breaking CI pytest collection.\\n\\nAfter merging master into week6/db\u0026security, several test files contained duplicated modules and half-merged CSRF helper calls, which caused syntax errors during collection. Remove duplicate test content, unify CSRF usage, and dedupe CSRFProtect setup in app.py.\\n\\nCo-authored-by: Cursor \",\"timestamp\":\"2026-06-02T01:23:45Z\",\"author\":{\"name\":\"Justin Kracker\",\"email\":\"jkracker91@gmail.com\"},\"committer\":{\"name\":\"Justin Kracker\",\"email\":\"jkracker91@gmail.com\"}},\"repository\":{\"id\":1234214478,\"node_id\":\"R_kgDOSZCeTg\",\"name\":\"Foodie\",\"full_name\":\"TeamDelta506/Foodie\",\"private\":false,\"owner\":{\"login\":\"TeamDelta506\",\"id\":279349874,\"node_id\":\"O_kgDOEKaKcg\",\"avatar_url\":\"https://avatars.githubusercontent.com/u/279349874?v=4\",\"gravatar_id\":\"\",\"url\":\"https://api.github.com/users/TeamDelta506\",\"html_url\":\"https://github.com/TeamDelta506\",\"followers_url\":\"https://api.github.com/users/TeamDelta506/followers\",\"following_url\":\"https://api.github.com/users/TeamDelta506/following{/other_user}\",\"gists_url\":\"https://api.github.com/users/TeamDelta506/gists{/gist_id}\",\"starred_url\":\"https://api.github.com/users/TeamDelta506/starred{/owner}{/repo}\",\"subscriptions_url\":\"https://api.github.com/users/TeamDelta506/subscriptions\",\"organizations_url\":\"https://api.github.com/users/TeamDelta506/orgs\",\"repos_url\":\"https://api.github.com/users/TeamDelta506/repos\",\"events_url\":\"https://api.github.com/users/TeamDelta506/events{/privacy}\",\"received_events_url\":\"https://api.github.com/users/TeamDelta506/received_events\",\"type\":\"Organization\",\"user_view_type\":\"public\",\"site_admin\":false},\"html_url\":\"https://github.com/TeamDelta506/Foodie\",\"description\":null,\"fork\":false,\"url\":\"https://api.github.com/repos/TeamDelta506/Foodie\",\"forks_url\":\"https://api.github.com/repos/TeamDelta506/Foodie/forks\",\"keys_url\":\"https://api.github.com/repos/TeamDelta506/Foodie/keys{/key_id}\",\"collaborators_url\":\"https://api.github.com/repos/TeamDelta506/Foodie/collaborators{/collaborator}\",\"teams_url\":\"https://api.github.com/repos/TeamDelta506/Foodie/teams\",\"hooks_url\":\"https://api.github.com/repos/TeamDelta506/Foodie/hooks\",\"issue_events_url\":\"https://api.github.com/repos/TeamDelta506/Foodie/issues/events{/number}\",\"events_url\":\"https://api.github.com/repos/TeamDelta506/Foodie/events\",\"assignees_url\":\"https://api.github.com/repos/TeamDelta506/Foodie/assignees{/user}\",\"branches_url\":\"https://api.github.com/repos/TeamDelta506/Foodie/branches{/branch}\",\"tags_url\":\"https://api.github.com/repos/TeamDelta506/Foodie/tags\",\"blobs_url\":\"https://api.github.com/repos/TeamDelta506/Foodie/git/blobs{/sha}\",\"git_tags_url\":\"https://api.github.com/repos/TeamDelta506/Foodie/git/tags{/sha}\",\"git_refs_url\":\"https://api.github.com/repos/TeamDelta506/Foodie/git/refs{/sha}\",\"trees_url\":\"https://api.github.com/repos/TeamDelta506/Foodie/git/trees{/sha}\",\"statuses_url\":\"https://api.github.com/repos/TeamDelta506/Foodie/statuses/{sha}\",\"languages_url\":\"https://api.github.com/repos/TeamDelta506/Foodie/languages\",\"stargazers_url\":\"https://api.github.com/repos/TeamDelta506/Foodie/stargazers\",\"contributors_url\":\"https://api.github.com/repos/TeamDelta506/Foodie/contributors\",\"subscribers_url\":\"https://api.github.com/repos/TeamDelta506/Foodie/subscribers\",\"subscription_url\":\"https://api.github.com/repos/TeamDelta506/Foodie/subscription\",\"commits_url\":\"https://api.github.com/repos/TeamDelta506/Foodie/commits{/sha}\",\"git_commits_url\":\"https://api.github.com/repos/TeamDelta506/Foodie/git/commits{/sha}\",\"comments_url\":\"https://api.github.com/repos/TeamDelta506/Foodie/comments{/number}\",\"issue_comment_url\":\"https://api.github.com/repos/TeamDelta506/Foodie/issues/comments{/number}\",\"contents_url\":\"https://api.github.com/repos/TeamDelta506/Foodie/contents/{+path}\",\"compare_url\":\"https://api.github.com/repos/TeamDelta506/Foodie/compare/{base}...{head}\",\"merges_url\":\"https://api.github.com/repos/TeamDelta506/Foodie/merges\",\"archive_url\":\"https://api.github.com/repos/TeamDelta506/Foodie/{archive_format}{/ref}\",\"downloads_url\":\"https://api.github.com/repos/TeamDelta506/Foodie/downloads\",\"issues_url\":\"https://api.github.com/repos/TeamDelta506/Foodie/issues{/number}\",\"pulls_url\":\"https://api.github.com/repos/TeamDelta506/Foodie/pulls{/number}\",\"milestones_url\":\"https://api.github.com/repos/TeamDelta506/Foodie/milestones{/number}\",\"notifications_url\":\"https://api.github.com/repos/TeamDelta506/Foodie/notifications{?since,all,participating}\",\"labels_url\":\"https://api.github.com/repos/TeamDelta506/Foodie/labels{/name}\",\"releases_url\":\"https://api.github.com/repos/TeamDelta506/Foodie/releases{/id}\",\"deployments_url\":\"https://api.github.com/repos/TeamDelta506/Foodie/deployments\"},\"head_repository\":{\"id\":1234214478,\"node_id\":\"R_kgDOSZCeTg\",\"name\":\"Foodie\",\"full_name\":\"TeamDelta506/Foodie\",\"private\":false,\"owner\":{\"login\":\"TeamDelta506\",\"id\":279349874,\"node_id\":\"O_kgDOEKaKcg\",\"avatar_url\":\"https://avatars.githubusercontent.com/u/279349874?v=4\",\"gravatar_id\":\"\",\"url\":\"https://api.github.com/users/TeamDelta506\",\"html_url\":\"https://github.com/TeamDelta506\",\"followers_url\":\"https://api.github.com/users/TeamDelta506/followers\",\"following_url\":\"https://api.github.com/users/TeamDelta506/following{/other_user}\",\"gists_url\":\"https://api.github.com/users/TeamDelta506/gists{/gist_id}\",\"starred_url\":\"https://api.github.com/users/TeamDelta506/starred{/owner}{/repo}\",\"subscriptions_url\":\"https://api.github.com/users/TeamDelta506/subscriptions\",\"organizations_url\":\"https://api.github.com/users/TeamDelta506/orgs\",\"repos_url\":\"https://api.github.com/users/TeamDelta506/repos\",\"events_url\":\"https://api.github.com/users/TeamDelta506/events{/privacy}\",\"received_events_url\":\"https://api.github.com/users/TeamDelta506/received_events\",\"type\":\"Organization\",\"user_view_type\":\"public\",\"site_admin\":false},\"html_url\":\"https://github.com/TeamDelta506/Foodie\",\"description\":null,\"fork\":false,\"url\":\"https://api.github.com/repos/TeamDelta506/Foodie\",\"forks_url\":\"https://api.github.com/repos/TeamDelta506/Foodie/forks\",\"keys_url\":\"https://api.github.com/repos/TeamDelta506/Foodie/keys{/key_id}\",\"collaborators_url\":\"https://api.github.com/repos/TeamDelta506/Foodie/collaborators{/collaborator}\",\"teams_url\":\"https://api.github.com/repos/TeamDelta506/Foodie/teams\",\"hooks_url\":\"https://api.github.com/repos/TeamDelta506/Foodie/hooks\",\"issue_events_url\":\"https://api.github.com/repos/TeamDelta506/Foodie/issues/events{/number}\",\"events_url\":\"https://api.github.com/repos/TeamDelta506/Foodie/events\",\"assignees_url\":\"https://api.github.com/repos/TeamDelta506/Foodie/assignees{/user}\",\"branches_url\":\"https://api.github.com/repos/TeamDelta506/Foodie/branches{/branch}\",\"tags_url\":\"https://api.github.com/repos/TeamDelta506/Foodie/tags\",\"blobs_url\":\"https://api.github.com/repos/TeamDelta506/Foodie/git/blobs{/sha}\",\"git_tags_url\":\"https://api.github.com/repos/TeamDelta506/Foodie/git/tags{/sha}\",\"git_refs_url\":\"https://api.github.com/repos/TeamDelta506/Foodie/git/refs{/sha}\",\"trees_url\":\"https://api.github.com/repos/TeamDelta506/Foodie/git/trees{/sha}\",\"statuses_url\":\"https://api.github.com/repos/TeamDelta506/Foodie/statuses/{sha}\",\"languages_url\":\"https://api.github.com/repos/TeamDelta506/Foodie/languages\",\"stargazers_url\":\"https://api.github.com/repos/TeamDelta506/Foodie/stargazers\",\"contributors_url\":\"https://api.github.com/repos/TeamDelta506/Foodie/contributors\",\"subscribers_url\":\"https://api.github.com/repos/TeamDelta506/Foodie/subscribers\",\"subscription_url\":\"https://api.github.com/repos/TeamDelta506/Foodie/subscription\",\"commits_url\":\"https://api.github.com/repos/TeamDelta506/Foodie/commits{/sha}\",\"git_commits_url\":\"https://api.github.com/repos/TeamDelta506/Foodie/git/commits{/sha}\",\"comments_url\":\"https://api.github.com/repos/TeamDelta506/Foodie/comments{/number}\",\"issue_comment_url\":\"https://api.github.com/repos/TeamDelta506/Foodie/issues/comments{/number}\",\"contents_url\":\"https://api.github.com/repos/TeamDelta506/Foodie/contents/{+path}\",\"compare_url\":\"https://api.github.com/repos/TeamDelta506/Foodie/compare/{base}...{head}\",\"merges_url\":\"https://api.github.com/repos/TeamDelta506/Foodie/merges\",\"archive_url\":\"https://api.github.com/repos/TeamDelta506/Foodie/{archive_format}{/ref}\",\"downloads_url\":\"https://api.github.com/repos/TeamDelta506/Foodie/downloads\",\"issues_url\":\"https://api.github.com/repos/TeamDelta506/Foodie/issues{/number}\",\"pulls_url\":\"https://api.github.com/repos/TeamDelta506/Foodie/pulls{/number}\",\"milestones_url\":\"https://api.github.com/repos/TeamDelta506/Foodie/milestones{/number}\",\"notifications_url\":\"https://api.github.com/repos/TeamDelta506/Foodie/notifications{?since,all,participating}\",\"labels_url\":\"https://api.github.com/repos/TeamDelta506/Foodie/labels{/name}\",\"releases_url\":\"https://api.github.com/repos/TeamDelta506/Foodie/releases{/id}\",\"deployments_url\":\"https://api.github.com/repos/TeamDelta506/Foodie/deployments\"}},{\"id\":26791765141,\"name\":\"Tests\",\"node_id\":\"WFR_kwLOSZCeTs8AAAAGPOnklQ\",\"head_branch\":\"week6/db\u0026security\",\"head_sha\":\"62044f04ad0a38ef12bb2ebeb960a5e3e8e92aed\",\"path\":\".github/workflows/test.yml\",\"display_title\":\"Add production stack with nginx, gunicorn, and TLS.\",\"run_number\":60,\"event\":\"pull_request\",\"status\":\"completed\",\"conclusion\":\"failure\",\"workflow_id\":273929828,\"check_suite_id\":71844958917,\"check_suite_node_id\":\"CS_kwDOSZCeTs8AAAAQuksSxQ\",\"url\":\"https://api.github.com/repos/TeamDelta506/Foodie/actions/runs/26791765141\",\"html_url\":\"https://github.com/TeamDelta506/Foodie/actions/runs/26791765141\",\"pull_requests\":[{\"url\":\"https://api.github.com/repos/TeamDelta506/Foodie/pulls/27\",\"id\":3783746888,\"number\":27,\"head\":{\"ref\":\"week6/db\u0026security\",\"sha\":\"7a2c7ef0a8675300e3aceeda08974802e6e48887\",\"repo\":{\"id\":1234214478,\"url\":\"https://api.github.com/repos/TeamDelta506/Foodie\",\"name\":\"Foodie\"}},\"base\":{\"ref\":\"master\",\"sha\":\"ac6e7a3d6a6814bcb4bd17d981c02a3713e20d22\",\"repo\":{\"id\":1234214478,\"url\":\"https://api.github.com/repos/TeamDelta506/Foodie\",\"name\":\"Foodie\"}}}],\"created_at\":\"2026-06-02T01:00:50Z\",\"updated_at\":\"2026-06-02T01:10:54Z\",\"actor\":{\"login\":\"jkracker91-ux\",\"id\":237473359,\"node_id\":\"U_kgDODieOTw\",\"avatar_url\":\"https://avatars.githubusercontent.com/u/237473359?v=4\",\"gravatar_id\":\"\",\"url\":\"https://api.github.com/users/jkracker91-ux\",\"html_url\":\"https://github.com/jkracker91-ux\",\"followers_url\":\"https://api.github.com/users/jkracker91-ux/followers\",\"following_url\":\"https://api.github.com/users/jkracker91-ux/following{/other_user}\",\"gists_url\":\"https://api.github.com/users/jkracker91-ux/gists{/gist_id}\",\"starred_url\":\"https://api.github.com/users/jkracker91-ux/starred{/owner}{/repo}\",\"subscriptions_url\":\"https://api.github.com/users/jkracker91-ux/subscriptions\",\"organizations_url\":\"https://api.github.com/users/jkracker91-ux/orgs\",\"repos_url\":\"https://api.github.com/users/jkracker91-ux/repos\",\"events_url\":\"https://api.github.com/users/jkracker91-ux/events{/privacy}\",\"received_events_url\":\"https://api.github.com/users/jkracker91-ux/received_events\",\"type\":\"User\",\"user_view_type\":\"public\",\"site_admin\":false},\"run_attempt\":2,\"referenced_workflows\":[],\"run_started_at\":\"2026-06-02T01:09:40Z\",\"triggering_actor\":{\"login\":\"jkracker91-ux\",\"id\":237473359,\"node_id\":\"U_kgDODieOTw\",\"avatar_url\":\"https://avatars.githubusercontent.com/u/237473359?v=4\",\"gravatar_id\":\"\",\"url\":\"https://api.github.com/users/jkracker91-ux\",\"html_url\":\"https://github.com/jkracker91-ux\",\"followers_url\":\"https://api.github.com/users/jkracker91-ux/followers\",\"following_url\":\"https://api.github.com/users/jkracker91-ux/following{/other_user}\",\"gists_url\":\"https://api.github.com/users/jkracker91-ux/gists{/gist_id}\",\"starred_url\":\"https://api.github.com/users/jkracker91-ux/starred{/owner}{/repo}\",\"subscriptions_url\":\"https://api.github.com/users/jkracker91-ux/subscriptions\",\"organizations_url\":\"https://api.github.com/users/jkracker91-ux/orgs\",\"repos_url\":\"https://api.github.com/users/jkracker91-ux/repos\",\"events_url\":\"https://api.github.com/users/jkracker91-ux/events{/privacy}\",\"received_events_url\":\"https://api.github.com/users/jkracker91-ux/received_events\",\"type\":\"User\",\"user_view_type\":\"public\",\"site_admin\":false},\"jobs_url\":\"https://api.github.com/repos/TeamDelta506/Foodie/actions/runs/26791765141/jobs\",\"logs_url\":\"https://api.github.com/repos/TeamDelta506/Foodie/actions/runs/26791765141/logs\",\"check_suite_url\":\"https://api.github.com/repos/TeamDelta506/Foodie/check-suites/71844958917\",\"artifacts_url\":\"https://api.github.com/repos/TeamDelta506/Foodie/actions/runs/26791765141/artifacts\",\"cancel_url\":\"https://api.github.com/repos/TeamDelta506/Foodie/actions/runs/26791765141/cancel\",\"rerun_url\":\"https://api.github.com/repos/TeamDelta506/Foodie/actions/runs/26791765141/rerun\",\"previous_attempt_url\":\"https://api.github.com/repos/TeamDelta506/Foodie/actions/runs/26791765141/attempts/1\",\"workflow_url\":\"https://api.github.com/repos/TeamDelta506/Foodie/actions/workflows/273929828\",\"head_commit\":{\"id\":\"62044f04ad0a38ef12bb2ebeb960a5e3e8e92aed\",\"tree_id\":\"e136bb21f2f71cc0282700fbf63ea409d48d5687\",\"message\":\"Merge branch 'master' into week6/db\u0026security\",\"timestamp\":\"2026-06-02T01:00:45Z\",\"author\":{\"name\":\"Justin Kracker\",\"email\":\"jkracker91@gmail.com\"},\"committer\":{\"name\":\"GitHub\",\"email\":\"noreply@github.com\"}},\"repository\":{\"id\":1234214478,\"node_id\":\"R_kgDOSZCeTg\",\"name\":\"Foodie\",\"full_name\":\"TeamDelta506/Foodie\",\"private\":false,\"owner\":{\"login\":\"TeamDelta506\",\"id\":279349874,\"node_id\":\"O_kgDOEKaKcg\",\"avatar_url\":\"https://avatars.githubusercontent.com/u/279349874?v=4\",\"gravatar_id\":\"\",\"url\":\"https://api.github.com/users/TeamDelta506\",\"html_url\":\"https://github.com/TeamDelta506\",\"followers_url\":\"https://api.github.com/users/TeamDelta506/followers\",\"following_url\":\"https://api.github.com/users/TeamDelta506/following{/other_user}\",\"gists_url\":\"https://api.github.com/users/TeamDelta506/gists{/gist_id}\",\"starred_url\":\"https://api.github.com/users/TeamDelta506/starred{/owner}{/repo}\",\"subscriptions_url\":\"https://api.github.com/users/TeamDelta506/subscriptions\",\"organizations_url\":\"https://api.github.com/users/TeamDelta506/orgs\",\"repos_url\":\"https://api.github.com/users/TeamDelta506/repos\",\"events_url\":\"https://api.github.com/users/TeamDelta506/events{/privacy}\",\"received_events_url\":\"https://api.github.com/users/TeamDelta506/received_events\",\"type\":\"Organization\",\"user_view_type\":\"public\",\"site_admin\":false},\"html_url\":\"https://github.com/TeamDelta506/Foodie\",\"description\":null,\"fork\":false,\"url\":\"https://api.github.com/repos/TeamDelta506/Foodie\",\"forks_url\":\"https://api.github.com/repos/TeamDelta506/Foodie/forks\",\"keys_url\":\"https://api.github.com/repos/TeamDelta506/Foodie/keys{/key_id}\",\"collaborators_url\":\"https://api.github.com/repos/TeamDelta506/Foodie/collaborators{/collaborator}\",\"teams_url\":\"https://api.github.com/repos/TeamDelta506/Foodie/teams\",\"hooks_url\":\"https://api.github.com/repos/TeamDelta506/Foodie/hooks\",\"issue_events_url\":\"https://api.github.com/repos/TeamDelta506/Foodie/issues/events{/number}\",\"events_url\":\"https://api.github.com/repos/TeamDelta506/Foodie/events\",\"assignees_url\":\"https://api.github.com/repos/TeamDelta506/Foodie/assignees{/user}\",\"branches_url\":\"https://api.github.com/repos/TeamDelta506/Foodie/branches{/branch}\",\"tags_url\":\"https://api.github.com/repos/TeamDelta506/Foodie/tags\",\"blobs_url\":\"https://api.github.com/repos/TeamDelta506/Foodie/git/blobs{/sha}\",\"git_tags_url\":\"https://api.github.com/repos/TeamDelta506/Foodie/git/tags{/sha}\",\"git_refs_url\":\"https://api.github.com/repos/TeamDelta506/Foodie/git/refs{/sha}\",\"trees_url\":\"https://api.github.com/repos/TeamDelta506/Foodie/git/trees{/sha}\",\"statuses_url\":\"https://api.github.com/repos/TeamDelta506/Foodie/statuses/{sha}\",\"languages_url\":\"https://api.github.com/repos/TeamDelta506/Foodie/languages\",\"stargazers_url\":\"https://api.github.com/repos/TeamDelta506/Foodie/stargazers\",\"contributors_url\":\"https://api.github.com/repos/TeamDelta506/Foodie/contributors\",\"subscribers_url\":\"https://api.github.com/repos/TeamDelta506/Foodie/subscribers\",\"subscription_url\":\"https://api.github.com/repos/TeamDelta506/Foodie/subscription\",\"commits_url\":\"https://api.github.com/repos/TeamDelta506/Foodie/commits{/sha}\",\"git_commits_url\":\"https://api.github.com/repos/TeamDelta506/Foodie/git/commits{/sha}\",\"comments_url\":\"https://api.github.com/repos/TeamDelta506/Foodie/comments{/number}\",\"issue_comment_url\":\"https://api.github.com/repos/TeamDelta506/Foodie/issues/comments{/number}\",\"contents_url\":\"https://api.github.com/repos/TeamDelta506/Foodie/contents/{+path}\",\"compare_url\":\"https://api.github.com/repos/TeamDelta506/Foodie/compare/{base}...{head}\",\"merges_url\":\"https://api.github.com/repos/TeamDelta506/Foodie/merges\",\"archive_url\":\"https://api.github.com/repos/TeamDelta506/Foodie/{archive_format}{/ref}\",\"downloads_url\":\"https://api.github.com/repos/TeamDelta506/Foodie/downloads\",\"issues_url\":\"https://api.github.com/repos/TeamDelta506/Foodie/issues{/number}\",\"pulls_url\":\"https://api.github.com/repos/TeamDelta506/Foodie/pulls{/number}\",\"milestones_url\":\"https://api.github.com/repos/TeamDelta506/Foodie/milestones{/number}\",\"notifications_url\":\"https://api.github.com/repos/TeamDelta506/Foodie/notifications{?since,all,participating}\",\"labels_url\":\"https://api.github.com/repos/TeamDelta506/Foodie/labels{/name}\",\"releases_url\":\"https://api.github.com/repos/TeamDelta506/Foodie/releases{/id}\",\"deployments_url\":\"https://api.github.com/repos/TeamDelta506/Foodie/deployments\"},\"head_repository\":{\"id\":1234214478,\"node_id\":\"R_kgDOSZCeTg\",\"name\":\"Foodie\",\"full_name\":\"TeamDelta506/Foodie\",\"private\":false,\"owner\":{\"login\":\"TeamDelta506\",\"id\":279349874,\"node_id\":\"O_kgDOEKaKcg\",\"avatar_url\":\"https://avatars.githubusercontent.com/u/279349874?v=4\",\"gravatar_id\":\"\",\"url\":\"https://api.github.com/users/TeamDelta506\",\"html_url\":\"https://github.com/TeamDelta506\",\"followers_url\":\"https://api.github.com/users/TeamDelta506/followers\",\"following_url\":\"https://api.github.com/users/TeamDelta506/following{/other_user}\",\"gists_url\":\"https://api.github.com/users/TeamDelta506/gists{/gist_id}\",\"starred_url\":\"https://api.github.com/users/TeamDelta506/starred{/owner}{/repo}\",\"subscriptions_url\":\"https://api.github.com/users/TeamDelta506/subscriptions\",\"organizations_url\":\"https://api.github.com/users/TeamDelta506/orgs\",\"repos_url\":\"https://api.github.com/users/TeamDelta506/repos\",\"events_url\":\"https://api.github.com/users/TeamDelta506/events{/privacy}\",\"received_events_url\":\"https://api.github.com/users/TeamDelta506/received_events\",\"type\":\"Organization\",\"user_view_type\":\"public\",\"site_admin\":false},\"html_url\":\"https://github.com/TeamDelta506/Foodie\",\"description\":null,\"fork\":false,\"url\":\"https://api.github.com/repos/TeamDelta506/Foodie\",\"forks_url\":\"https://api.github.com/repos/TeamDelta506/Foodie/forks\",\"keys_url\":\"https://api.github.com/repos/TeamDelta506/Foodie/keys{/key_id}\",\"collaborators_url\":\"https://api.github.com/repos/TeamDelta506/Foodie/collaborators{/collaborator}\",\"teams_url\":\"https://api.github.com/repos/TeamDelta506/Foodie/teams\",\"hooks_url\":\"https://api.github.com/repos/TeamDelta506/Foodie/hooks\",\"issue_events_url\":\"https://api.github.com/repos/TeamDelta506/Foodie/issues/events{/number}\",\"events_url\":\"https://api.github.com/repos/TeamDelta506/Foodie/events\",\"assignees_url\":\"https://api.github.com/repos/TeamDelta506/Foodie/assignees{/user}\",\"branches_url\":\"https://api.github.com/repos/TeamDelta506/Foodie/branches{/branch}\",\"tags_url\":\"https://api.github.com/repos/TeamDelta506/Foodie/tags\",\"blobs_url\":\"https://api.github.com/repos/TeamDelta506/Foodie/git/blobs{/sha}\",\"git_tags_url\":\"https://api.github.com/repos/TeamDelta506/Foodie/git/tags{/sha}\",\"git_refs_url\":\"https://api.github.com/repos/TeamDelta506/Foodie/git/refs{/sha}\",\"trees_url\":\"https://api.github.com/repos/TeamDelta506/Foodie/git/trees{/sha}\",\"statuses_url\":\"https://api.github.com/repos/TeamDelta506/Foodie/statuses/{sha}\",\"languages_url\":\"https://api.github.com/repos/TeamDelta506/Foodie/languages\",\"stargazers_url\":\"https://api.github.com/repos/TeamDelta506/Foodie/stargazers\",\"contributors_url\":\"https://api.github.com/repos/TeamDelta506/Foodie/contributors\",\"subscribers_url\":\"https://api.github.com/repos/TeamDelta506/Foodie/subscribers\",\"subscription_url\":\"https://api.github.com/repos/TeamDelta506/Foodie/subscription\",\"commits_url\":\"https://api.github.com/repos/TeamDelta506/Foodie/commits{/sha}\",\"git_commits_url\":\"https://api.github.com/repos/TeamDelta506/Foodie/git/commits{/sha}\",\"comments_url\":\"https://api.github.com/repos/TeamDelta506/Foodie/comments{/number}\",\"issue_comment_url\":\"https://api.github.com/repos/TeamDelta506/Foodie/issues/comments{/number}\",\"contents_url\":\"https://api.github.com/repos/TeamDelta506/Foodie/contents/{+path}\",\"compare_url\":\"https://api.github.com/repos/TeamDelta506/Foodie/compare/{base}...{head}\",\"merges_url\":\"https://api.github.com/repos/TeamDelta506/Foodie/merges\",\"archive_url\":\"https://api.github.com/repos/TeamDelta506/Foodie/{archive_format}{/ref}\",\"downloads_url\":\"https://api.github.com/repos/TeamDelta506/Foodie/downloads\",\"issues_url\":\"https://api.github.com/repos/TeamDelta506/Foodie/issues{/number}\",\"pulls_url\":\"https://api.github.com/repos/TeamDelta506/Foodie/pulls{/number}\",\"milestones_url\":\"https://api.github.com/repos/TeamDelta506/Foodie/milestones{/number}\",\"notifications_url\":\"https://api.github.com/repos/TeamDelta506/Foodie/notifications{?since,all,participating}\",\"labels_url\":\"https://api.github.com/repos/TeamDelta506/Foodie/labels{/name}\",\"releases_url\":\"https://api.github.com/repos/TeamDelta506/Foodie/releases{/id}\",\"deployments_url\":\"https://api.github.com/repos/TeamDelta506/Foodie/deployments\"}}]}",
+  "url": "https://api.github.com/repos/TeamDelta506/Foodie/actions/runs?branch=week6/db%26security\u0026per_page=3"
+}
+```
+User decision: **accepted**
+
+Status: **completed**
+
+
+</details>
+</tool-use>
+
+<tool-use data-tool-type="unknown" data-tool-name="web_fetch"><details>
+<summary>Tool use: **web_fetch**</summary>
+
+</details></tool-use>
+
+_**Agent (gpt-5.5)**_
+
+<tool-use data-tool-type="shell" data-tool-name="run_terminal_command_v2">
+<details><summary>Tool use: **run_terminal_command_v2** • Run command: Set-Location "c:\Users\jkrac\OneDrive\Documents\GC-SDE\TCSS 506\Foodie"; git show origin/master:tests/e2e/test_full_lifecycle.py | Select-Object -Skip 195 -First 30</summary>
+
+```bash
+Set-Location "c:\Users\jkrac\OneDrive\Documents\GC-SDE\TCSS 506\Foodie"; git show origin/master:tests/e2e/test_full_lifecycle.py | Select-Object -Skip 195 -First 30
+```
+
+```
+    csrf_user = f"lifecycle_csrf_{_RUN_TS}"
+    api: APIRequestContext = playwright.request.new_context(base_url=base_url)
+    try:
+        login = api.get(f"/test-login?username={csrf_user}")
+        assert login.ok, f"test-login failed: {login.status}"
+
+        response = api.post(
+            "/mealplan",
+            form={"day_of_week": "1", "recipe_id": "1", "servings": "2"},
+        )
+        assert response.status == 400, (
+            f"Expected CSRF rejection (400), got {response.status} at {response.url!r}"
+        )
+    finally:
+        api.dispose()
+
+
+# ════════════════════════════════════════════════════════════════════════════
+# Scenario 4 — Session expiry: cleared session blocks protected route
+# ════════════════════════════════════════════════════════════════════════════
+
+def test_session_expiry_blocks_protected_route(page: Page, base_url: str) -&gt; None:
+    """
+    After PERMANENT_SESSION_LIFETIME elapses, the protected /mealplan route must
+    redirect to /login.
+
+    Patches the live app's session lifetime to two seconds, logs in via the
+    backdoor, waits for the cookie to expire, then asserts /mealplan is gated.
+
+    Regression caught: if session.permanent were ignored or lifetime were set
+
+```
+</details>
+</tool-use>
+
+<tool-use data-tool-type="shell" data-tool-name="run_terminal_command_v2"><details>
+<summary>Tool use: **run_terminal_command_v2**</summary>
+
+</details></tool-use>
+
+_**Agent (gpt-5.5)**_
+
+<think><details><summary>Thought Process</summary>
+The issue is in test_full_lifecycle.py. A bad merge left two assert statements.</details></think>
+
+_**Agent (gpt-5.5)**_
+
+<tool-use data-tool-type="read" data-tool-name="read_file_v2">
+<details><summary>Tool use: **read_file_v2** • Read file: C:\Users\jkrac\.cursor\projects\c-Users-jkrac-OneDrive-Documents-GC-SDE-TCSS-506-Foodie\agent-tools\83631774-8bd7-4ccd-accb-46142ca61a82.txt</summary>
+
+</details>
+</tool-use>
+
+<tool-use data-tool-type="read" data-tool-name="read_file_v2"><details>
+<summary>Tool use: **read_file_v2**</summary>
+
+</details></tool-use>
+
+_**Agent (gpt-5.5)**_
+
+<tool-use data-tool-type="read" data-tool-name="read_file_v2">
+<details><summary>Tool use: **read_file_v2** • Read file: c:\Users\jkrac\OneDrive\Documents\GC-SDE\TCSS 506\Foodie\tests\e2e\test_protected_page_auth.py</summary>
+
+</details>
+</tool-use>
+
+<tool-use data-tool-type="read" data-tool-name="read_file_v2"><details>
+<summary>Tool use: **read_file_v2**</summary>
+
+</details></tool-use>
+
+_**Agent (gpt-5.5)**_
+
+<tool-use data-tool-type="search" data-tool-name="glob_file_search">
+<details>
+<summary>Tool use: **glob_file_search** • Searched codebase "" • **3** results in **1** directory</summary>
+
+Directory: **c:\Users\jkrac\OneDrive\Documents\GC-SDE\TCSS 506\Foodie** (3 files)
+
+| File |
+|------|
+| `../docker-compose.yml` |
+| `../docker-compose.prod.yml` |
+| `../docker-compose.dev.yml` |
+
+</details>
+</tool-use>
+
+<tool-use data-tool-type="search" data-tool-name="glob_file_search"><details>
+<summary>Tool use: **glob_file_search**</summary>
+
+</details></tool-use>
+
+_**Agent (gpt-5.5)**_
+
+<tool-use data-tool-type="unknown" data-tool-name="web_fetch">
+<details>
+<summary>Tool use: **web_fetch**</summary>
+
+
+Parameters:
+
+```json
+{
+  "url": "https://api.github.com/repos/TeamDelta506/Foodie/actions/runs/26792555581/jobs"
+}
+```
+Result:
+
+```json
+{
+  "markdown": "{\"total_count\":1,\"jobs\":[{\"id\":78981985302,\"run_id\":26792555581,\"workflow_name\":\"Tests\",\"head_branch\":\"week6/db\u0026security\",\"run_url\":\"https://api.github.com/repos/TeamDelta506/Foodie/actions/runs/26792555581\",\"run_attempt\":1,\"node_id\":\"CR_kwDOSZCeTs8AAAASY7F0Fg\",\"head_sha\":\"7a2c7ef0a8675300e3aceeda08974802e6e48887\",\"url\":\"https://api.github.com/repos/TeamDelta506/Foodie/actions/jobs/78981985302\",\"html_url\":\"https://github.com/TeamDelta506/Foodie/actions/runs/26792555581/job/78981985302\",\"status\":\"completed\",\"conclusion\":\"failure\",\"created_at\":\"2026-06-02T01:24:47Z\",\"started_at\":\"2026-06-02T01:24:48Z\",\"completed_at\":\"2026-06-02T01:26:02Z\",\"name\":\"test\",\"steps\":[{\"name\":\"Set up job\",\"status\":\"completed\",\"conclusion\":\"success\",\"number\":1,\"started_at\":\"2026-06-02T01:24:49Z\",\"completed_at\":\"2026-06-02T01:24:50Z\"},{\"name\":\"Run actions/checkout@v4\",\"status\":\"completed\",\"conclusion\":\"success\",\"number\":2,\"started_at\":\"2026-06-02T01:24:50Z\",\"completed_at\":\"2026-06-02T01:24:51Z\"},{\"name\":\"Set up Python\",\"status\":\"completed\",\"conclusion\":\"success\",\"number\":3,\"started_at\":\"2026-06-02T01:24:51Z\",\"completed_at\":\"2026-06-02T01:24:51Z\"},{\"name\":\"Install dependencies\",\"status\":\"completed\",\"conclusion\":\"success\",\"number\":4,\"started_at\":\"2026-06-02T01:24:51Z\",\"completed_at\":\"2026-06-02T01:25:30Z\"},{\"name\":\"Generate self-signed nginx certs\",\"status\":\"completed\",\"conclusion\":\"success\",\"number\":5,\"started_at\":\"2026-06-02T01:25:30Z\",\"completed_at\":\"2026-06-02T01:25:30Z\"},{\"name\":\"Start Docker Compose services\",\"status\":\"completed\",\"conclusion\":\"success\",\"number\":6,\"started_at\":\"2026-06-02T01:25:30Z\",\"completed_at\":\"2026-06-02T01:25:53Z\"},{\"name\":\"Wait for the app through nginx\",\"status\":\"completed\",\"conclusion\":\"success\",\"number\":7,\"started_at\":\"2026-06-02T01:25:53Z\",\"completed_at\":\"2026-06-02T01:25:55Z\"},{\"name\":\"Run tests\",\"status\":\"completed\",\"conclusion\":\"failure\",\"number\":8,\"started_at\":\"2026-06-02T01:25:55Z\",\"completed_at\":\"2026-06-02T01:25:58Z\"},{\"name\":\"Dump Docker logs on failure\",\"status\":\"completed\",\"conclusion\":\"success\",\"number\":9,\"started_at\":\"2026-06-02T01:25:58Z\",\"completed_at\":\"2026-06-02T01:25:58Z\"},{\"name\":\"Tear down Docker Compose services\",\"status\":\"completed\",\"conclusion\":\"success\",\"number\":10,\"started_at\":\"2026-06-02T01:25:58Z\",\"completed_at\":\"2026-06-02T01:25:59Z\"},{\"name\":\"Post Set up Python\",\"status\":\"completed\",\"conclusion\":\"skipped\",\"number\":19,\"started_at\":\"2026-06-02T01:25:59Z\",\"completed_at\":\"2026-06-02T01:25:59Z\"},{\"name\":\"Post Run actions/checkout@v4\",\"status\":\"completed\",\"conclusion\":\"success\",\"number\":20,\"started_at\":\"2026-06-02T01:25:59Z\",\"completed_at\":\"2026-06-02T01:26:00Z\"},{\"name\":\"Complete job\",\"status\":\"completed\",\"conclusion\":\"success\",\"number\":21,\"started_at\":\"2026-06-02T01:26:00Z\",\"completed_at\":\"2026-06-02T01:26:00Z\"}],\"check_run_url\":\"https://api.github.com/repos/TeamDelta506/Foodie/check-runs/78981985302\",\"labels\":[\"ubuntu-latest\"],\"runner_id\":1000000071,\"runner_name\":\"GitHub Actions 1000000071\",\"runner_group_id\":0,\"runner_group_name\":\"GitHub Actions\"}]}",
+  "url": "https://api.github.com/repos/TeamDelta506/Foodie/actions/runs/26792555581/jobs"
+}
+```
+User decision: **accepted**
+
+Status: **completed**
+
+
+</details>
+</tool-use>
+
+<tool-use data-tool-type="unknown" data-tool-name="web_fetch"><details>
+<summary>Tool use: **web_fetch**</summary>
+
+</details></tool-use>
+
+_**Agent (gpt-5.5)**_
+
+<tool-use data-tool-type="shell" data-tool-name="run_terminal_command_v2">
+<details><summary>Tool use: **run_terminal_command_v2** • Run command: Set-Location "c:\Users\jkrac\OneDrive\Documents\GC-SDE\TCSS 506\Foodie"; python -m compileall tests -q 2>&1</summary>
+
+```bash
+Set-Location "c:\Users\jkrac\OneDrive\Documents\GC-SDE\TCSS 506\Foodie"; python -m compileall tests -q 2>&1
+```
+
+```
+*** Error compiling 'tests\\e2e\\test_full_lifecycle.py'...
+  File "tests\e2e\test_full_lifecycle.py", line 211
+    ), (
+       ^
+SyntaxError: '(' was never closed
+
+
+```
+</details>
+</tool-use>
+
+<tool-use data-tool-type="shell" data-tool-name="run_terminal_command_v2"><details>
+<summary>Tool use: **run_terminal_command_v2**</summary>
+
+</details></tool-use>
+
+_**Agent (gpt-5.5)**_
+
+<tool-use data-tool-type="shell" data-tool-name="run_terminal_command_v2">
+<details><summary>Tool use: **run_terminal_command_v2** • Run command: Set-Location "c:\Users\jkrac\OneDrive\Documents\GC-SDE\TCSS 506\Foodie"; git show origin/master:tests/e2e/test_protected_page_auth.py</summary>
+
+```bash
+Set-Location "c:\Users\jkrac\OneDrive\Documents\GC-SDE\TCSS 506\Foodie"; git show origin/master:tests/e2e/test_protected_page_auth.py
+```
+
+```
+"""
+tests/e2e/test_protected_page_auth.py
+=====================================
+Justin — protected-route auth gate (CONTRACTS.md §9, §12).
+
+Verifies /mealplan is closed before login, open after the test-login backdoor,
+and closed again after logout.
+"""
+
+from __future__ import annotations
+
+import time
+
+from playwright.sync_api import Page, expect
+
+TEST_USER = f"pw_protect_{int(time.time())}"
+
+
+def goto(page: Page, base_url: str, path: str) -&gt; None:
+    page.goto(f"{base_url}{path}")
+
+
+def test_mealplan_auth_gate(page: Page, base_url: str) -&gt; None:
+    """Anonymous users are redirected; logged-in users see the planner grid."""
+    goto(page, base_url, "/mealplan")
+    assert "/login" in page.url
+
+    goto(page, base_url, f"/test-login?username={TEST_USER}")
+    assert "/mealplan" in page.url
+    expect(page.locator("[data-day]")).to_have_count(7)
+    expect(page.locator(".foodie-nav-user")).to_contain_text(TEST_USER)
+
+    page.locator("form[action*='logout'] button").click()
+    expect(page.locator("nav").get_by_role("link", name="Log in")).to_be_visible()
+
+    goto(page, base_url, "/mealplan")
+    assert "/login" in page.url
+
+```
+</details>
+</tool-use>
+
+<tool-use data-tool-type="shell" data-tool-name="run_terminal_command_v2"><details>
+<summary>Tool use: **run_terminal_command_v2**</summary>
+
+</details></tool-use>
+
+_**Agent (gpt-5.5)**_
+
+<think><details><summary>Thought Process</summary>
+Checking whether run 30e4155 failed due to syntax errors alone or also test failures.</details></think>
+
+_**Agent (gpt-5.5)**_
+
+<tool-use data-tool-type="unknown" data-tool-name="web_fetch">
+<details>
+<summary>Tool use: **web_fetch**</summary>
+
+
+Parameters:
+
+```json
+{
+  "url": "https://api.github.com/repos/TeamDelta506/Foodie/actions/runs/26792527910/jobs"
+}
+```
+Result:
+
+```json
+{
+  "markdown": "{\"total_count\":1,\"jobs\":[{\"id\":78981899132,\"run_id\":26792527910,\"workflow_name\":\"Tests\",\"head_branch\":\"week6/db\u0026security\",\"run_url\":\"https://api.github.com/repos/TeamDelta506/Foodie/actions/runs/26792527910\",\"run_attempt\":1,\"node_id\":\"CR_kwDOSZCeTs8AAAASY7AjfA\",\"head_sha\":\"30e41550cfa04559f2d453378b925d38a5fc96fa\",\"url\":\"https://api.github.com/repos/TeamDelta506/Foodie/actions/jobs/78981899132\",\"html_url\":\"https://github.com/TeamDelta506/Foodie/actions/runs/26792527910/job/78981899132\",\"status\":\"completed\",\"conclusion\":\"failure\",\"created_at\":\"2026-06-02T01:23:54Z\",\"started_at\":\"2026-06-02T01:23:55Z\",\"completed_at\":\"2026-06-02T01:25:02Z\",\"name\":\"test\",\"steps\":[{\"name\":\"Set up job\",\"status\":\"completed\",\"conclusion\":\"success\",\"number\":1,\"started_at\":\"2026-06-02T01:23:56Z\",\"completed_at\":\"2026-06-02T01:23:57Z\"},{\"name\":\"Run actions/checkout@v4\",\"status\":\"completed\",\"conclusion\":\"success\",\"number\":2,\"started_at\":\"2026-06-02T01:23:57Z\",\"completed_at\":\"2026-06-02T01:23:58Z\"},{\"name\":\"Set up Python\",\"status\":\"completed\",\"conclusion\":\"success\",\"number\":3,\"started_at\":\"2026-06-02T01:23:58Z\",\"completed_at\":\"2026-06-02T01:23:58Z\"},{\"name\":\"Install dependencies\",\"status\":\"completed\",\"conclusion\":\"success\",\"number\":4,\"started_at\":\"2026-06-02T01:23:58Z\",\"completed_at\":\"2026-06-02T01:24:34Z\"},{\"name\":\"Generate self-signed nginx certs\",\"status\":\"completed\",\"conclusion\":\"success\",\"number\":5,\"started_at\":\"2026-06-02T01:24:34Z\",\"completed_at\":\"2026-06-02T01:24:34Z\"},{\"name\":\"Start Docker Compose services\",\"status\":\"completed\",\"conclusion\":\"success\",\"number\":6,\"started_at\":\"2026-06-02T01:24:34Z\",\"completed_at\":\"2026-06-02T01:24:55Z\"},{\"name\":\"Wait for the app through nginx\",\"status\":\"completed\",\"conclusion\":\"success\",\"number\":7,\"started_at\":\"2026-06-02T01:24:55Z\",\"completed_at\":\"2026-06-02T01:24:57Z\"},{\"name\":\"Run tests\",\"status\":\"completed\",\"conclusion\":\"failure\",\"number\":8,\"started_at\":\"2026-06-02T01:24:57Z\",\"completed_at\":\"2026-06-02T01:24:59Z\"},{\"name\":\"Dump Docker logs on failure\",\"status\":\"completed\",\"conclusion\":\"success\",\"number\":9,\"started_at\":\"2026-06-02T01:24:59Z\",\"completed_at\":\"2026-06-02T01:24:59Z\"},{\"name\":\"Tear down Docker Compose services\",\"status\":\"completed\",\"conclusion\":\"success\",\"number\":10,\"started_at\":\"2026-06-02T01:24:59Z\",\"completed_at\":\"2026-06-02T01:25:00Z\"},{\"name\":\"Post Set up Python\",\"status\":\"completed\",\"conclusion\":\"skipped\",\"number\":19,\"started_at\":\"2026-06-02T01:25:00Z\",\"completed_at\":\"2026-06-02T01:25:00Z\"},{\"name\":\"Post Run actions/checkout@v4\",\"status\":\"completed\",\"conclusion\":\"success\",\"number\":20,\"started_at\":\"2026-06-02T01:25:00Z\",\"completed_at\":\"2026-06-02T01:25:00Z\"},{\"name\":\"Complete job\",\"status\":\"completed\",\"conclusion\":\"success\",\"number\":21,\"started_at\":\"2026-06-02T01:25:00Z\",\"completed_at\":\"2026-06-02T01:25:00Z\"}],\"check_run_url\":\"https://api.github.com/repos/TeamDelta506/Foodie/check-runs/78981899132\",\"labels\":[\"ubuntu-latest\"],\"runner_id\":1000000070,\"runner_name\":\"GitHub Actions 1000000070\",\"runner_group_id\":0,\"runner_group_name\":\"GitHub Actions\"}]}",
+  "url": "https://api.github.com/repos/TeamDelta506/Foodie/actions/runs/26792527910/jobs"
+}
+```
+User decision: **accepted**
+
+Status: **completed**
+
+
+</details>
+</tool-use>
+
+<tool-use data-tool-type="unknown" data-tool-name="web_fetch"><details>
+<summary>Tool use: **web_fetch**</summary>
+
+</details></tool-use>
+
+_**Agent (gpt-5.5)**_
+
+<tool-use data-tool-type="unknown" data-tool-name="ripgrep_raw_search">
+<details>
+<summary>Tool use: **ripgrep_raw_search**</summary>
+
+
+Parameters:
+
+```json
+{
+  "caseInsensitive": false,
+  "path": "c:\\Users\\jkrac\\OneDrive\\Documents\\GC-SDE\\TCSS 506\\Foodie",
+  "pattern": "git diff.*test_full_lifecycle"
+}
+```
+Additional data:
+
+```json
+{
+  "isPruned": true,
+  "outputMode": "content",
+  "path": "c:\\Users\\jkrac\\OneDrive\\Documents\\GC-SDE\\TCSS 506\\Foodie",
+  "pattern": "git diff.*test_full_lifecycle",
+  "topFiles": [],
+  "totalFiles": 0,
+  "totalMatches": 0
+}
+```
+Status: **completed**
+
+
+</details>
+</tool-use>
+
+<tool-use data-tool-type="unknown" data-tool-name="ripgrep_raw_search"><details>
+<summary>Tool use: **ripgrep_raw_search**</summary>
+
+</details></tool-use>
+
+_**Agent (gpt-5.5)**_
+
+<tool-use data-tool-type="shell" data-tool-name="run_terminal_command_v2">
+<details><summary>Tool use: **run_terminal_command_v2** • Run command: Set-Location "c:\Users\jkrac\OneDrive\Documents\GC-SDE\TCSS 506\Foodie"; git log --oneline -1 -- tests/e2e/test_full_lifecycle.py; git blame -L 205,216 tests/e2e/test_full_lifecycle.py</summary>
+
+```bash
+Set-Location "c:\Users\jkrac\OneDrive\Documents\GC-SDE\TCSS 506\Foodie"; git log --oneline -1 -- tests/e2e/test_full_lifecycle.py; git blame -L 205,216 tests/e2e/test_full_lifecycle.py
+```
+
+```
+62044f0 Merge branch 'master' into week6/db&amp;security
+80a6b739 (Sam    2026-05-23 12:10:57 -0700 205)         )
+80a6b739 (Sam    2026-05-23 12:10:57 -0700 206)         # Playwright follows redirects by default, so after the 302→/login
+80a6b739 (Sam    2026-05-23 12:10:57 -0700 207)         # chain the response URL will contain "/login".
+350a206d (Ubuntu 2026-06-01 20:11:35 +0000 208)         assert (
+350a206d (Ubuntu 2026-06-01 20:11:35 +0000 209)             "/login" in response.url
+350a206d (Ubuntu 2026-06-01 20:11:35 +0000 210)             or response.status in (400, 401, 403)
+350a206d (Ubuntu 2026-06-01 20:11:35 +0000 211)         ), (
+350a206d (Ubuntu 2026-06-01 20:11:35 +0000 212)             f"Expected auth or CSRF rejection, got status {response.status} at {response.url!r}"
+a55a2e5a (Asia   2026-05-25 17:25:59 -0700 213)         assert response.status == 400, (
+a55a2e5a (Asia   2026-05-25 17:25:59 -0700 214)             f"Expected CSRF rejection (400), got {response.status} at {response.url!r}"
+80a6b739 (Sam    2026-05-23 12:10:57 -0700 215)         )
+80a6b739 (Sam    2026-05-23 12:10:57 -0700 216)     finally:
+
+```
+</details>
+</tool-use>
+
+<tool-use data-tool-type="shell" data-tool-name="run_terminal_command_v2"><details>
+<summary>Tool use: **run_terminal_command_v2**</summary>
+
+</details></tool-use>
+
+_**Agent (gpt-5.5)**_
+
+<think><details><summary>Thought Process</summary>
+Both CI runs failed within seconds due to a pytest collection error in test_full_lifecycle.py.
+
+The collection error likely predates the fix commit. The broken merge in 62044f0 introduced duplicate tests in test_full_lifecycle.py. I will revert that file to the master version.
+
+test_protected_page_auth.py contains duplicate merged tests. The longer registration test is more thorough, while the shorter login test suits the embedded server better. Both tests avoid syntax errors, so keeping both may be acceptable.
+
+compileall passed, confirming the collection failure is isolated to test_full_lifecycle.py. I will merge the duplicate tests in test_protected_page_auth.py by keeping the more complete registration-based test from the PR branch.</details></think>
+
+_**Agent (gpt-5.5)**_
+
+<tool-use data-tool-type="read" data-tool-name="read_file_v2">
+<details><summary>Tool use: **read_file_v2** • Read file: c:\Users\jkrac\OneDrive\Documents\GC-SDE\TCSS 506\Foodie\tests\e2e\conftest.py</summary>
+
+</details>
+</tool-use>
+
+<tool-use data-tool-type="read" data-tool-name="read_file_v2"><details>
+<summary>Tool use: **read_file_v2**</summary>
+
+</details></tool-use>
+
+_**Agent (gpt-5.5)**_
+
+<tool-use data-tool-type="write" data-tool-name="edit_file_v2">
+
+<details><summary>Tool use: **edit_file_v2** • Edit file: c:\Users\jkrac\OneDrive\Documents\GC-SDE\TCSS 506\Foodie\tests\e2e\test_full_lifecycle.py</summary>
+
+</details>
+
+</tool-use>
+
+<tool-use data-tool-type="write" data-tool-name="edit_file_v2"><details>
+<summary>Tool use: **edit_file_v2**</summary>
+
+</details></tool-use>
+
+_**Agent (gpt-5.5)**_
+
+<tool-use data-tool-type="write" data-tool-name="edit_file_v2">
+
+<details><summary>Tool use: **edit_file_v2** • Edit file: c:\Users\jkrac\OneDrive\Documents\GC-SDE\TCSS 506\Foodie\tests\e2e\test_protected_page_auth.py</summary>
+
+</details>
+
+</tool-use>
+
+<tool-use data-tool-type="write" data-tool-name="edit_file_v2"><details>
+<summary>Tool use: **edit_file_v2**</summary>
+
+</details></tool-use>
+
+_**Agent (gpt-5.5)**_
+
+<think><details><summary>Thought Process</summary>
+The E2E server uses plain HTTP werkzeug. SESSION_COOKIE_SECURE may be causing issues.</details></think>
