@@ -1,187 +1,190 @@
-# Test strategies for “script-kiddie” paths and scanner noise
+# Test Strategies for the "Did nginx block the bad paths?" Problem
 
-This document compares ways to test that bad URLs (from `attack_paths.json`) are handled safely. It includes notes from working through Study Guide §10 with an LLM on the Foodie stack.
+A conversation about how else you could test the thing
+`tests/test_attack_paths.py` tests, what each strategy catches that the
+parametrized-path approach doesn't, and what it misses. Study Guide §10 + §24.
 
----
-
-## The problem we are testing
-
-Internet-facing apps get constant probes: `/wp-login.php`, `/.env`, `/phpmyadmin/`, etc. We want confidence that:
-
-1. Attackers get **404 or 403**, not 200 with secrets or 500 with stack traces.
-2. (Ideally) those requests **do not waste** application workers.
-3. Regressions are **caught in CI** when someone changes nginx or Flask.
+Context for the conversation: our provided test is a pytest file that loads a
+20-entry `attack_paths.json`, parametrizes over it, and asserts nginx returns
+404/403 with a sub-1KB body (so a Flask-served 404 fails the test) for each
+path.
 
 ---
 
-## Strategy 1: Parametrized pytest + `attack_paths.json` (what the study guide provides)
+## Me
 
-**How it works:** A JSON list of paths; pytest runs one test per path against `https://localhost` and asserts status ∈ `{404, 403}`.
+We have one attack-path test: pytest parametrized over a fixed list of 20
+known-bad URLs, asserting nginx returns 404/403 at the edge. What *other*
+strategies exist for testing "the edge refuses what it should"? For each, be
+honest about what it catches that our list-based test doesn't, and what it
+still misses.
 
-**What it catches that others often miss early:**
+## LLM
 
-- **Obvious regressions** — someone breaks the 404 handler or nginx and deploy still “works” for `/`.
-- **Fast, deterministic CI** — no extra tools; runs in seconds.
-- **Documented contract** — the JSON file is the team’s shared list of “paths we refuse to serve meaningfully.”
+Your test is a **known-bad allowlist-of-failures** test. It's a great smoke
+test but it only ever proves things about the 20 strings you wrote down. Here
+are the other families, roughly in order of how different they are from what
+you have:
 
-**What it misses:**
+**1. Scanner integration (nikto / nuclei / OWASP ZAP baseline / gobuster).**
+Point a real recon tool at `https://localhost` and assert it finds nothing
+interesting. These tools ship with thousands of templates and wordlists that
+are kept current by a community.
 
-- **Paths not in the list** — zero-day probe URLs, framework-specific bugs, typosquatting paths.
-- **Whether Flask actually ran** — our stack proxies `location /` to gunicorn; 404 from Flask still **passes** the test.
-- **POST / HEAD / weird headers** — test uses `GET` only.
-- **Rate limiting, TLS, headers** — not covered.
-- **Environment misconfig** — we saw all **500** when `SECRET_KEY` was unset; the test looked like “nginx failure” but root cause was Flask sessions.
+- *Catches that yours doesn't:* paths you never thought to add — the long tail
+  of `/.svn/`, `/.DS_Store`, `/wp-json/`, `/telescope/`, `/.env.bak`,
+  thousands of them. nuclei also checks for *responses* (exposed `.git` that
+  actually serves objects, default credentials, version-leaking headers), not
+  just status codes.
+- *Misses:* anything requiring app-specific knowledge (your real routes, your
+  auth flow). Scanners are noisy, slow, and flaky in CI; a wordlist update can
+  turn a green build red for reasons unrelated to your change. They test
+  "what's commonly bad," not "what's bad *for this app*."
 
-**Why the course uses this approach:** Cheap, teachable, runs in every repo without licensing scanners. Good first gate for students.
+**2. Fuzzing (ffuf / wfuzz for paths, RESTler / schemathesis for the API).**
+Generate huge numbers of inputs — random paths, mutated paths, malformed
+encodings (`/%2e%2e/`, `/..%2f`, null bytes, overlong UTF-8) — and look for
+anything that *doesn't* get refused.
 
-**What we would add at higher stakes:** nginx `return 404` before `proxy_pass`, log assertion that gunicorn never sees listed paths, plus one dynamic scan job in CI.
+- *Catches that yours doesn't:* encoding/normalization bypasses. Your list has
+  `/.env` but does `/%2e%2env` or `/.%65nv` or `//.env` or `/./.env` also get
+  blocked? A fuzzer finds the case where nginx's regex and Flask's router
+  disagree about what a path *is*. This is exactly the class of bug a static
+  string list cannot see.
+- *Misses:* semantic correctness. A fuzzer knows "this returned 500, weird" but
+  not "this leaked another user's meal plan." It's a firehose; triage cost is
+  real, and it won't tell you *why* something is wrong.
 
----
+**3. Property-based / structural tests (hypothesis, or a custom allowlist
+test).** Instead of testing a denylist, test an invariant. The strongest
+version: enumerate every route your Flask app actually declares
+(`app.url_map`), then assert that **any path outside that set returns 404 from
+nginx**, generating random outside-paths with hypothesis.
 
-## Strategy 2: Integration with a web vulnerability scanner (Nikto, OWASP ZAP, Nuclei)
+- *Catches that yours doesn't:* this inverts the logic from "these 20 are
+  blocked" to "everything not-a-real-route is blocked." That's much closer to
+  the real security property. It catches a new attack path the day it's
+  invented, because you never had to list it.
+- *Misses:* it's only as good as your "real routes" oracle, and it tends to
+  over-promise — plenty of non-route paths *should* still reach Flask (static
+  files, OAuth callbacks). You end up encoding exceptions, and the test gets
+  subtle. It also still doesn't cover *non-path* attacks (method, headers,
+  body).
 
-**How it works:** Point a scanner at staging; it crawls and fires thousands of known checks.
+**4. Behavioral / log-assertion tests.** Assert not just the response code but
+that the request *never woke Flask* — check the gunicorn/Flask access log
+contains none of the bad paths. Your repo already has the skeleton of this
+(`test_flask_never_saw_any_of_them`), it just skips unless `logs/flask.log`
+exists.
 
-**Catches beyond the JSON list:**
+- *Catches that yours doesn't:* the difference between "nginx returned 404" and
+  "nginx proxied it, Flask returned 404." A status-only check can't tell those
+  apart; the log check proves the request was refused *at the edge*. (Your
+  body-size < 1KB heuristic is a clever proxy for this, but a log assertion is
+  the real thing.)
+- *Misses:* still path-list-bound. It only checks the 20 strings against the
+  log. And it depends on log format/retention being stable.
 
-- **Huge template libraries** (CVE checks, misconfigs, default files).
-- **Header/TLS issues** (HSTS, cookie flags) in the same run.
-- **Combo attacks** (e.g. XSS on a form the static list never hits).
+**5. Config-as-artifact tests (gixy, `nginx -t`, golden/snapshot tests).**
+Lint the nginx config itself (gixy finds SSRF/`add_header` inheritance traps),
+run `nginx -t` in CI to catch syntax errors, and/or snapshot the rendered
+config so an unintended diff fails review.
 
-**Misses:**
+- *Catches that yours doesn't:* the classic `add_header` footgun — adding an
+  `add_header` inside a `location` *silently drops all the server-level
+  security headers for that location*. A path-status test won't notice your
+  HSTS/CSP vanished on `/login`. gixy catches it statically. It also catches
+  config that's broken before the stack even boots.
+- *Misses:* runtime behavior. A config can lint clean and still route traffic
+  somewhere dumb. It doesn't test the actual request/response.
 
-- **Business-logic flaws** (IDOR on `/mealplan`, OAuth state bugs).
-- **False positives** — noisy reports need human triage.
-- **Flask-only bugs** on routes that require login unless you script auth.
-- **“Passes scanner” ≠ safe** — scanners lag new frameworks.
+**6. Continuous / production monitoring (WAF, fail2ban, alerting).** Not a
+"test" in the CI sense, but the same goal: ModSecurity/Cloudflare rules, or
+fail2ban watching the nginx log and banning IPs that rack up 404s.
 
-**Honest read:** Best for **breadth** on a deployed URL; poor for proving **your** 20 paths without also maintaining the JSON test.
+- *Catches that yours doesn't:* the live, adversarial, novel stuff — and it
+  responds (bans, alerts) instead of just asserting. It's the only one that
+  works against attacks invented after your last deploy.
+- *Misses:* it's detection/response, not a regression gate. It won't stop you
+  from *shipping* a misconfig; it just (maybe) catches the consequences in
+  prod. False positives can ban real users.
 
----
+## Me
 
-## Strategy 3: Fuzzing (ffuf, wfuzz, boofuzz on HTTP)
+Give me the one concrete bypass you think our test is most likely to miss
+today.
 
-**How it works:** Generate or mutate paths (`/admin`, `/api/v1/../`, long strings) and observe status codes, lengths, timing.
+## LLM
 
-**Catches beyond the list:**
+Path normalization. Your `location ~ ^/\.` blocks a literal leading-dot
+segment, but bots routinely send `/%2e%2e%2f.env`, `/..;/.env`, `/.%2545nv`,
+or double-slashed `//.git/config`. nginx and Flask can normalize these
+differently. Your 20-string test sends only the canonical forms, so it would
+stay green even if an encoded variant slipped through to Flask. A 10-line ffuf
+run with an encoding wordlist, or a hypothesis test that mutates each known-bad
+path through URL-encoding, would surface it. That's the highest-value addition
+for the least effort.
 
-- **Unknown paths** that return 200/500/302 when they should not.
-- **Parser differentials** (double encoding, `%2e%2e/`).
-- **Crashers** — 500s that reveal debug mode.
+## Me
 
-**Misses:**
+Rank what you'd add first if security were higher stakes.
 
-- **Semantic authorization** — fuzzer does not know “user A must not see user B’s meal plan.”
-- **Stateful flows** (login → CSRF → POST) without heavy scripting.
-- **Operational cost** — easy to DoS your own staging if run too hot.
+## LLM
 
-**Honest read:** Finds **weird edge URLs**; weak on **correct behavior** for valid app routes.
-
----
-
-## Strategy 4: Behavioral / end-to-end tests (Playwright, Cypress)
-
-**How it works:** Browser drives real login, meal plan, OAuth; asserts UI and network tab.
-
-**Catches beyond the list:**
-
-- **Real user flows** after deploy (cookies, HTTPS redirects, CSP breaking Bootstrap).
-- **“Login still works under rate limit”** after nginx changes.
-
-**Misses:**
-
-- **20 probe paths** unless you explicitly visit each (duplicates Strategy 1 in a heavier runner).
-- **Mass scanning volume** — one browser session is not 10k bots.
-
-**Honest read:** Best for **“does the product work?”** not **“did we block /.env?”**
-
----
-
-## Strategy 5: Log-based / metrics assertions (“Flask never saw them”)
-
-**How it works:** After a scan, grep gunicorn/nginx logs; alert if `wp-login` appears in app logs or if 404 rate spikes.
-
-**Catches beyond the list:**
-
-- **Misconfigured proxy** — exactly the gap in our current `location /` setup.
-- **Production-only issues** (wrong `SECRET_KEY`, broken upstream).
-
-**Misses:**
-
-- **Attacks that never log** (dropped at firewall).
-- **Needs reliable log pipeline** — our optional `test_flask_never_saw_any_of_them` skips when `logs/flask.log` does not exist.
-
-**Honest read:** Strong **second line of defense** when paired with nginx deny rules; weak alone without log discipline.
-
----
-
-## Strategy 6: Infrastructure / config tests (pytest on nginx.conf, conftest, policy-as-code)
-
-**How it works:** Parse `deploy/nginx/nginx.conf` in CI; assert `limit_req` exists, `db` has no `ports`, TLS 1.2+ only.
-
-**Catches beyond the list:**
-
-- **Accidental compose regressions** (someone publishes `5432:5432`).
-- **Missing rate limit zone** before merge.
-
-**Misses:**
-
-- **Runtime behavior** — config can be valid but app still returns 500.
-- **Does not prove** attack paths are blocked at runtime.
-
-**Honest read:** Fast guardrails on **shape** of security config, not on **outcomes**.
-
----
-
-## Strategy 7: Manual red-team / peer review
-
-**How it works:** Teammate tries `curl`, Burp, stolen session cookie, `docker compose exec db psql`.
-
-**Catches:**
-
-- **Context** — “this 404 leaks that the app is Flask.”
-- **Chained bugs** the automated list will never include.
-
-**Misses:**
-
-- **Repeatability** unless written up as tests afterward.
-
----
-
-## Summary table
-
-| Strategy | Best at | Weak at |
-|----------|---------|---------|
-| Parametrized pytest + JSON | Fast regression on known bad paths | Unknown paths; proxy-to-Flask blind spot |
-| Scanner (ZAP/Nuclei) | Wide CVE / misconfig coverage | Logic bugs; noise |
-| Fuzzing | Weird URLs, crashes | Authz, business rules |
-| E2E browser | Real user + TLS + cookies | Bot path volume |
-| Log assertions | Proving edge blocked app | Needs logging setup |
-| Config tests | Compose/nginx policy | Runtime 500s |
-| Manual review | Chains and judgment | Not automatic |
+1. **Promote the log-assertion test from skip to enforced** (configure
+   `accesslog` to a file, or assert on `docker logs`). You already wrote it;
+   make it run. Cheapest real win — it proves "blocked at the edge," not just
+   "got a 404 somehow."
+2. **Add gixy + `nginx -t` to CI.** Catches the `add_header`-drops-headers trap
+   and syntax breakage statically, in seconds, no live stack needed.
+3. **Add an encoding-mutation layer** to the existing parametrized test (wrap
+   each path in a handful of encodings). Closes the normalization-bypass gap
+   without adopting a whole fuzzing harness.
+4. **Nightly (not per-PR) nuclei/ZAP baseline scan** against a deployed
+   instance, with results triaged by a human. Keep it out of the PR gate so
+   wordlist churn doesn't block merges.
 
 ---
 
-## What we learned from the LLM this week (example for your write-up)
+## In my own words
 
-**Surprise:** With `SECRET_KEY` unset, every attack-path test returned **500**, not 404. The LLM helped trace that to Flask’s session middleware, not nginx “letting attacks through.”
+**What strategies exist.** Beyond our parametrized known-bad-path test, the
+landscape is: (1) real scanners (nikto/nuclei/ZAP) that bring a huge, maintained
+corpus of bad paths and check responses not just codes; (2) fuzzers (ffuf,
+schemathesis) that generate mutated/encoded inputs to find normalization
+bypasses; (3) property/structural tests that flip the logic to "everything that
+isn't a real route must 404," so new attacks are covered without listing them;
+(4) behavioral/log tests that prove the request died at nginx and never woke
+Flask; (5) config-linting (gixy, `nginx -t`, snapshot tests) that catch
+misconfigs like the `add_header` inheritance trap before the stack even runs;
+and (6) live monitoring/WAF/fail2ban that detects and responds to novel attacks
+in production.
 
-**Why it mattered:** The pytest message said “nginx let it through to Flask,” but the fix was **operations** (set `SECRET_KEY` in `.env`), not nginx rules. It showed that **green tests depend on deploy env**, not just config files.
+**Why the provided approach is what it is.** It's deliberately the cheapest
+test that gives a real signal. It's deterministic (no wordlist churn), fast,
+hermetic enough to gate a PR, and readable — every entry is a string a
+teammate can understand and extend from their own logs. Its job isn't to prove
+"we're secure"; it's to be a **regression alarm**: if someone refactors the
+nginx config and accidentally widens `location /` so a known scanner path now
+reaches Flask, this test goes red immediately. For that specific job, a 20-line
+parametrized test is exactly right, and the body-size assertion is a nice touch
+that upgrades it from "got a 404" to "got nginx's 404."
 
-**Second surprise:** All 20 tests **passed** while gunicorn access logs still listed `/wp-login.php` and `/.env`. The LLM clarified that our `location /` **proxies everything** — passing status-code tests is not the same as blocking at the edge.
+**What it doesn't catch.** Anything not literally in the list: encoded/
+normalized variants of the same paths, the long tail of scanner paths we didn't
+write down, and — more importantly — every attack that isn't a fixed URL string
+at all: SQL/template injection in query params or form bodies, oversized
+request bodies, slowloris, host-header abuse, OAuth callback tampering, missing
+security headers, and auth/authorization logic bugs. A green run here means
+"these 20 strings are refused at the edge," not "no unauthorized request
+reaches Flask."
 
-*Edit this section with your own “aha” if a different part stood out to you.*
-
----
-
-## If security were higher stakes — what we would add
-
-1. **nginx `map` or explicit `location = /wp-login.php { return 404; }`** for everything in `attack_paths.json` *before* `location /`.
-2. **CI job** that fails if gunicorn logs contain any path from the JSON after a test run.
-3. **Scheduled ZAP baseline** against staging (weekly).
-4. **WAF / cloud shield** in front of nginx for volumetric bots.
-5. **Separate rate-limit zones** for `register` vs `login` vs OAuth.
-6. **Secrets scanning** in git + block `.env` in images.
-7. **Managed Postgres** with IAM/network policies instead of only “no ports in compose.”
-
-The provided pytest + JSON approach is the right **first layer** for a course repo: explicit, cheap, and good for teamwork. It is not a complete security program by itself.
+**What I'd add if security were higher stakes.** First, turn on the log
+assertion we already have (point gunicorn `accesslog` at a file) so the test
+proves edge-refusal, not just a 404. Second, add `gixy` and `nginx -t` to CI to
+catch the `add_header`-drops-server-headers trap and syntax errors statically.
+Third, wrap the existing parametrized paths in a few URL-encodings to close the
+normalization-bypass gap. Then, out of the PR critical path, a nightly nuclei
+or ZAP baseline scan against a deployed instance, triaged by a human. The first
+three are an afternoon of work and meaningfully raise the floor; the scanner is
+ongoing operational cost and belongs in a nightly job, not the merge gate.
