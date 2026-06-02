@@ -25,6 +25,7 @@ import responses  # noqa: E402
 from app import app, engine  # noqa: E402
 from sqlmodel import SQLModel  # noqa: E402
 from tests.csrf_helpers import delete_with_csrf, post_json_with_csrf, post_with_csrf  # noqa: E402
+from tests.conftest import csrf_delete, csrf_post  # noqa: E402
 
 _EDAMAM_RE = re.compile(r"https://api\.edamam\.com/api/recipes/v2\?.*")
 
@@ -62,6 +63,7 @@ def test_week6_demo_register_search_detail_scale_plan_delete(client):
     )
 
     assert post_with_csrf(
+    assert csrf_post(
         client,
         "/register",
         {"username": "coord_user", "password": "password123"},
@@ -101,6 +103,11 @@ def test_week6_demo_register_search_detail_scale_plan_delete(client):
         client,
         "/mealplan",
         {"day_of_week": "1", "recipe_id": str(rid), "servings": "2"},
+    plan = csrf_post(
+        client,
+        "/mealplan",
+        {"day_of_week": "1", "recipe_id": str(rid), "servings": "2"},
+        token_url="/mealplan",
         follow_redirects=False,
     )
     assert plan.status_code == 302
@@ -111,6 +118,7 @@ def test_week6_demo_register_search_detail_scale_plan_delete(client):
     assert str(rid).encode() in board.data
 
     clear = delete_with_csrf(client, "/mealplan/1")
+    clear = csrf_delete(client, "/mealplan/1")
     assert clear.status_code == 302
 
     board_after = client.get("/mealplan")

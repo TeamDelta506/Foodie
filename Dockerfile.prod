@@ -1,0 +1,14 @@
+FROM python:3.12-slim
+
+WORKDIR /app
+
+# Install dependencies first; Docker caches this layer if requirements don't change.
+COPY requirements.txt .
+RUN pip install --no-cache-dir -r requirements.txt
+
+# Copy the rest of the app.
+COPY . .
+
+# Production: run Gunicorn. Nginx will talk to it via unix socket.
+CMD ["gunicorn", "-c", "gunicorn.conf.py", "app:app"]
+

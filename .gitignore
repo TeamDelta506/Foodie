@@ -15,4 +15,8 @@ nginx/certs/*.pem
 # S3-synced content is each student's own; don't commit
 S3_content/*
 !S3_content/.gitkeep
+
+# Week 8: local/self-signed TLS certs (never commit private keys)
+deploy/nginx/certs/*.pem
+!deploy/nginx/certs/.gitkeep
 .venv

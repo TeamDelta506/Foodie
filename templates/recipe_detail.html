@@ -26,7 +26,7 @@
             <div class="row g-0 align-items-lg-stretch">
                 <div class="col-lg-5">
                     <div class="foodie-recipe-card-media">
-                        {% with image_url=recipe.image_url, width=800, height=600, loading='eager' %}
+                        {% with image_url=recipe.image_url, recipe_id=recipe.id, width=800, height=600, loading='eager' %}
                         {% include "partials/recipe_image.html" %}
                         {% endwith %}
                         {% if recipe.calories is not none %}
@@ -230,5 +230,11 @@
         {% endif %}
     </div>
 </div>
+{% endif %}
+{% endblock %}
+
+{% block scripts %}
+{% if recipe and user and ingredients %}
+<script src="{{ url_for('static', filename='js/recipe-scale.js') }}"></script>
 {% endif %}
 {% endblock %}
