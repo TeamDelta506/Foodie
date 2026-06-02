@@ -19,7 +19,7 @@ from bs4 import BeautifulSoup  # noqa: E402
 from sqlmodel import SQLModel  # noqa: E402
 
 from app import app, engine  # noqa: E402
-from tests.conftest import csrf_post  # noqa: E402
+from tests.csrf_helpers import post_with_csrf  # noqa: E402
 
 
 @pytest.fixture
@@ -80,7 +80,7 @@ def test_register_page_has_github_and_remember(client):
 
 def test_base_nav_logged_in_copy_after_test_login(client):
     """Navbar shows contract copy when authenticated (CONTRACTS.md §9)."""
-    reg = csrf_post(
+    reg = post_with_csrf(
         client,
         "/register",
         {"username": "week7user", "password": "password123"},
@@ -103,7 +103,7 @@ def test_base_nav_includes_recipes_discover_link(client):
 
 def test_mealplan_page_has_seven_day_slots(client):
     """Meal plan UI materializes 7 weekday rows/cards — structural hook data-day attributes."""
-    csrf_post(client, "/register", {"username": "htmltest", "password": "password123"})
+    post_with_csrf(client, "/register", {"username": "htmltest", "password": "password123"})
     response = client.get("/mealplan")
     assert response.status_code == 200
     soup = BeautifulSoup(response.data, "html.parser")
@@ -113,7 +113,7 @@ def test_mealplan_page_has_seven_day_slots(client):
 
 def test_mealplan_page_has_post_form_for_add(client):
     """Logged-in meal plan view includes POST /mealplan form w/ day + recipe + servings fields."""
-    csrf_post(client, "/register", {"username": "plantest", "password": "password123"})
+    post_with_csrf(client, "/register", {"username": "plantest", "password": "password123"})
     response = client.get("/mealplan")
     assert response.status_code == 200
     soup = BeautifulSoup(response.data, "html.parser")

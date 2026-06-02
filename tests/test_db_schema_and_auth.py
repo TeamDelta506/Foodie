@@ -19,7 +19,7 @@ from sqlalchemy import inspect  # noqa: E402
 from sqlmodel import SQLModel  # noqa: E402
 
 from app import app, engine  # noqa: E402
-from tests.conftest import csrf_delete, csrf_post  # noqa: E402
+from tests.csrf_helpers import delete_with_csrf, post_with_csrf  # noqa: E402
 
 
 @pytest.fixture(autouse=True)
@@ -64,6 +64,18 @@ def test_users_password_hash_is_nullable():
     cols = {c["name"]: c for c in inspector.get_columns("users")}
     assert "password_hash" in cols
     assert cols["password_hash"].get("nullable") is True
+
+
+def test_oauth_user_insert_sets_created_at():
+    """New OAuth-only users must persist created_at (Postgres Week 5 volumes)."""
+    from app import Session, User
+
+    with Session(engine) as db:
+        user = User(username="oauth_only_user", password_hash=None)
+        db.add(user)
+        db.commit()
+        db.refresh(user)
+        assert user.created_at is not None
 
 
 def test_oauth_identities_table_and_unique_provider_user():
@@ -116,13 +128,20 @@ def test_mealplan_get_requires_authenticated_user(client):
     assert response.status_code in (302, 401)
 
 
+def test_login_github_stores_remember_oauth_in_session(client):
+    """OAuth path: ?remember=y on /login/github sets session flag (CONTRACTS.md §3)."""
+    client.get("/login/github?remember=y")
+    with client.session_transaction() as sess:
+        assert sess.get("remember_oauth") is True
+
+
 def _register(client, username: str, password: str = "secret") -> None:
-    csrf_post(client, "/register", {"username": username, "password": password})
-    csrf_post(client, "/logout")
+    post_with_csrf(client, "/register", {"username": username, "password": password})
+    post_with_csrf(client, "/logout")
 
 
 def _login(client, username: str, password: str = "secret") -> None:
-    csrf_post(client, "/login", {"username": username, "password": password})
+    post_with_csrf(client, "/login", {"username": username, "password": password})
 
 
 def test_csrf_rejects_post_without_token(client):
@@ -153,7 +172,7 @@ def test_mealplan_scoped_to_current_user(client):
         recipe_id = recipe.id
 
     _login(client, "owner_a")
-    csrf_post(
+    post_with_csrf(
         client,
         "/mealplan",
         {"day_of_week": "0", "recipe_id": str(recipe_id), "servings": "2"},
@@ -174,5 +193,5 @@ def test_mealplan_delete_missing_day_returns_404(client):
     """DELETE /mealplan/<day> with no plan for current user returns 404, not 403."""
     _register(client, "deleter")
     _login(client, "deleter")
-    response = csrf_delete(client, "/mealplan/3", follow_redirects=False)
+    response = delete_with_csrf(client, "/mealplan/3", follow_redirects=False)
     assert response.status_code == 404
