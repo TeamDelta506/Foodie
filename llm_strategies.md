@@ -188,3 +188,161 @@ normalization-bypass gap. Then, out of the PR critical path, a nightly nuclei
 or ZAP baseline scan against a deployed instance, triaged by a human. The first
 three are an afternoon of work and meaningfully raise the floor; the scanner is
 ongoing operational cost and belongs in a nightly job, not the merge gate.
+
+---
+
+## Future security additions (beyond the edge-test work)
+
+The strategies above are all about *testing the edge refuses what it should*.
+Stepping back to the whole app, here's what I'd add next that **isn't** already
+on our harden-lists (`role_dbsec_coord.md`, `llm_probe_dbsec.md`), grounded in
+this repo. The already-listed items — log-assertion enforcement, `gixy` +
+`nginx -t`, encoding-mutation tests, nightly nuclei/ZAP, `ProxyFix`,
+least-privilege DB user, cert exclusion from the image, `SECRET_KEY`
+fail-closed, the OAuth-linking fix, dep pinning, branch protection + scoped CI
+secrets, and rate-limiting `/register` — still stand; these are *additional*.
+
+### Pipeline / supply-chain (cheap, high-leverage)
+
+- **`pip-audit` + Dependabot in CI** — we pin some deps but nothing scans them
+  for known CVEs. This is the dependency-level complement to the scanner family
+  in §1 above (which only scans *paths*).
+- **`bandit` (Python SAST) + `semgrep`** — static analysis catches what no
+  path/edge test can: the `@csrf.exempt` on `recipes_scale`, the `SECRET_KEY`
+  default fallback in `app.py`, and `debug=True` in the `__main__` block. Think
+  of it as a 7th strategy family: *lint the app code*, not just the config.
+- **Secret scanning (`gitleaks`/`trufflehog`)** — pre-commit hook + CI gate so a
+  `.env` or `deploy/nginx/certs/*.pem` can never be committed. Our attack list
+  already treats `.env` / `.aws/credentials` as crown jewels; this stops them
+  leaking at the source.
+
+### Container / runtime hardening
+
+- **Run the app as non-root.** `Dockerfile.prod` has no `USER` directive, so
+  gunicorn runs as root. Add a non-root `USER`, plus `read_only: true`,
+  `cap_drop: [ALL]`, and `security_opt: [no-new-privileges]` in
+  `docker-compose.prod.yml`.
+- **Image scanning** — Trivy/Grype on the built image in CI.
+
+### App / auth (the layer no edge test reaches)
+
+- **Account-level lockout / backoff.** Our `limit_req zone=login` is *per-IP*, so
+  password spraying from a botnet (one try per IP) sails past it. Add per-account
+  failed-attempt backoff.
+- **Server-side sessions + session rotation on login.** Flask's default is a
+  client-side signed cookie — unrevocable, no "log out everywhere." A server-side
+  store (e.g. Redis) plus regenerating the session id on login closes
+  session-fixation and enables revocation.
+- **Tighten CSP** — `nginx.conf` still allows `'unsafe-inline'` in `style-src`.
+  Move to hashes/nonces and add a CSP `report-uri` so violations are a signal.
+- **Fix the image-proxy SSRF TOCTOU.** `_safe_remote_image_url()` resolves DNS,
+  then `_fetch_remote_image()` connects separately — a DNS-rebind window. Pin the
+  validated IP for the actual fetch, or use an egress allowlist.
+
+### Secrets / infra (we deploy on AWS — `boto3` is in `requirements.txt`)
+
+- **Move secrets out of `.env` into AWS Secrets Manager / SSM Parameter Store**,
+  with rotation for `SECRET_KEY` and the OAuth client secret. Document a
+  key-rotation runbook (rotating `SECRET_KEY` invalidates all sessions).
+- **IAM instance roles instead of long-lived AWS keys**, IMDSv2 enforced,
+  locked-down security groups.
+- **TLS for the DB connection** — `DATABASE_URL` is plaintext `postgresql://`
+  over the Docker network; add `sslmode=require`.
+
+### Detection / response & process
+
+- **Centralized logs + alerting** on 401/403/500 spikes and failed-login bursts
+  (extends the WAF/fail2ban idea in §6 from "block" to "observe + alert"), plus
+  an **auth audit log** (login, OAuth link, logout).
+- **A written STRIDE threat model** — `llm_probe_dbsec.md` is effectively an
+  informal one; formalizing it makes coverage gaps explicit.
+
+**Top 5 to do next:** `pip-audit` + Dependabot, `bandit`/`semgrep`, non-root
+container, per-account login backoff, and moving secrets into AWS Secrets
+Manager.
+
+---
+
+## Mobile: different security considerations if Foodie becomes a phone app
+
+We're weighing turning Foodie into a phone app. The short version: **going
+mobile changes the *authentication model* more than anything else, and that
+ripples through most of our current controls.** How much depends on which kind:
+
+- **Native iOS/Android app** talking to our Flask backend as a JSON API — the
+  biggest shift (covered below).
+- **PWA / mobile-optimized web** (same Flask, responsive UI) — much lighter;
+  cookies, CSRF, and the nginx edge carry over largely unchanged.
+
+### The big one: cookies/CSRF → tokens
+
+Today we authenticate with Flask-Login **session cookies** + global
+`CSRFProtect` (`app.py`). A native app can't ride browser cookies cleanly, so
+we'd move to a **token-based API**: OAuth2 Authorization Code **+ PKCE**, issuing
+short-lived access tokens + rotating refresh tokens.
+
+- **CSRF mostly goes away** for a pure bearer-token API (no ambient cookie = no
+  cross-site forgery), so the `@csrf.exempt` on `recipes_scale` stops being a
+  smell — but we trade it for **token theft / storage** risk.
+- **Token revocation becomes mandatory.** Our sessions are client-side signed
+  cookies with no server-side store; with long-lived refresh tokens on a
+  losable/rootable device, a **server-side token store with rotation +
+  reuse-detection** moves from nice-to-have to required.
+
+### Secrets can't live in the app binary
+
+APKs/IPAs are decompilable, so:
+
+- **No OAuth `client_secret` on device** — mobile is a *public* OAuth client;
+  use **PKCE** and treat the client as untrusted. `OAUTH_CLIENT_SECRET` stays
+  server-side only.
+- **No Edamam keys in the app.** We already proxy Edamam server-side through
+  Flask — exactly right; keep every third-party key behind the backend.
+
+### OAuth redirect / deep-link hijacking
+
+Mobile redirects return via a URL scheme or app link that **other apps can try
+to claim**. Mitigate with **PKCE**, **claimed HTTPS App Links / Universal
+Links** (not `myapp://` schemes), and `state` validation. Our web open-redirect
+guard (`startswith("/") and not //`) doesn't translate.
+
+### Transport & a client we can't trust
+
+- **Real TLS certs required** (iOS ATS rejects our self-signed dev cert);
+  consider **certificate pinning** with a rotation plan.
+- **We can't patch the client instantly** — users run old versions for months.
+  So: **version the API**, enforce everything server-side, and keep a
+  **force-upgrade / kill-switch** for clients with known vulns.
+- **Assume a hostile device:** rooted/jailbroken phones, user-installed MITM
+  CAs, tampered binaries. Store tokens in **iOS Keychain / Android Keystore**,
+  never plaintext. Optionally **device attestation** (App Attest / Play
+  Integrity) for sensitive calls.
+
+### Easier on mobile
+- CSRF largely disappears for token APIs.
+- DOM-XSS surface shrinks for native UI — unless a WebView reintroduces it (and
+  our CSP only protects the web path).
+
+### Unchanged / still applies
+- nginx **edge filter, rate limiting, TLS termination, headers** still front the API.
+- **Server-side authorization** (`current_user.id` ownership checks) — *more*
+  important now that the client is fully untrusted.
+- **Image-proxy SSRF guard, DB trust boundary, least-privilege DB user** — same.
+- The **OAuth account-linking bug** (`llm_probe_dbsec.md`) is worse on mobile
+  (account takeover) — fix before expanding surface.
+
+### New, mobile-specific
+- **Platform privacy/permissions:** app-store data-disclosure labels, runtime
+  permission prompts, minimize PII.
+- **Push notifications:** no sensitive data in payloads; secure the device-token
+  registration endpoint.
+- **Rate-limit by account/token, not just IP** — mobile roams across IPs
+  (cellular ↔ wifi), so per-IP limits both over- and under-block.
+
+**Top 3 before writing any mobile code:** (1) design the **token model** —
+short access + rotating refresh tokens with a **server-side revocation store**;
+(2) **mobile OAuth = public client + PKCE**, no secrets/keys in the binary (keep
+proxying Edamam); (3) **secure on-device token storage + real TLS** (decide on
+cert pinning).
+
+what else do you recommend to ass to security in the future?

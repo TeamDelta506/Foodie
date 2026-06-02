@@ -751,4 +751,527 @@ Directory: **** (5 files)
 _**Agent (claude-opus-4-8)**_
 
 <think><details><summary>Thought Process</summary>
- I'm reviewing the existing coordination artifacts to understand the format and structure of team evidence documentation, particularly looking at how </details></think>
+ I'm reviewing the existing coordination artifacts to understand the format and structure of team evidence documentation, particularly looking at how `team_walkthrough.md`, `coord_session.md`, and `role_work.md` are organized, then checking `CONTRACTS.md` to see what the evidence deliverable should actually contain.</details></think>
+
+_**Agent (claude-opus-4-8)**_
+
+Let me look at the existing coordination/team artifacts to match format and understand what "evidence" means here.
+
+_**Agent (claude-opus-4-8)**_
+
+<tool-use data-tool-type="read" data-tool-name="read_file_v2">
+<details><summary>Tool use: **read_file_v2** • Read file: c:\Users\jkrac\OneDrive\Documents\GC-SDE\TCSS 506\Foodie\team_walkthrough.md</summary>
+
+</details>
+</tool-use>
+
+<tool-use data-tool-type="read" data-tool-name="read_file_v2"><details>
+<summary>Tool use: **read_file_v2**</summary>
+
+</details></tool-use>
+
+_**Agent (claude-opus-4-8)**_
+
+<tool-use data-tool-type="read" data-tool-name="read_file_v2">
+<details><summary>Tool use: **read_file_v2** • Read file: c:\Users\jkrac\OneDrive\Documents\GC-SDE\TCSS 506\Foodie\coord_session.md</summary>
+
+</details>
+</tool-use>
+
+<tool-use data-tool-type="read" data-tool-name="read_file_v2"><details>
+<summary>Tool use: **read_file_v2**</summary>
+
+</details></tool-use>
+
+_**Agent (claude-opus-4-8)**_
+
+<think><details><summary>Thought Process</summary>
+ I'm noticing some inconsistencies in the team composition across different documents—the role file suggests a 3-person team with Justin handling database and security, while the session file lists 4 people including Sam, Asia, Justin, and Sowmya. Based on the app configuration, Justin appears to be the user here and owns the database schema responsibilities.
+
+Now I need to look at the role assignments and contract details to understand what "team_evidence" should contain as a Week 8 deliverable, and clarify the actual team structure and contribution artifacts.</details></think>
+
+_**Agent (claude-opus-4-8)**_
+
+Let me read the remaining context to understand the Week 8 deliverable structure and exact team composition.
+
+_**Agent (claude-opus-4-8)**_
+
+<tool-use data-tool-type="read" data-tool-name="read_file_v2">
+<details><summary>Tool use: **read_file_v2** • Read file: c:\Users\jkrac\OneDrive\Documents\GC-SDE\TCSS 506\Foodie\role_work.md</summary>
+
+</details>
+</tool-use>
+
+<tool-use data-tool-type="read" data-tool-name="read_file_v2"><details>
+<summary>Tool use: **read_file_v2**</summary>
+
+</details></tool-use>
+
+_**Agent (claude-opus-4-8)**_
+
+<tool-use data-tool-type="read" data-tool-name="read_file_v2">
+<details><summary>Tool use: **read_file_v2** • Read file: c:\Users\jkrac\OneDrive\Documents\GC-SDE\TCSS 506\Foodie\study_guide_answers.md</summary>
+
+</details>
+</tool-use>
+
+<tool-use data-tool-type="read" data-tool-name="read_file_v2"><details>
+<summary>Tool use: **read_file_v2**</summary>
+
+</details></tool-use>
+
+_**Agent (claude-opus-4-8)**_
+
+<think><details><summary>Thought Process</summary>
+ I'm realizing that `team_evidence.md` isn't following a strict template—instead, it's a coordination document that ties together what each team member accomplished, showing which files they modified, what tests they ran, and how their work connects to the overall security hardening effort for Week 8. I need to check the team composition and deliverable structure in CONTRACTS.md and README to make sure the evidence doc aligns with the actual project setup and names.</details></think>
+
+_**Agent (claude-opus-4-8)**_
+
+Let me confirm the team composition and any deliverable expectations from the contracts and README.
+
+_**Agent (claude-opus-4-8)**_
+
+<tool-use data-tool-type="read" data-tool-name="read_file_v2">
+<details><summary>Tool use: **read_file_v2** • Read file: c:\Users\jkrac\OneDrive\Documents\GC-SDE\TCSS 506\Foodie\CONTRACTS.md</summary>
+
+</details>
+</tool-use>
+
+<tool-use data-tool-type="read" data-tool-name="read_file_v2"><details>
+<summary>Tool use: **read_file_v2**</summary>
+
+</details></tool-use>
+
+_**Agent (claude-opus-4-8)**_
+
+<tool-use data-tool-type="unknown" data-tool-name="ripgrep_raw_search">
+<details>
+<summary>Tool use: **ripgrep_raw_search**</summary>
+
+
+Parameters:
+
+```json
+{
+  "caseInsensitive": false,
+  "outputMode": "content",
+  "path": "c:\\Users\\jkrac\\OneDrive\\Documents\\GC-SDE\\TCSS 506\\Foodie\\README.md",
+  "pattern": "Justin|Sam|Asia|Sowmya|3-person|three|Week 8|team"
+}
+```
+Additional data:
+
+```json
+{
+  "isPruned": true,
+  "outputMode": "content",
+  "path": "c:\\Users\\jkrac\\OneDrive\\Documents\\GC-SDE\\TCSS 506\\Foodie\\README.md",
+  "pattern": "Justin|Sam|Asia|Sowmya|3-person|three|Week 8|team",
+  "topFiles": [
+    {
+      "matchCount": 8,
+      "uri": "README.md"
+    }
+  ],
+  "totalFiles": 1,
+  "totalMatches": 8
+}
+```
+Status: **completed**
+
+
+</details>
+</tool-use>
+
+<tool-use data-tool-type="unknown" data-tool-name="ripgrep_raw_search"><details>
+<summary>Tool use: **ripgrep_raw_search**</summary>
+
+</details></tool-use>
+
+_**Agent (claude-opus-4-8)**_
+
+<think><details><summary>Thought Process</summary>
+ I'm seeing a discrepancy between the team structure described in the README—a 4-person setup with Sowmya as coordinator, Sam on backend, Asia on frontend, and Justin handling database and security—versus the Week 8 framing that treats it as a 3-person team where the database/security person also takes on coordination responsibilities.
+
+So Justin is the user here, and for Week 8 the role has expanded to cover both security and coordination work. The `team_evidence.md` I'm building needs to reflect this reorganization and serve as Justin's evidence document that ties together all the hardening artifacts, security probe results, and test outcomes from Week 8. I'll structure it with a clear header, purpose statement, the updated team role map, a deliverables table grounded in actual files, the security probe findings with attack-path test results, reproducible test evidence with counts and commands, a coordination log, the backlog of deferred hardening work, and a final sign-off. Everything will reference real files I've seen and maintain consistency with the README names while acknowledging the Week 8 structural shift.
+
+Writing the markdown file now...</details></think>
+
+_**Agent (claude-opus-4-8)**_
+
+I have everything I need. I'll create `team_evidence.md` as the Week 8 coordination/security evidence document (authored from your DB/Security + Coordination role), tying together the real artifacts in the repo and grounding every claim in files I've verified.
+
+_**Agent (claude-opus-4-8)**_
+
+<tool-use data-tool-type="write" data-tool-name="edit_file_v2">
+
+<details><summary>Tool use: **edit_file_v2** • Edit file: c:\Users\jkrac\OneDrive\Documents\GC-SDE\TCSS 506\Foodie\team_evidence.md</summary>
+
+</details>
+
+</tool-use>
+
+<tool-use data-tool-type="write" data-tool-name="edit_file_v2"><details>
+<summary>Tool use: **edit_file_v2**</summary>
+
+</details></tool-use>
+
+_**Agent (claude-opus-4-8)**_
+
+Created `team_evidence.md` at the project root. It's the Week 8 evidence-of-work index, authored from your DB/Security + Coordination role, and grounded entirely in real files I verified.
+
+What's in it:
+- **Team & role map** for Week 8 (Sam/Asia/Justin/Sowmya from the README, with the security+coordination consolidation under you).
+- **Deliverables → evidence table** mapping each artifact (`nginx.conf`, `attack_paths.json`, `tests/test_attack_paths.py`, `role_dbsec_coord.md`, `llm_strategies.md`, `llm_probe_dbsec.md`, the prod stack, CI) to what it proves and its status. I marked `study_guide_answers.md` as **superseded** since it predates the edge-filter blocks.
+- **Reproducible test evidence** — the exact CI-equivalent commands, the 20 passed / 1 skipped result, and the honest `SECRET_KEY`-unset → HTTP 500 caveat that `study_guide_answers.md` recorded.
+- **Probe summary** (edge gaps, deploy leakage, insider findings) condensed from `llm_probe_dbsec.md`.
+- **Prioritized harden-later backlog with owners**, merging the lists from `role_dbsec_coord.md` and the probe.
+- **Coordination log** and a **sign-off**.
+
+A couple of notes:
+- I had to make a judgment call on what `team_evidence.md` should be — there was no template in the repo, so I modeled it on your existing coordination artifacts (`coord_session.md`, `team_walkthrough.md`, `role_work.md`) as a single verifiable index. If your assignment expects a different shape (e.g., per-teammate contribution logs, or git/PR evidence), tell me and I'll restructure.
+- The team is 4 people in the README/`CONTRACTS.md` (Week 7), but you described a 3-person Week 8 structure where the security person also coordinates — I reflected that consolidation rather than inventing a contradiction. Adjust if the Week 8 roster is different.
+
+Want me to also add a git/PR evidence section (commits, branches, reviews) or wire any of the top backlog items (the `.dockerignore` cert fix, `SECRET_KEY` fail-closed) as actual changes?
+
+---
+
+_**User**_
+
+ i need the team_evidence.md to contain: one per team, can be the same file submitted by all team members. Contains: link to team repo's main branch, link to the hardening branch, and a list of all <name>-hardening branches with links to each.
+
+---
+
+_**Agent (claude-opus-4-8)**_
+
+<think><details><summary>Thought Process</summary>
+ I see what the deliverable actually needs to be—a single team_evidence.md file that all team members submit, listing the main repo link, the hardening branch link, and all the individual hardening branches with their URLs. Let me check the git configuration to find the actual repository URL and see what branches exist.</details></think>
+
+_**Agent (claude-opus-4-8)**_
+
+Let me get the actual repo URL and branch names from git so the links are real.
+
+_**Agent (claude-opus-4-8)**_
+
+<tool-use data-tool-type="shell" data-tool-name="run_terminal_command_v2">
+<details><summary>Tool use: **run_terminal_command_v2** • Run command: git remote -v && echo "---BRANCHES---" && git branch -a</summary>
+
+```bash
+git remote -v && echo "---BRANCHES---" && git branch -a
+```
+
+```
+At C:\Users\jkrac\AppData\Local\Temp\ps-script-b02eba92-b8ad-49e9-8e76-c09c4cb77d31.ps1:7 char:15
++ git remote -v &amp;&amp; echo "---BRANCHES---" &amp;&amp; git branch -a
++               ~~
+The token '&amp;&amp;' is not a valid statement separator in this version.
+At C:\Users\jkrac\AppData\Local\Temp\ps-script-b02eba92-b8ad-49e9-8e76-c09c4cb77d31.ps1:7 char:40
++ git remote -v &amp;&amp; echo "---BRANCHES---" &amp;&amp; git branch -a
++                                        ~~
+The token '&amp;&amp;' is not a valid statement separator in this version.
+    + CategoryInfo          : ParserError: (:) [], ParentContainsErrorRecordException
+    + FullyQualifiedErrorId : InvalidEndOfLine
+ 
+
+```
+</details>
+</tool-use>
+
+<tool-use data-tool-type="shell" data-tool-name="run_terminal_command_v2"><details>
+<summary>Tool use: **run_terminal_command_v2**</summary>
+
+</details></tool-use>
+
+_**Agent (claude-opus-4-8)**_
+
+<think><details><summary>Thought Process</summary>
+ I need to adjust the command syntax since PowerShell doesn't support the && operator—I'll use separate commands or semicolons instead.</details></think>
+
+_**Agent (claude-opus-4-8)**_
+
+<tool-use data-tool-type="shell" data-tool-name="run_terminal_command_v2">
+<details><summary>Tool use: **run_terminal_command_v2** • Run command: git remote -v; echo "---BRANCHES---"; git branch -a</summary>
+
+```bash
+git remote -v; echo "---BRANCHES---"; git branch -a
+```
+
+```
+origin	https://github.com/TeamDelta506/Foodie.git (fetch)
+origin	https://github.com/TeamDelta506/Foodie.git (push)
+---BRANCHES---
+  feature/week6-contracts
+* justin-hardening
+  main
+  pr28-main-fix
+  tests/test_server_edamam_routes
+  week6/client-ui-e2e
+  week6/db&amp;security
+  week6db
+  remotes/origin/HEAD -&gt; origin/master
+  remotes/origin/asia-hardening
+  remotes/origin/cursor/remove-demo-prod
+  remotes/origin/feature/week6-contracts
+  remotes/origin/fix/github-login
+  remotes/origin/justin-hardening
+  remotes/origin/main
+  remotes/origin/master
+  remotes/origin/samuel-hardening
+  remotes/origin/tests/test_server_edamam_routes
+  remotes/origin/week6/client-ui-e2e
+  remotes/origin/week6/db&amp;security
+  remotes/origin/week7/client-oauth-ui
+  remotes/origin/week7/server-oauth-playwright
+  remotes/origin/week8-prep
+  remotes/origin/week8/production-stack
+
+```
+</details>
+</tool-use>
+
+<tool-use data-tool-type="shell" data-tool-name="run_terminal_command_v2"><details>
+<summary>Tool use: **run_terminal_command_v2**</summary>
+
+</details></tool-use>
+
+_**Agent (claude-opus-4-8)**_
+
+<think><details><summary>Thought Process</summary>
+ The repo has both `main` and `master` branches, with `master` being the default since `origin/HEAD` points there. The user asked for the "main branch" which is ambiguous, but I should link to the actual default branch which is `master`.
+
+For "the hardening branch," there's no single branch with that exact name—there are per-person branches like `justin-hardening` and `asia-hardening`, plus `week8/production-stack` and `week8-prep`. I need to figure out which one they're referring to since "the hardening branch" (singular) suggests a specific shared integration point rather than the individual ones. The three per-person hardening branches match the three-person team exactly, which confirms the structure. For the shared hardening branch, `week8/production-stack` is the most likely candidate, though I should flag this assumption along with the main/master ambiguity so the user can quickly correct either link if needed. I'll produce the file with both assumptions clearly marked rather than blocking on confirmation.</details></think>
+
+_**Agent (claude-opus-4-8)**_
+
+Got the real data. Repo is `https://github.com/TeamDelta506/Foodie`, the default branch (origin/HEAD) is `master`, and there are exactly three `<name>-hardening` branches on the remote: `justin-hardening`, `asia-hardening`, `samuel-hardening`. I'll rewrite `team_evidence.md` to the spec you described.
+
+_**Agent (claude-opus-4-8)**_
+
+<tool-use data-tool-type="write" data-tool-name="edit_file_v2">
+
+<details><summary>Tool use: **edit_file_v2** • Edit file: c:\Users\jkrac\OneDrive\Documents\GC-SDE\TCSS 506\Foodie\team_evidence.md</summary>
+
+</details>
+
+</tool-use>
+
+<tool-use data-tool-type="write" data-tool-name="edit_file_v2"><details>
+<summary>Tool use: **edit_file_v2**</summary>
+
+</details></tool-use>
+
+_**Agent (claude-opus-4-8)**_
+
+Replaced `team_evidence.md` with the spec'd deliverable. All links use the real remote data from `git`.
+
+Two things to confirm, since both are genuinely ambiguous in the repo:
+
+1. **Main branch** — your remote's default branch (`origin/HEAD`) is **`master`**, so I linked that. But a separate `main` branch also exists on the remote (and CI triggers on both `[main, master]`). If your team treats `main` as the real main, change the link to `.../tree/main`.
+
+2. **"The hardening branch"** — there's no branch literally named `hardening`. The shared Week 8 branch is **`week8/production-stack`** (there's also `week8-prep`), so I used that as the shared hardening branch. If you meant a different one, tell me which.
+
+The three `<name>-hardening` branches (`justin-`, `asia-`, `samuel-`) all exist on `origin`, matching your 3-person Week 8 team. Want me to adjust either of the two links above?
+
+---
+
+_**User**_
+
+@llm_strategies.md what else do you recommend to ass to security in the future?
+
+---
+
+_**Agent (claude-opus-4-8)**_
+
+<think><details><summary>Thought Process</summary>
+ I'm reviewing what's already covered in the security hardening list and thinking about what gaps remain—things like rate limiting on authentication endpoints, secrets rotation policies, audit logging for sensitive operations, and maybe container security practices if this gets deployed that way. ection).
+
+The question is asking what security improvements I'd recommend beyond what's already documented. Let me identify what's missing from the existing docs by comparing against what's already covered: log assertions, nginx validation in CI, encoding layers, regular vulnerability scanning, database least-privilege, certificate handling, SECRET_KEY fail-closed behavior, OAuth fixes, dependency pinning, branch protection, rate limiting on registration, and WAF/fail2ban mentions.
+
+For genuinely new gaps in this specific stack, I'm thinking through several areas. Moving secrets from plaintext .env files to a proper secrets manager like AWS Secrets Manager or SSM Parameter Store makes sense given they're deploying on EC2. Adding dependency vulnerability scanning with tools like Dependabot or pip-audit would catch known CVEs they're not currently checking for. The container image needs hardening—running as non-root, using read-only filesystems, and dropping unnecessary capabilities. Pre-commit hooks with secret scanning tools would prevent accidental key commits. The recipes_scale endpoint has CSRF disabled, which needs either a custom token or re-enabling protection, and the JSON API's reliance on session cookies creates CSRF risk that token-based auth could address. Security headers need tightening, particularly removing unsafe-inline from CSP and adding reporting endpoints. They're missing structured logging and centralized aggregation with alerting on suspicious patterns. Account security features like password breach checking, login attempt lockout, and MFA aren't implemented. Session management could be improved with rotation on privilege changes, idle timeouts, and moving from client-side signed cookies to server-side storage.
+
+OAuth could be hardened further with PKCE and stricter email verification. The image proxy has a TOCTOU vulnerability in its SSRF guard that needs IP pinning or re-validation. Database connections are plaintext on the Docker network and need TLS, plus they should implement row-level security and separate migration vs runtime roles. Beyond /login, they need global rate limiting and connection limits to prevent slowloris attacks. Adding SAST tools like bandit and semgrep to the pipeline would catch more issues earlier. Infrastructure-wise, they need tighter security groups, proper SSH key management, IMDSv2 enforcement, and least-privilege IAM roles without long-lived credentials.
+
+Now I'm thinking about what's genuinely new versus what's already on their backlog. They should formalize incident response procedures for secret leaks and key rotation, especially since rotating SECRET_KEY invalidates sessions. A formal STRIDE threat model would be valuable beyond the current probe. The question is really asking what to prioritize next, so I should frame these as the highest-impact additions that aren't already documented in their hardening lists.</details></think>
+
+_**Agent (claude-opus-4-8)**_
+
+Good question — and worth separating from the backlog we've already written down. The existing docs (`llm_strategies.md`, `role_dbsec_coord.md`, `llm_probe_dbsec.md`) already cover: log-assertion enforcement, `gixy`+`nginx -t`, encoding-mutation tests, a nightly nuclei/ZAP scan, `ProxyFix`, least-privilege DB user, cert exclusion, `SECRET_KEY` fail-closed, the OAuth linking fix, dep pinning, branch protection + scoped CI secrets, and rate-limiting `/register`.
+
+Here's what I'd add **beyond** all of that, grounded in this repo:
+
+### Pipeline / supply-chain (cheap, high-leverage)
+- **`pip-audit` + Dependabot** in CI — you pin some deps but nothing scans them for known CVEs. This is the natural complement to the scanner family in `llm_strategies.md` §1, but for *dependencies* instead of *paths*.
+- **`bandit` (Python SAST) + `semgrep`** — static analysis catches things no path/edge test can: the `@csrf.exempt` on `recipes_scale`, the `SECRET_KEY` default fallback, `debug=True` in `app.py`'s `__main__`. A natural "category 7" to add to your strategy list.
+- **Secret scanning** — `gitleaks`/`trufflehog` as a pre-commit hook and CI gate, so a `.env` or `key.pem` can never be committed (your attack list already treats `.env`/`.aws/credentials` as crown jewels — this stops them leaking at the source).
+
+### Container / runtime hardening
+- **Run the app as non-root.** `Dockerfile.prod` has no `USER` directive, so gunicorn runs as root. Add a non-root `USER`, plus `read_only: true`, `cap_drop: [ALL]`, and `security_opt: [no-new-privileges]` in `docker-compose.prod.yml`.
+- **Image scanning** — Trivy/Grype on the built image in CI.
+
+### App / auth (the layer no edge test reaches)
+- **Account-level lockout / backoff.** Your `limit_req zone=login` is **per-IP**; password spraying from a botnet (one try per IP) sails past it. Add per-account failed-attempt backoff.
+- **Server-side sessions + session rotation on login.** Flask's default is a client-side signed cookie — you can't *revoke* it, and there's no "log out everywhere." A server-side store (Redis) plus regenerating the session id on login closes session-fixation and enables revocation.
+- **Tighten CSP** — `nginx.conf` line 46 still allows `'unsafe-inline'` in `style-src`. Move to hashes/nonces and add a CSP `report-uri` so violations become a signal.
+- **Fix the image-proxy SSRF TOCTOU.** `_safe_remote_image_url()` resolves DNS, then `_fetch_remote_image()` connects separately — a DNS-rebind window. Pin the validated IP for the actual fetch, or use an egress allowlist.
+
+### Secrets / infra (you're on AWS — `boto3` is in `requirements.txt`)
+- **Move secrets out of `.env` into AWS Secrets Manager / SSM Parameter Store**, with rotation for `SECRET_KEY` and the OAuth client secret. Document a key-rotation runbook (rotating `SECRET_KEY` invalidates all sessions — needs a plan).
+- **IAM instance roles instead of long-lived AWS keys**, IMDSv2 enforced, locked-down security groups.
+- **TLS for the DB connection** — `DATABASE_URL` is plaintext `postgresql://` over the Docker network; add `sslmode=require` and TLS at rest.
+
+### Detection / response & process
+- **Centralized logs + alerting** on 401/403/500 spikes and failed-login bursts (extends the WAF/fail2ban idea in `llm_strategies.md` §6 from "block" to "observe + alert"). Add an **auth audit log** (login, OAuth link, logout).
+- **A written STRIDE threat model** — `llm_probe_dbsec.md` is effectively an informal one; formalizing it makes coverage gaps explicit.
+
+If I had to pick the **top 5 next**: `pip-audit`+Dependabot, `bandit`/`semgrep`, non-root container, per-account login backoff, and moving secrets into AWS Secrets Manager.
+
+Want me to append these as a new "Future security additions" section to `llm_strategies.md` (or to the `team_evidence.md` backlog), so it's captured alongside the existing strategy write-up?
+
+---
+
+_**User**_
+
+yes please append
+
+---
+
+_**Agent (claude-opus-4-8)**_
+
+I'll append a "Future security additions" section to `llm_strategies.md`, keeping the existing voice and grounding each item in the repo.
+
+_**Agent (claude-opus-4-8)**_
+
+<tool-use data-tool-type="read" data-tool-name="read_file_v2">
+<details><summary>Tool use: **read_file_v2** • Read file: c:\Users\jkrac\OneDrive\Documents\GC-SDE\TCSS 506\Foodie\llm_strategies.md</summary>
+
+</details>
+</tool-use>
+
+<tool-use data-tool-type="read" data-tool-name="read_file_v2"><details>
+<summary>Tool use: **read_file_v2**</summary>
+
+</details></tool-use>
+
+_**Agent (claude-opus-4-8)**_
+
+<tool-use data-tool-type="write" data-tool-name="edit_file_v2">
+
+<details><summary>Tool use: **edit_file_v2** • Edit file: c:\Users\jkrac\OneDrive\Documents\GC-SDE\TCSS 506\Foodie\llm_strategies.md</summary>
+
+</details>
+
+</tool-use>
+
+<tool-use data-tool-type="write" data-tool-name="edit_file_v2"><details>
+<summary>Tool use: **edit_file_v2**</summary>
+
+</details></tool-use>
+
+_**Agent (claude-opus-4-8)**_
+
+Appended a **"Future security additions (beyond the edge-test work)"** section to `llm_strategies.md`, matching the existing voice.
+
+It's organized into five buckets — pipeline/supply-chain, container/runtime, app/auth, secrets/infra, and detection/response — and it explicitly distinguishes these *additional* items from what's already on the harden-lists in `role_dbsec_coord.md` and `llm_probe_dbsec.md`, so there's no duplication. Each recommendation is tied to a concrete fact in the repo (root container in `Dockerfile.prod`, `'unsafe-inline'` in the CSP, the SSRF TOCTOU in `_safe_remote_image_url`, plaintext `DATABASE_URL`, `boto3` for AWS, etc.), and it closes with the top-5 to do next.
+
+---
+
+_**User**_
+
+We were thinking of converting this into a phone application. are there different security considerations when taking into account mobile use?
+
+---
+
+_**Agent (claude-opus-4-8)**_
+
+<think><details><summary>Thought Process</summary>
+ The user is asking about security implications if they were to turn Foodie into a mobile app, and I need to think through how their current architecture—Flask backend, OAuth, session cookies, CSRF protection, the Edamam API integration, and image proxy—would translate to a mobile context. There's an important distinction here between building a native app that communicates with their existing Flask API versus a web-based mobile experience, and that choice fundamentally changes the security approach.
+
+If they go the native mobile route, they'd have to abandon their current cookie-and-CSRF model entirely and shift to token-based authentication with OAuth2 and bearer tokens or JWT. That's a major architectural change affecting how they handle secrets—they can't embed API keys or OAuth credentials in the app binary since anyone can decompile it—though their server-side Edamam proxy already handles that correctly. They'd need to implement PKCE for the OAuth flow, use secure storage on the device for tokens, handle refresh token rotation and revocation, and guard against OAuth redirect hijacking through app-claimed deep links. There are also mobile-specific concerns like certificate pinning, jailbreak detection, and managing push notifications securely, plus the fact that they currently have no server-side session store, which becomes a bigger liability when dealing with token revocation and device management. The biggest shift is moving from cookies to tokens for auth, which cascades into everything else—can't store secrets on the device, need PKCE for OAuth redirects, and have to assume the client can be reverse-engineered or tampered with, so all validation and enforcement happens server-side. Transport security gets stricter (real certs, ATS compliance, maybe cert pinning), and there's a whole new surface area around permissions, privacy disclosures, and platform-specific concerns. On the flip side, CSRF mostly disappears with token-based APIs, though the attack surface shifts rather than shrinks.</details></think>
+
+_**Agent (claude-opus-4-8)**_
+
+Great question — and the short version is: **going mobile changes your *authentication model* more than anything else, and that ripples through most of your current controls.** How much depends on which kind of "phone app" you mean:
+
+- **A native iOS/Android app** that talks to your Flask backend as a JSON API — biggest security shift.
+- **A PWA / mobile-optimized web app** (same Flask, responsive UI, maybe "Add to Home Screen") — much lighter; most of your current model (cookies, CSRF, nginx edge) carries over largely unchanged.
+
+I'll focus on the native case since that's where the real differences are.
+
+## The big one: cookies/CSRF → tokens
+
+Today you authenticate with Flask-Login **session cookies** + global `CSRFProtect` (`app.py`). A native app can't ride on browser cookies cleanly, so you'd move to a **token-based API**: OAuth2 Authorization Code **+ PKCE**, issuing short-lived access tokens + refresh tokens (bearer or, better, DPoP-bound).
+
+What that changes:
+- **CSRF mostly goes away** for a pure bearer-token API (no ambient cookie = no cross-site forgery), so the `@csrf.exempt` on `recipes_scale` stops being a smell. *But* you trade it for **token theft / storage** risk.
+- **You now need token revocation.** I flagged earlier that your sessions are client-side signed cookies with no server-side store. With long-lived refresh tokens on a device that can be lost/stolen/rooted, a **server-side token store with revocation + rotation** goes from "nice to have" to mandatory.
+- **Token lifetime & rotation:** short access tokens (minutes), rotating refresh tokens, detect refresh-token reuse → revoke the family.
+
+## Secrets can't live in the app binary
+
+Anyone can decompile an APK/IPA, so:
+- **No OAuth `client_secret` on the device.** Mobile = a *public* OAuth client; you must use **PKCE** and treat the client as untrusted. Your current `OAUTH_CLIENT_SECRET` stays **server-side only**.
+- **No Edamam keys in the app** — you already proxy Edamam server-side through Flask, which is exactly right; keep every third-party key behind your backend. Don't be tempted to "just call Edamam directly from the app to save a hop."
+
+## OAuth redirect / deep-link hijacking
+
+Mobile OAuth redirects come back via a custom URL scheme or app link, which **other apps can try to claim/intercept**. Mitigations: **PKCE** (closes the intercepted-code attack), **claimed HTTPS App Links / Universal Links** instead of `myapp://` schemes, and validating `state`. Your current open-redirect guard logic (`startswith("/") and not //`) doesn't translate — redirect handling is entirely different on device.
+
+## Transport & the client you can't trust
+
+- **Real TLS certs required** — your self-signed dev cert won't fly; iOS App Transport Security mandates valid TLS. Consider **certificate pinning** for the API (with a rotation plan so you don't brick clients).
+- **You can no longer patch the client instantly.** Web = ship a fix, everyone has it. Mobile = users run old versions for months. So: **version your API**, never rely on client-side validation, enforce everything server-side, and be able to **force-upgrade / kill-switch** old clients with known vulns.
+- **Assume a hostile device:** rooted/jailbroken phones, user-installed CAs doing MITM, tampered binaries. Use **secure storage** (iOS Keychain / Android Keystore) for tokens — never plaintext `SharedPreferences`/`UserDefaults`. Optionally **device attestation** (App Attest / Play Integrity) to gate sensitive calls.
+
+## Things that get *easier*
+- CSRF (as above) largely disappears for token APIs.
+- Your DOM-XSS surface shrinks for native UI (no HTML rendering of recipe data) — though a WebView reintroduces it, and your **CSP only protects the web path**.
+
+## Stays the same / still applies
+- nginx **edge filter, rate limiting, TLS termination, security headers** all still front the API.
+- **Server-side authorization** (your `current_user.id` ownership checks on meal plans) — *more* important, since the client is now fully untrusted.
+- **SSRF guard** on the image proxy, the DB trust boundary, least-privilege DB user — unchanged.
+- **The OAuth account-linking bug** from `llm_probe_dbsec.md` is, if anything, worse on mobile (account takeover) — fix it before you expand the surface.
+
+## New, mobile-specific items
+- **Platform privacy/permissions:** app-store data-disclosure labels, runtime permission prompts, minimize PII collection.
+- **Push notifications:** don't put sensitive data in push payloads; secure the device-token registration endpoint.
+- **Rate-limit by account/token, not just IP** — mobile users roam across IPs (cellular ↔ wifi), so per-IP limits both over- and under-block.
+
+---
+
+**If I had to name the top 3 before writing any mobile code:** (1) design the **token model** — short access + rotating refresh tokens with a **server-side revocation store**; (2) **mobile OAuth = public client + PKCE**, no secrets/keys in the binary (keep proxying Edamam); (3) **secure on-device token storage + real TLS** (and decide on cert pinning).
+
+Want me to write this up as a short `mobile_security_considerations.md` (or a section in one of the existing docs) so it's captured for the team?
+
+---
+
+_**User**_
+
+please add it to llm_strategies.md
+
+---
+
+_**Agent (claude-opus-4-8)**_
+
+I'll append a mobile security section to `llm_strategies.md`, keeping the same voice and grounding it in the repo.
+
+_**Agent (claude-opus-4-8)**_
+
+<tool-use data-tool-type="write" data-tool-name="edit_file_v2">
+
+<details><summary>Tool use: **edit_file_v2** • Edit file: c:\Users\jkrac\OneDrive\Documents\GC-SDE\TCSS 506\Foodie\llm_strategies.md</summary>
+
+</details>
+
+</tool-use>
+
+<tool-use data-tool-type="write" data-tool-name="edit_file_v2"><details>
+<summary>Tool use: **edit_file_v2**</summary>
+
+</details></tool-use>
+
+_**Agent (claude-opus-4-8)**_
+
+Added a **"Mobile: different security considerations if Foodie becomes a phone app"** section to the end of `llm_strategies.md`, in the same voice as the rest of the doc.
+
+It covers the native-vs-PWA split, the core cookies/CSRF → token model shift (and why server-side token revocation becomes mandatory given your current client-side cookie sessions), no-secrets-in-the-binary (keep proxying Edamam), OAuth deep-link/PKCE hardening, transport + untrusted-client realities, what gets easier, what stays the same, and the new mobile-specific items — closing with the top-3 to settle before any mobile code. It also cross-references the OAuth account-linking bug in `llm_probe_dbsec.md` as a fix-first item.
