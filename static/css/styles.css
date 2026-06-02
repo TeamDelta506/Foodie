@@ -619,3 +619,127 @@ body.foodie-app {
 .foodie-app .foodie-lead-muted a:focus {
   color: var(--foodie-green-deep);
 }
+
+/* About page */
+.foodie-about-page {
+  padding-top: 0.5rem;
+  padding-bottom: 1.5rem;
+}
+
+@media (min-width: 992px) {
+  .foodie-about-page {
+    padding-bottom: 2.5rem;
+  }
+}
+
+.foodie-about-hero {
+  padding: 2rem 1.25rem 2.25rem;
+  border-radius: var(--foodie-radius);
+  background: linear-gradient(
+    165deg,
+    var(--foodie-green-mist) 0%,
+    #fff 55%,
+    var(--foodie-cream) 100%
+  );
+  border: 1px solid rgba(45, 106, 79, 0.12);
+  box-shadow: var(--foodie-shadow);
+}
+
+@media (min-width: 768px) {
+  .foodie-about-hero {
+    padding: 2.75rem 2rem 3rem;
+  }
+}
+
+.foodie-about-eyebrow {
+  font-size: 2rem;
+  line-height: 1;
+  opacity: 0.9;
+}
+
+.foodie-about-section {
+  padding-left: 0.15rem;
+  padding-right: 0.15rem;
+}
+
+.foodie-about-step {
+  padding: 1.25rem 1.35rem 1.35rem;
+  border-radius: var(--foodie-radius);
+  background: #fff;
+  border: 1px solid rgba(45, 106, 79, 0.1);
+  box-shadow: var(--foodie-shadow);
+  transition: box-shadow 0.2s ease, border-color 0.2s ease;
+}
+
+.foodie-about-step:hover {
+  border-color: rgba(45, 106, 79, 0.2);
+  box-shadow: var(--foodie-shadow-hover);
+}
+
+.foodie-about-step-num {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 2rem;
+  height: 2rem;
+  margin-bottom: 0.75rem;
+  border-radius: 50%;
+  font-size: 0.875rem;
+  font-weight: 700;
+  color: var(--foodie-green-deep);
+  background: var(--foodie-green-mist);
+}
+
+.foodie-about-step-title {
+  color: var(--foodie-green-deep);
+  font-weight: 600;
+  margin-bottom: 0.5rem;
+}
+
+.foodie-about-list {
+  padding-left: 1.2rem;
+  margin-bottom: 0;
+}
+
+.foodie-about-list li {
+  margin-bottom: 0.65rem;
+  color: var(--foodie-muted);
+  line-height: 1.5;
+}
+
+.foodie-about-list li:last-child {
+  margin-bottom: 0;
+}
+
+.foodie-about-list li::marker {
+  color: var(--foodie-green-mid);
+}
+
+.foodie-about-team-card {
+  padding: 1.15rem 1.25rem;
+  border-radius: var(--foodie-radius);
+  background: #fff;
+  border: 1px solid rgba(45, 106, 79, 0.1);
+  box-shadow: var(--foodie-shadow);
+  text-align: center;
+  transition: box-shadow 0.2s ease, transform 0.2s ease;
+}
+
+.foodie-about-team-card:hover {
+  box-shadow: var(--foodie-shadow-hover);
+  transform: translateY(-2px);
+}
+
+.foodie-about-team-name {
+  font-weight: 700;
+  color: var(--foodie-green-deep);
+  font-size: 1.05rem;
+}
+
+.foodie-about-page code {
+  font-size: 0.85em;
+  color: var(--foodie-green-deep);
+  background: var(--foodie-green-mist);
+  padding: 0.1em 0.35em;
+  border-radius: 0.25rem;
+}

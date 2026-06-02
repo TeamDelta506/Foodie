@@ -3,55 +3,149 @@
 {% block title %}About — Foodie{% endblock %}
 
 {% block content %}
-<div class="row justify-content-center">
-    <div class="col-lg-8">
-        <h1 class="h2 foodie-page-heading mb-3">About Foodie</h1>
-        <p class="lead foodie-lead-muted">
-            Foodie is a <strong>recipe scaler and meal planner</strong> for people who want to plan meals and adjust portions without manual math.
+<div class="foodie-about-page">
+    <header class="foodie-about-hero text-center mb-4 mb-lg-5">
+        <p class="foodie-about-eyebrow mb-2" aria-hidden="true">&#127860;</p>
+        <h1 class="display-6 fw-bold foodie-page-heading mb-3">About Foodie</h1>
+        <p class="lead foodie-lead-muted col-lg-9 mx-auto mb-4 px-2">
+            A recipe scaler and weekly meal planner for people who want to eat well without spreadsheet math.
+            Discover dishes, adjust servings, and map one meal per day across your week.
         </p>
+        <div class="d-flex flex-wrap justify-content-center gap-2 px-2">
+            <a href="{{ url_for('recipes_search') }}" class="btn btn-foodie-primary px-4">Discover recipes</a>
+            {% if user %}
+            <a href="{{ url_for('mealplan') }}" class="btn btn-foodie-outline px-4">Your meal plan</a>
+            {% else %}
+            <a href="{{ url_for('register') }}" class="btn btn-foodie-outline px-4">Create account</a>
+            {% endif %}
+        </div>
+    </header>
 
-        <div class="foodie-card foodie-card-muted mt-4">
-            <div class="card-body">
-                <h2 class="h5 mb-3">MVP features</h2>
-                <ul class="mb-0">
-                    <li>Recipe search and selection (Edamam Recipe Search API)</li>
-                    <li>Servings-based scaling for ingredient quantities</li>
-                    <li>Weekly meal plan: one recipe per calendar day</li>
-                    <li>Calories and macros (protein, carbs, fat) per recipe</li>
-                </ul>
+    <section class="foodie-about-section mb-4 mb-lg-5" aria-labelledby="about-how-heading">
+        <h2 id="about-how-heading" class="h4 foodie-page-heading text-center mb-4">How it works</h2>
+        <div class="row g-3 g-lg-4">
+            <div class="col-md-4">
+                <article class="foodie-about-step h-100">
+                    <span class="foodie-about-step-num" aria-hidden="true">1</span>
+                    <h3 class="h6 foodie-about-step-title">Search &amp; open a recipe</h3>
+                    <p class="small foodie-lead-muted mb-0">
+                        Use <strong>Discover recipes</strong> to find meals from the Edamam database. Each card shows calories and macros per serving.
+                    </p>
+                </article>
+            </div>
+            <div class="col-md-4">
+                <article class="foodie-about-step h-100">
+                    <span class="foodie-about-step-num" aria-hidden="true">2</span>
+                    <h3 class="h6 foodie-about-step-title">Scale portions</h3>
+                    <p class="small foodie-lead-muted mb-0">
+                        Change the serving count on a recipe page and ingredient quantities update automatically so shopping lists stay accurate.
+                    </p>
+                </article>
+            </div>
+            <div class="col-md-4">
+                <article class="foodie-about-step h-100">
+                    <span class="foodie-about-step-num" aria-hidden="true">3</span>
+                    <h3 class="h6 foodie-about-step-title">Plan your week</h3>
+                    <p class="small foodie-lead-muted mb-0">
+                        Log in and assign one recipe per weekday on your meal plan. Replace or clear a day anytime—your plan is saved to your account.
+                    </p>
+                </article>
             </div>
         </div>
+    </section>
 
-        <h2 class="h5 mt-4 mb-3 foodie-page-heading">Team</h2>
+    <section class="foodie-about-section mb-4 mb-lg-5" aria-labelledby="about-features-heading">
+        <div class="foodie-card foodie-card-muted overflow-hidden">
+            <div class="card-header py-3">What you can do today</div>
+            <div class="card-body p-4 p-lg-5">
+                <div class="row g-4">
+                    <div class="col-lg-6">
+                        <ul class="foodie-about-list mb-0">
+                            <li>Recipe search with nutrition summaries (Edamam Recipe Search API)</li>
+                            <li>Servings-based scaling for ingredients on the recipe detail page</li>
+                            <li>Weekly planner: Monday through Sunday, one slot per day</li>
+                            <li>Calories, protein, carbs, and fat displayed per recipe</li>
+                        </ul>
+                    </div>
+                    <div class="col-lg-6">
+                        <ul class="foodie-about-list mb-0">
+                            <li>Account registration and password login</li>
+                            <li>Sign in with GitHub (optional OAuth)</li>
+                            <li>Remember me for longer sessions on trusted devices</li>
+                            <li>Recipes cached in our database to reduce repeat API calls</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <section class="foodie-about-section mb-4 mb-lg-5" aria-labelledby="about-team-heading">
+        <h2 id="about-team-heading" class="h4 foodie-page-heading text-center mb-2">Built by Team Delta 506</h2>
+        <p class="text-center foodie-lead-muted small mb-4 col-lg-8 mx-auto px-2">
+            Foodie is a Course 506 team project: server, client, database, and coordinator roles shipping against a shared API contract.
+        </p>
         <div class="row g-3">
-            <div class="col-md-4">
-                <div class="foodie-card h-100 p-3">
-                    <strong>Sam</strong>
-                    <p class="small foodie-lead-muted mb-0">Server-side, API integration</p>
+            <div class="col-sm-6 col-lg-3">
+                <div class="foodie-about-team-card h-100">
+                    <p class="foodie-about-team-name mb-1">Sowmya</p>
+                    <p class="small foodie-lead-muted mb-0">Coordinator — contracts, integration, e2e</p>
                 </div>
             </div>
-            <div class="col-md-4">
-                <div class="foodie-card h-100 p-3">
-                    <strong>Asia</strong>
-                    <p class="small foodie-lead-muted mb-0">Client-side, UI and UX</p>
+            <div class="col-sm-6 col-lg-3">
+                <div class="foodie-about-team-card h-100">
+                    <p class="foodie-about-team-name mb-1">Sam</p>
+                    <p class="small foodie-lead-muted mb-0">Server-side — APIs, routes, Edamam</p>
                 </div>
             </div>
-            <div class="col-md-4">
-                <div class="foodie-card h-100 p-3">
-                    <strong>Justin</strong>
-                    <p class="small foodie-lead-muted mb-0">Database and security</p>
+            <div class="col-sm-6 col-lg-3">
+                <div class="foodie-about-team-card h-100">
+                    <p class="foodie-about-team-name mb-1">Asia</p>
+                    <p class="small foodie-lead-muted mb-0">Client-side — UI, templates, UX</p>
+                </div>
+            </div>
+            <div class="col-sm-6 col-lg-3">
+                <div class="foodie-about-team-card h-100">
+                    <p class="foodie-about-team-name mb-1">Justin</p>
+                    <p class="small foodie-lead-muted mb-0">Database &amp; security — schema, auth</p>
                 </div>
             </div>
         </div>
+    </section>
 
-        <h2 class="h5 mt-4 mb-3 foodie-page-heading">Data source</h2>
-        <p class="foodie-lead-muted">
-            Primary nutrition and recipe metadata come from the <strong>Edamam</strong> Recipe Search API (see Edamam developer documentation for endpoints and free-tier limits). A USDA FoodData Central backup is optional for future work.
-        </p>
+    <section class="foodie-about-section mb-0" aria-labelledby="about-tech-heading">
+        <div class="row g-4">
+            <div class="col-lg-6">
+                <div class="foodie-card h-100 p-4 p-lg-4">
+                    <h2 id="about-tech-heading" class="h5 foodie-page-heading mb-3">Technology</h2>
+                    <p class="small foodie-lead-muted mb-3">
+                        Python <strong>Flask</strong> app with <strong>PostgreSQL</strong>, Jinja templates, and vanilla JavaScript.
+                        Production deployments use <strong>Gunicorn</strong> behind nginx or a platform router (e.g. Render).
+                    </p>
+                    <p class="small foodie-lead-muted mb-0">
+                        Recipe and nutrition data come from the
+                        <a href="https://developer.edamam.com/" rel="noopener noreferrer" target="_blank">Edamam Recipe Search API</a>.
+                        Free-tier limits apply—best suited for demos and small teams.
+                    </p>
+                </div>
+            </div>
+            <div class="col-lg-6">
+                <div class="foodie-card h-100 p-4 p-lg-4">
+                    <h2 class="h5 foodie-page-heading mb-3">Privacy &amp; accounts</h2>
+                    <p class="small foodie-lead-muted mb-3">
+                        Your meal plan and login are tied to your Foodie account. We do not ask end users for their own Edamam keys—the server uses one shared developer credential.
+                    </p>
+                    <p class="small foodie-lead-muted mb-0">
+                        Do not share passwords in public channels. For local development, copy <code>.env.example</code> to <code>.env</code> and keep secrets out of git.
+                    </p>
+                </div>
+            </div>
+        </div>
+    </section>
 
-        <p class="small text-muted mt-4 mb-0">
-            Course 506 — TeamDelta506. See <code>README.md</code> and <code>CONTRACTS.md</code> in the repository for routes, schema, and coordinator notes.
-        </p>
-    </div>
+    <p class="text-center small text-muted mt-4 mt-lg-5 mb-0 pt-2">
+        Course 506 — TeamDelta506.
+        Developer docs: <code>docs/CONTRACTS.md</code> and <code>README.md</code> in the repository.
+    </p>
 </div>
 {% endblock %}

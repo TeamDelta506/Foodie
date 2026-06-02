@@ -1,8 +1,8 @@
-"""
+﻿"""
 tests/test_db_schema_and_auth.py
 
 OWNED BY: Justin (db-and-security)
-PURPOSE: Enforce database shape (tables, columns, FKs, uniqueness) and Flask-Login semantics per CONTRACTS.md §§1 and 4.
+PURPOSE: Enforce database shape (tables, columns, FKs, uniqueness) and Flask-Login semantics per CONTRACTS.md ┬º┬º1 and 4.
 
 Committed by the coordinator Week 6; all tests RED until models + migrations + auth refactor ship.
 """
@@ -30,7 +30,7 @@ def _fresh_schema():
 
 
 def test_recipes_table_exists_with_contract_columns():
-    """recipes holds Edamam cache + default_servings per CONTRACTS.md §1."""
+    """recipes holds Edamam cache + default_servings per CONTRACTS.md ┬º1."""
     inspector = inspect(engine)
     assert "recipes" in inspector.get_table_names()
     cols = {c["name"] for c in inspector.get_columns("recipes")}
@@ -50,7 +50,7 @@ def test_recipes_table_exists_with_contract_columns():
 
 
 def test_ingredients_table_foreign_keys():
-    """ingredients.recipe_id → recipes.id with ON DELETE CASCADE."""
+    """ingredients.recipe_id ΓåÆ recipes.id with ON DELETE CASCADE."""
     inspector = inspect(engine)
     assert "ingredients" in inspector.get_table_names()
     fks = inspector.get_foreign_keys("ingredients")
@@ -59,7 +59,7 @@ def test_ingredients_table_foreign_keys():
 
 
 def test_users_password_hash_is_nullable():
-    """OAuth-only users store password_hash=NULL (CONTRACTS.md §1 — Justin schema)."""
+    """OAuth-only users store password_hash=NULL (CONTRACTS.md ┬º1 ΓÇö Justin schema)."""
     inspector = inspect(engine)
     cols = {c["name"]: c for c in inspector.get_columns("users")}
     assert "password_hash" in cols
@@ -79,7 +79,7 @@ def test_oauth_user_insert_sets_created_at():
 
 
 def test_oauth_identities_table_and_unique_provider_user():
-    """oauth_identities per CONTRACTS.md §1 (Week 7 — Sam/Justin)."""
+    """oauth_identities per CONTRACTS.md ┬º1 (Week 7 ΓÇö Sam/Justin)."""
     inspector = inspect(engine)
     assert "oauth_identities" in inspector.get_table_names()
     cols = {c["name"] for c in inspector.get_columns("oauth_identities")}
@@ -97,7 +97,7 @@ def test_oauth_identities_table_and_unique_provider_user():
 
 
 def test_mealplans_unique_user_day():
-    """At most one meal per (user, weekday) — UNIQUE(user_id, day_of_week)."""
+    """At most one meal per (user, weekday) ΓÇö UNIQUE(user_id, day_of_week)."""
     inspector = inspect(engine)
     assert "mealplans" in inspector.get_table_names()
     uniques = inspector.get_unique_constraints("mealplans")
@@ -129,7 +129,7 @@ def test_mealplan_get_requires_authenticated_user(client):
 
 
 def test_login_github_stores_remember_oauth_in_session(client):
-    """OAuth path: ?remember=y on /login/github sets session flag (CONTRACTS.md §3)."""
+    """OAuth path: ?remember=y on /login/github sets session flag (CONTRACTS.md ┬º3)."""
     client.get("/login/github?remember=y")
     with client.session_transaction() as sess:
         assert sess.get("remember_oauth") is True
@@ -145,7 +145,7 @@ def _login(client, username: str, password: str = "secret") -> None:
 
 
 def test_csrf_rejects_post_without_token(client):
-    """POST /mealplan without csrf_token must return 400 (CONTRACTS.md §10)."""
+    """POST /mealplan without csrf_token must return 400 (CONTRACTS.md ┬º10)."""
     _register(client, "csrf_user")
     _login(client, "csrf_user")
     response = client.post(
@@ -156,7 +156,7 @@ def test_csrf_rejects_post_without_token(client):
 
 
 def test_mealplan_scoped_to_current_user(client):
-    """User B must not see user A's meal-plan rows (CONTRACTS.md §4)."""
+    """User B must not see user A's meal-plan rows (CONTRACTS.md ┬º4)."""
     from sqlmodel import Session, select
 
     from app import MealPlan, Recipe, User
@@ -195,3 +195,36 @@ def test_mealplan_delete_missing_day_returns_404(client):
     _login(client, "deleter")
     response = delete_with_csrf(client, "/mealplan/3", follow_redirects=False)
     assert response.status_code == 404
+
+
+def test_mealplan_clear_day_json_for_fetch_ui(client):
+    """Accept: application/json returns 200 + ok so the meal-plan page can update without reload."""
+    from sqlmodel import Session
+
+    from app import Recipe
+
+    _register(client, "json_clear")
+    _login(client, "json_clear")
+    with Session(engine) as db:
+        recipe = Recipe(api_id="json-clear", name="JSON Clear Recipe", default_servings=2)
+        db.add(recipe)
+        db.commit()
+        db.refresh(recipe)
+        recipe_id = recipe.id
+
+    post_with_csrf(
+        client,
+        "/mealplan",
+        {"day_of_week": "2", "recipe_id": str(recipe_id), "servings": "2"},
+    )
+    response = delete_with_csrf(
+        client,
+        "/mealplan/2",
+        headers={"Accept": "application/json"},
+    )
+    assert response.status_code == 200
+    assert response.get_json() == {"ok": True, "day": 2}
+
+    board = client.get("/mealplan")
+    assert board.status_code == 200
+    assert b"JSON Clear Recipe" not in board.data

@@ -1320,6 +1320,11 @@ def mealplan_clear_day(day: int):
 
     db.delete(row)
     db.commit()
+
+    accept = request.headers.get("Accept", "")
+    if "application/json" in accept:
+        return jsonify(ok=True, day=day)
+
     flash("Day cleared.")
     return redirect(url_for("mealplan"))
 

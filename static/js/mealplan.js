@@ -142,6 +142,26 @@
     alertBox.textContent = "";
   }
 
+  function applyClearedDayUI(day) {
+    var row = document.querySelector('.foodie-week-list [data-day="' + day + '"]');
+    if (!row) return;
+    var slot = row.querySelector(".foodie-mealplan-slot");
+    if (slot) slot.remove();
+    var clearBtn = row.querySelector("[data-mealplan-clear-day]");
+    if (clearBtn) {
+      var wrap = clearBtn.closest(".flex-shrink-0");
+      if (wrap) wrap.remove();
+    }
+    var grow = row.querySelector(".flex-grow-1");
+    if (!grow || grow.querySelector(".foodie-mealplan-slot")) return;
+    if (!grow.querySelector("p.foodie-lead-muted.mt-1")) {
+      var empty = document.createElement("p");
+      empty.className = "mb-0 small foodie-lead-muted mt-1";
+      empty.textContent = "Nothing planned";
+      grow.appendChild(empty);
+    }
+  }
+
   document.querySelectorAll("[data-mealplan-clear-day]").forEach(function (btn) {
     btn.addEventListener("click", function () {
       var day = btn.getAttribute("data-mealplan-clear-day");
@@ -153,11 +173,12 @@
 
       var csrfMeta = document.querySelector('meta[name="csrf-token"]');
       var csrfVal = csrfMeta ? csrfMeta.getAttribute("content") : "";
+      var cleared = false;
       fetch("/mealplan/" + encodeURIComponent(day), {
         method: "DELETE",
         credentials: "same-origin",
         headers: {
-          Accept: "text/html",
+          Accept: "application/json",
           "X-CSRFToken": csrfVal,
         },
       })
@@ -166,22 +187,28 @@
             showDeleteErr("Nothing was planned for that day (or it was already cleared).");
             return;
           }
-          if (res.redirected && res.url && res.url.indexOf("/login") !== -1) {
-            window.location.href = res.url;
+          if (res.status === 401 || (res.redirected && res.url && res.url.indexOf("/login") !== -1)) {
+            window.location.href = res.redirected ? res.url : "/login";
             return;
           }
-          // Server returns 302 → /mealplan; follow redirects (default) yields 200 HTML.
-          // redirect: "manual" hid the 302 as status 0, so the UI never refreshed.
-          if (res.ok) {
-            window.location.reload();
+          if (!res.ok) {
+            showDeleteErr("Could not clear that day. Please try again.");
             return;
           }
-          showDeleteErr("Could not clear that day. Please try again.");
+          return res.json().then(function (data) {
+            if (data && data.ok) {
+              cleared = true;
+              applyClearedDayUI(String(data.day != null ? data.day : day));
+              return;
+            }
+            showDeleteErr("Could not clear that day. Please try again.");
+          });
         })
         .catch(function () {
           showDeleteErr("Network error while clearing the day. Check your connection and try again.");
         })
         .finally(function () {
+          if (cleared) return;
           btn.disabled = false;
           btn.textContent = prevLabel;
         });

@@ -107,56 +107,12 @@
         </div>
         <p class="small foodie-lead-muted mt-3 mb-0">
             Each recipe page has a link to <strong>view scaled nutrition</strong> for different portion sizes.
-            <strong>Clear day</strong> removes that weekday from your plan on the server, then refreshes this page.
+            <strong>Clear day</strong> removes that weekday from your plan without reloading the page.
         </p>
     </div>
 </div>
 {% endblock %}
 
-      var csrfMeta = document.querySelector('meta[name="csrf-token"]');
-      var delHeaders = { Accept: "text/html, application/json" };
-      if (csrfMeta && csrfMeta.content) delHeaders["X-CSRFToken"] = csrfMeta.content;
-      fetch("/mealplan/" + encodeURIComponent(day), {
-        method: "DELETE",
-        credentials: "same-origin",
-        redirect: "manual",
-        headers: delHeaders,
-      })
-        .then(function (res) {
-          if (res.status === 404) {
-            showDeleteErr("Nothing was planned for that day (or it was already cleared).");
-            return;
-          }
-          if (res.status === 401) {
-            window.location.href = "/login";
-            return;
-          }
-          if (res.status === 302 || res.status === 303) {
-            var loc = res.headers.get("Location");
-            if (loc) {
-              window.location.href = loc;
-              return;
-            }
-            window.location.reload();
-            return;
-          }
-          if (res.ok) {
-            window.location.reload();
-            return;
-          }
-          showDeleteErr("Could not clear that day. Please try again.");
-        })
-        .catch(function () {
-          showDeleteErr("Network error while clearing the day. Check your connection and try again.");
-        })
-        .finally(function () {
-          btn.disabled = false;
-          btn.textContent = prevLabel;
-        });
-    });
-  });
-})();
-</script>
 {% block scripts %}
 <script src="{{ url_for('static', filename='js/mealplan.js') }}"></script>
 {% endblock %}
