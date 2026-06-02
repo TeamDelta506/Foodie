@@ -4066,3 +4066,260 @@ _**Agent (gpt-5.5)**_
 
 <think><details><summary>Thought Process</summary>
 The E2E server uses plain HTTP werkzeug. SESSION_COOKIE_SECURE may be causing issues.</details></think>
+
+_**Agent (gpt-5.5)**_
+
+<tool-use data-tool-type="shell" data-tool-name="run_terminal_command_v2">
+<details><summary>Tool use: **run_terminal_command_v2** • Run command: Set-Location "c:\Users\jkrac\OneDrive\Documents\GC-SDE\TCSS 506\Foodie"; python -m compileall tests -q; $env:SECRET_KEY="test-secret-key-for-ci"; $env:DATABASE_URL="sqlite:///:memory:"; $env:OAUTH_CLIENT_ID="ci-oauth-client-id"; $env:OAUTH_CLIENT_SECRET="ci-oauth-client-secret"; python -m pytest --collect-only -q 2>&1</summary>
+
+```bash
+Set-Location "c:\Users\jkrac\OneDrive\Documents\GC-SDE\TCSS 506\Foodie"; python -m compileall tests -q; $env:SECRET_KEY="test-secret-key-for-ci"; $env:DATABASE_URL="sqlite:///:memory:"; $env:OAUTH_CLIENT_ID="ci-oauth-client-id"; $env:OAUTH_CLIENT_SECRET="ci-oauth-client-secret"; python -m pytest --collect-only -q 2>&1
+```
+
+```
+tests/e2e/test_client_side_login.py::test_client_side_github_login
+tests/e2e/test_client_side_login.py::test_login_page_has_both_auth_paths
+tests/e2e/test_client_side_login.py::test_remember_checkbox
+tests/e2e/test_client_side_login.py::test_post_login_lands_on_mealplan
+tests/e2e/test_full_lifecycle.py::test_first_time_oauth_login
+tests/e2e/test_full_lifecycle.py::test_returning_oauth_login_reuses_row
+tests/e2e/test_full_lifecycle.py::test_csrf_protection_rejects_tokenless_post
+tests/e2e/test_full_lifecycle.py::test_session_expiry_blocks_protected_route
+tests/e2e/test_oauth_login_happy_path.py::test_oauth_login_happy_path
+tests/e2e/test_oauth_login_happy_path.py::test_test_login_idempotent
+tests/e2e/test_oauth_login_happy_path.py::test_test_login_disabled_without_env
+tests/e2e/test_oauth_navbar.py::test_github_sign_in_shows_username_in_navbar
+tests/e2e/test_protected_page_auth.py::test_mealplan_protected_before_login_after_logout
+tests/e2e/test_smoke_login_page.py::test_app_starts_login_page_has_clickable_github_button
+tests/test_attack_paths.py::test_nginx_blocks[/wp-login.php]
+tests/test_attack_paths.py::test_nginx_blocks[/wp-admin/]
+tests/test_attack_paths.py::test_nginx_blocks[/.env]
+tests/test_attack_paths.py::test_nginx_blocks[/.git/config]
+tests/test_attack_paths.py::test_nginx_blocks[/.git/HEAD]
+tests/test_attack_paths.py::test_nginx_blocks[/.aws/credentials]
+tests/test_attack_paths.py::test_nginx_blocks[/.ssh/id_rsa]
+tests/test_attack_paths.py::test_nginx_blocks[/admin/]
+tests/test_attack_paths.py::test_nginx_blocks[/administrator/]
+tests/test_attack_paths.py::test_nginx_blocks[/phpmyadmin/]
+tests/test_attack_paths.py::test_nginx_blocks[/xmlrpc.php]
+tests/test_attack_paths.py::test_nginx_blocks[/server-status]
+tests/test_attack_paths.py::test_nginx_blocks[/backup.sql]
+tests/test_attack_paths.py::test_nginx_blocks[/.htaccess]
+tests/test_attack_paths.py::test_nginx_blocks[/config.php]
+tests/test_attack_paths.py::test_nginx_blocks[/wp-content/plugins/]
+tests/test_attack_paths.py::test_nginx_blocks[/vendor/phpunit/]
+tests/test_attack_paths.py::test_nginx_blocks[/.well-known/openid-configuration]
+tests/test_attack_paths.py::test_nginx_blocks[/_profiler/]
+tests/test_attack_paths.py::test_nginx_blocks[/actuator/health]
+tests/test_attack_paths.py::test_flask_never_saw_any_of_them
+tests/test_auth.py::test_home_page_loads
+tests/test_auth.py::test_site_home_redirects_when_no_synced_index
+tests/test_auth.py::test_login_page_renders
+tests/test_auth.py::test_register_creates_user_in_database
+tests/test_auth.py::test_register_rejects_duplicate_username
+tests/test_auth.py::test_login_with_wrong_password_shows_invalid
+tests/test_auth.py::test_login_redirects_mealplan_with_session
+tests/test_auth.py::test_login_with_remember_sets_remember_cookie
+tests/test_auth.py::test_login_without_remember_omits_remember_cookie
+tests/test_auth.py::test_oauth_only_user_cannot_password_login
+tests/test_client_recipe_templates.py::test_recipes_search_template_has_get_form_with_q
+tests/test_client_recipe_templates.py::test_login_page_has_github_remember_and_password_form
+tests/test_client_recipe_templates.py::test_register_page_has_github_and_remember
+tests/test_client_recipe_templates.py::test_base_nav_logged_in_copy_after_test_login
+tests/test_client_recipe_templates.py::test_base_nav_includes_recipes_discover_link
+tests/test_client_recipe_templates.py::test_mealplan_page_has_seven_day_slots
+tests/test_client_recipe_templates.py::test_mealplan_page_has_post_form_for_add
+tests/test_db_schema_and_auth.py::test_recipes_table_exists_with_contract_columns
+tests/test_db_schema_and_auth.py::test_ingredients_table_foreign_keys
+tests/test_db_schema_and_auth.py::test_users_password_hash_is_nullable
+tests/test_db_schema_and_auth.py::test_oauth_user_insert_sets_created_at
+tests/test_db_schema_and_auth.py::test_oauth_identities_table_and_unique_provider_user
+tests/test_db_schema_and_auth.py::test_mealplans_unique_user_day
+tests/test_db_schema_and_auth.py::test_flask_login_initialized
+tests/test_db_schema_and_auth.py::test_mealplan_get_requires_authenticated_user
+tests/test_db_schema_and_auth.py::test_login_github_stores_remember_oauth_in_session
+tests/test_db_schema_and_auth.py::test_csrf_rejects_post_without_token
+tests/test_db_schema_and_auth.py::test_mealplan_scoped_to_current_user
+tests/test_db_schema_and_auth.py::test_mealplan_delete_missing_day_returns_404
+tests/test_integration.py::test_week6_demo_register_search_detail_scale_plan_delete
+tests/test_server_edamam_routes.py::test_recipes_search_returns_200_html_with_query_form
+tests/test_server_edamam_routes.py::test_recipes_search_upstream_timeout_sets_user_facing_flash
+tests/test_server_edamam_routes.py::test_recipes_search_rate_limited_still_renders_200_banner
+tests/test_server_edamam_routes.py::test_post_scale_requires_authentication
+tests/test_server_edamam_routes.py::test_edamam_image_url_prefers_regular_then_legacy_image_field
+tests/test_server_edamam_routes.py::test_image_content_type_accepts_s3_octet_stream_jpeg
+tests/test_server_edamam_routes.py::test_recipe_image_accepts_octet_stream_from_upstream
+tests/test_server_edamam_routes.py::test_get_nutrition_json_shape
+tests/test_server_edamam_routes.py::test_recipe_image_refreshes_expired_presigned_url
+tests/test_server_edamam_routes.py::test_recipe_image_backfills_missing_url_from_edamam
+
+75 tests collected in 0.76s
+
+```
+</details>
+</tool-use>
+
+<tool-use data-tool-type="shell" data-tool-name="run_terminal_command_v2"><details>
+<summary>Tool use: **run_terminal_command_v2**</summary>
+
+</details></tool-use>
+
+_**Agent (gpt-5.5)**_
+
+<think><details><summary>Thought Process</summary>
+Collection works across 75 tests. Running unit tests now before committing.</details></think>
+
+_**Agent (gpt-5.5)**_
+
+<tool-use data-tool-type="shell" data-tool-name="run_terminal_command_v2">
+<details><summary>Tool use: **run_terminal_command_v2** • Run command: Set-Location "c:\Users\jkrac\OneDrive\Documents\GC-SDE\TCSS 506\Foodie"; $env:SECRET_KEY="test-secret-key-for-ci"; $env:DATABASE_URL="sqlite:///:memory:"; $env:OAUTH_CLIENT_ID="ci-oauth-client-id"; $env:OAUTH_CLIENT_SECRET="ci-oauth-client-secret"; python -m pytest tests/ --ignore=tests/test_attack_paths.py --ignore=tests/e2e -q 2>&1</summary>
+
+```bash
+Set-Location "c:\Users\jkrac\OneDrive\Documents\GC-SDE\TCSS 506\Foodie"; $env:SECRET_KEY="test-secret-key-for-ci"; $env:DATABASE_URL="sqlite:///:memory:"; $env:OAUTH_CLIENT_ID="ci-oauth-client-id"; $env:OAUTH_CLIENT_SECRET="ci-oauth-client-secret"; python -m pytest tests/ --ignore=tests/test_attack_paths.py --ignore=tests/e2e -q 2>&1
+```
+
+```
+........................................                                 [100%]
+============================== warnings summary ===============================
+tests/test_auth.py::test_login_with_remember_sets_remember_cookie
+  C:\Users\jkrac\AppData\Local\Programs\Python\Python314\Lib\site-packages\flask_login\login_manager.py:488: DeprecationWarning: datetime.datetime.utcnow() is deprecated and scheduled for removal in a future version. Use timezone-aware objects to represent datetimes in UTC: datetime.datetime.now(datetime.UTC).
+    expires = datetime.utcnow() + duration
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+40 passed, 1 warning in 2.45s
+
+```
+</details>
+</tool-use>
+
+<tool-use data-tool-type="shell" data-tool-name="run_terminal_command_v2"><details>
+<summary>Tool use: **run_terminal_command_v2**</summary>
+
+</details></tool-use>
+
+_**Agent (gpt-5.5)**_
+
+<tool-use data-tool-type="shell" data-tool-name="run_terminal_command_v2">
+<details><summary>Tool use: **run_terminal_command_v2** • Run command: Set-Location "c:\Users\jkrac\OneDrive\Documents\GC-SDE\TCSS 506\Foodie"; git add tests/e2e/test_full_lifecycle.py tests/e2e/test_protected_page_auth.py; git commit --trailer "Co-authored-by: Cursor <cursoragent@cursor.com>" -m "Fix e2e test syntax errors from merge conflict." -m "test_full_lifecycle.py had two incomplete assert statements that broke pytest collection. test_protected_page_auth.py had a duplicated second half of the module appended after a merge."</summary>
+
+```bash
+Set-Location "c:\Users\jkrac\OneDrive\Documents\GC-SDE\TCSS 506\Foodie"; git add tests/e2e/test_full_lifecycle.py tests/e2e/test_protected_page_auth.py; git commit --trailer "Co-authored-by: Cursor <cursoragent@cursor.com>" -m "Fix e2e test syntax errors from merge conflict." -m "test_full_lifecycle.py had two incomplete assert statements that broke pytest collection. test_protected_page_auth.py had a duplicated second half of the module appended after a merge."
+```
+
+```
+[week6/db&amp;security e6a1c73] Fix e2e test syntax errors from merge conflict.
+ 2 files changed, 1 insertion(+), 35 deletions(-)
+
+```
+</details>
+</tool-use>
+
+<tool-use data-tool-type="shell" data-tool-name="run_terminal_command_v2"><details>
+<summary>Tool use: **run_terminal_command_v2**</summary>
+
+</details></tool-use>
+
+_**Agent (gpt-5.5)**_
+
+<tool-use data-tool-type="shell" data-tool-name="run_terminal_command_v2">
+<details><summary>Tool use: **run_terminal_command_v2** • Run command: Set-Location "c:\Users\jkrac\OneDrive\Documents\GC-SDE\TCSS 506\Foodie"; pip install pytest-playwright -q 2>$null; python -m playwright install chromium 2>&1 | Select-Object -Last 3; python -m pytest tests/e2e -q 2>&1</summary>
+
+```bash
+Set-Location "c:\Users\jkrac\OneDrive\Documents\GC-SDE\TCSS 506\Foodie"; pip install pytest-playwright -q 2>$null; python -m playwright install chromium 2>&1 | Select-Object -Last 3; python -m pytest tests/e2e -q 2>&1
+```
+
+```
+|■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■                |  87% of 0.1 MiB
+|■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■| 100% of 0.1 MiB
+Winldd (playwright winldd v1007) downloaded to C:\Users\jkrac\AppData\Local\ms-playwright\winldd-1007
+.........s....                                                           [100%]
+============================== warnings summary ===============================
+tests/e2e/test_client_side_login.py::test_remember_checkbox[chromium]
+  C:\Users\jkrac\AppData\Local\Programs\Python\Python314\Lib\site-packages\flask_login\login_manager.py:488: DeprecationWarning: datetime.datetime.utcnow() is deprecated and scheduled for removal in a future version. Use timezone-aware objects to represent datetimes in UTC: datetime.datetime.now(datetime.UTC).
+    expires = datetime.utcnow() + duration
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+13 passed, 1 skipped, 1 warning in 28.12s
+
+```
+</details>
+</tool-use>
+
+<tool-use data-tool-type="shell" data-tool-name="run_terminal_command_v2"><details>
+<summary>Tool use: **run_terminal_command_v2**</summary>
+
+</details></tool-use>
+
+_**Agent (gpt-5.5)**_
+
+CI was still failing because **`tests/e2e/test_full_lifecycle.py` had a broken merge** — two half-finished `assert` blocks, which caused a `SyntaxError` during pytest collection. GitHub Actions only ran for ~3 seconds and died before any real tests ran (runs [#26792555581](https://github.com/TeamDelta506/Foodie/actions/runs/26792555581) and [#26792527910](https://github.com/TeamDelta506/Foodie/actions/runs/26792527910)).
+
+## Fixes (commit `e6a1c73`)
+
+1. **`test_full_lifecycle.py`** — Restored a single assertion: tokenless `POST /mealplan` must return **400** (matches `master`).
+2. **`test_protected_page_auth.py`** — Removed a duplicated second half of the file from another bad merge (two docstrings + two competing tests).
+
+## Verified locally
+
+- **75** tests collect successfully  
+- **40** unit tests pass  
+- **13** e2e tests pass, **1** skipped  
+
+Your branch is **1 commit ahead** of `origin`. Push to re-run PR #27 CI:
+
+```powershell
+git push
+```
+
+After push, the Tests workflow should get past collection and run the full suite (including Docker/nginx for attack-path tests). If anything still fails after that, share the new Actions log link.
+
+---
+
+_**User**_
+
+please push to github
+
+---
+
+_**Agent (gpt-5.5)**_
+
+Pushing the current `week6/db&security` branch to GitHub so PR #27 reruns CI.
+
+_**Agent (gpt-5.5)**_
+
+<tool-use data-tool-type="shell" data-tool-name="run_terminal_command_v2">
+<details><summary>Tool use: **run_terminal_command_v2** • Run command: Set-Location "c:\Users\jkrac\OneDrive\Documents\GC-SDE\TCSS 506\Foodie"; git status; git push</summary>
+
+```bash
+Set-Location "c:\Users\jkrac\OneDrive\Documents\GC-SDE\TCSS 506\Foodie"; git status; git push
+```
+
+```
+On branch week6/db&amp;security
+Your branch is ahead of 'origin/week6/db&amp;security' by 1 commit.
+  (use "git push" to publish your local commits)
+
+Changes not staged for commit:
+  (use "git add &lt;file&gt;..." to update what will be committed)
+  (use "git restore &lt;file&gt;..." to discard changes in working directory)
+	modified:   .specstory/history/2026-06-02_01-14-40Z-pull-request-#27-test-failures.md
+	modified:   .specstory/statistics.json
+
+no changes added to commit (use "git add" and/or "git commit -a")
+To https://github.com/TeamDelta506/Foodie.git
+   7a2c7ef..e6a1c73  week6/db&amp;security -&gt; week6/db&amp;security
+
+```
+</details>
+</tool-use>
+
+<tool-use data-tool-type="shell" data-tool-name="run_terminal_command_v2"><details>
+<summary>Tool use: **run_terminal_command_v2**</summary>
+
+</details></tool-use>
+
+_**Agent (gpt-5.5)**_
+
+Pushed `week6/db&security` to GitHub.
+
+PR #27 should now rerun CI at commit `e6a1c73`. Note: there are still local uncommitted `.specstory` file changes, but they were not included in the push.
