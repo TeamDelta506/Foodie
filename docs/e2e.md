@@ -5,7 +5,7 @@
 **Walked:** May 2026, before Week 6 submission  
 **Repo:** https://github.com/TeamDelta506/Foodie (`master`)
 
-Binding spec: [`CONTRACTS.md`](https://github.com/TeamDelta506/Foodie/blob/master/CONTRACTS.md). Per-role slice walks: `e2e/client_side.md`, `e2e/db_security.md`, `e2e/server_side.md`.
+Binding spec: [`CONTRACTS.md`](CONTRACTS.md). Per-role slice walks: [`e2e/client_side.md`](e2e/client_side.md), [`e2e/db_security.md`](e2e/db_security.md), [`e2e/server_side.md`](e2e/server_side.md).
 
 ---
 

@@ -49,6 +49,13 @@ from werkzeug.security import generate_password_hash, check_password_hash
 logger = logging.getLogger(__name__)
 
 
+def _normalize_database_url(url: str) -> str:
+    """Render/Heroku often provide postgres://; SQLAlchemy + psycopg2 need postgresql://."""
+    if url.startswith("postgres://"):
+        return "postgresql://" + url[len("postgres://") :]
+    return url
+
+
 def _utc_now() -> datetime:
     return datetime.now(timezone.utc)
 
@@ -73,10 +80,18 @@ _sess_secs = int(os.environ.get("SESSION_LIFETIME_SECONDS", 0))
 app.config["PERMANENT_SESSION_LIFETIME"] = (
     timedelta(seconds=_sess_secs) if _sess_secs else timedelta(days=7)
 )
+_on_render = os.environ.get("RENDER", "").lower() == "true"
+_session_secure = os.environ.get("SESSION_COOKIE_SECURE")
+if _session_secure is not None:
+    app.config["SESSION_COOKIE_SECURE"] = _session_secure.lower() in ("1", "true", "yes")
+elif _on_render:
+    app.config["SESSION_COOKIE_SECURE"] = True
 
 csrf = CSRFProtect(app)
 
-DATABASE_URL         = os.environ.get("DATABASE_URL", "sqlite:///./foodie_dev.db")
+DATABASE_URL = _normalize_database_url(
+    os.environ.get("DATABASE_URL", "sqlite:///./foodie_dev.db")
+)
 OAUTH_CLIENT_ID     = os.environ.get("OAUTH_CLIENT_ID") or os.environ.get("GITHUB_CLIENT_ID", "")
 OAUTH_CLIENT_SECRET = os.environ.get("OAUTH_CLIENT_SECRET") or os.environ.get("GITHUB_CLIENT_SECRET", "")
 

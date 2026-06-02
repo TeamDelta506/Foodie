@@ -20,3 +20,9 @@ S3_content/*
 deploy/nginx/certs/*.pem
 !deploy/nginx/certs/.gitkeep
 .venv
+
+# Cursor / SpecStory local history (not project source)
+.specstory/
+
+# Generated / scratch artifacts
+_out.html
