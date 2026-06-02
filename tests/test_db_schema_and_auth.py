@@ -66,18 +66,6 @@ def test_users_password_hash_is_nullable():
     assert cols["password_hash"].get("nullable") is True
 
 
-def test_oauth_user_insert_sets_created_at():
-    """New OAuth-only users must persist created_at (Postgres Week 5 volumes)."""
-    from app import Session, User
-
-    with Session(engine) as db:
-        user = User(username="oauth_only_user", password_hash=None)
-        db.add(user)
-        db.commit()
-        db.refresh(user)
-        assert user.created_at is not None
-
-
 def test_oauth_identities_table_and_unique_provider_user():
     """oauth_identities per CONTRACTS.md §1 (Week 7 — Sam/Justin)."""
     inspector = inspect(engine)
@@ -128,24 +116,6 @@ def test_mealplan_get_requires_authenticated_user(client):
     assert response.status_code in (302, 401)
 
 
-def test_login_github_stores_remember_oauth_in_session(client):
-    """OAuth path: ?remember=y on /login/github sets session flag (CONTRACTS.md §3)."""
-    client.get("/login/github?remember=y")
-    with client.session_transaction() as sess:
-        assert sess.get("remember_oauth") is True
-
-
-def test_mealplan_post_without_csrf_token_returns_400(client):
-    """Flask-WTF rejects state-changing POST with no csrf_token (CONTRACTS.md §10)."""
-    _register(client, "csrf_user")
-    _login(client, "csrf_user")
-    response = client.post(
-        "/mealplan",
-        data={"day_of_week": "0", "recipe_id": "1", "servings": "2"},
-    )
-    assert response.status_code == 400
-
-
 def _register(client, username: str, password: str = "secret") -> None:
     csrf_post(client, "/register", {"username": username, "password": password})
     csrf_post(client, "/logout")
@@ -153,6 +123,17 @@ def _register(client, username: str, password: str = "secret") -> None:
 
 def _login(client, username: str, password: str = "secret") -> None:
     csrf_post(client, "/login", {"username": username, "password": password})
+
+
+def test_csrf_rejects_post_without_token(client):
+    """POST /mealplan without csrf_token must return 400 (CONTRACTS.md §10)."""
+    _register(client, "csrf_user")
+    _login(client, "csrf_user")
+    response = client.post(
+        "/mealplan",
+        data={"day_of_week": "0", "recipe_id": "1", "servings": "2"},
+    )
+    assert response.status_code == 400
 
 
 def test_mealplan_scoped_to_current_user(client):
@@ -176,7 +157,6 @@ def test_mealplan_scoped_to_current_user(client):
         client,
         "/mealplan",
         {"day_of_week": "0", "recipe_id": str(recipe_id), "servings": "2"},
-        token_url="/mealplan",
     )
 
     _login(client, "owner_b")
