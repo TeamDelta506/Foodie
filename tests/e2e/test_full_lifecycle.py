@@ -203,13 +203,6 @@ def test_csrf_protection_rejects_tokenless_post(
             "/mealplan",
             form={"day_of_week": "1", "recipe_id": "1", "servings": "2"},
         )
-        # Playwright follows redirects by default, so after the 302→/login
-        # chain the response URL will contain "/login".
-        assert (
-            "/login" in response.url
-            or response.status in (400, 401, 403)
-        ), (
-            f"Expected auth or CSRF rejection, got status {response.status} at {response.url!r}"
         assert response.status == 400, (
             f"Expected CSRF rejection (400), got {response.status} at {response.url!r}"
         )
