@@ -24,6 +24,7 @@ import responses  # noqa: E402
 
 from app import app, engine  # noqa: E402
 from sqlmodel import SQLModel  # noqa: E402
+from tests.csrf_helpers import delete_with_csrf, post_json_with_csrf, post_with_csrf  # noqa: E402
 from tests.conftest import csrf_delete, csrf_post  # noqa: E402
 
 _EDAMAM_RE = re.compile(r"https://api\.edamam\.com/api/recipes/v2\?.*")
@@ -87,10 +88,10 @@ def test_week6_demo_register_search_detail_scale_plan_delete(client):
     assert nut["recipe_id"] == rid
     assert nut["servings"] == 3
 
-    scale = client.post(
+    scale = post_json_with_csrf(
+        client,
         "/recipes/scale",
-        data=json.dumps({"recipe_id": rid, "target_servings": 6}),
-        headers={"Content-Type": "application/json"},
+        {"recipe_id": rid, "target_servings": 6},
     )
     assert scale.status_code == 200
     body = scale.get_json()
