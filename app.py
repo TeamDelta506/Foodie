@@ -42,7 +42,6 @@ from sqlalchemy import (
     CheckConstraint, UniqueConstraint, event as sa_event, func, inspect, text,
 )
 from sqlmodel import SQLModel, Field, Session, create_engine, select
-from flask_wtf.csrf import CSRFProtect
 from werkzeug.exceptions import HTTPException
 from werkzeug.middleware.proxy_fix import ProxyFix
 from werkzeug.security import generate_password_hash, check_password_hash
@@ -66,20 +65,14 @@ app.config["SESSION_COOKIE_HTTPONLY"] = True
 app.config["SESSION_COOKIE_SAMESITE"] = "Lax"
 app.config["SESSION_COOKIE_SECURE"] = os.environ.get("SESSION_COOKIE_SECURE", "0") == "1"
 # Remember-me cookie — 30 days, HttpOnly, SameSite=Lax (Week 7 client-side).
-app.config["REMEMBER_COOKIE_DURATION"]  = timedelta(days=30)
-app.config["REMEMBER_COOKIE_HTTPONLY"]  = True
+app.config["REMEMBER_COOKIE_DURATION"] = timedelta(days=30)
+app.config["REMEMBER_COOKIE_HTTPONLY"] = True
 app.config["REMEMBER_COOKIE_SAMESITE"] = "Lax"
 # Permanent session lifetime — overridable via SESSION_LIFETIME_SECONDS for fast tests.
 _sess_secs = int(os.environ.get("SESSION_LIFETIME_SECONDS", 0))
 app.config["PERMANENT_SESSION_LIFETIME"] = (
     timedelta(seconds=_sess_secs) if _sess_secs else timedelta(days=7)
 )
-# Session cookie hardening (CONTRACTS.md §10).
-app.config["SESSION_COOKIE_HTTPONLY"] = True
-app.config["SESSION_COOKIE_SAMESITE"] = "Lax"
-app.config["SESSION_COOKIE_SECURE"] = True   # active now that ProxyFix passes X-Forwarded-Proto
-
-csrf = CSRFProtect(app)
 
 csrf = CSRFProtect(app)
 

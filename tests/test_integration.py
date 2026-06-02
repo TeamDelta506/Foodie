@@ -24,7 +24,6 @@ import responses  # noqa: E402
 
 from app import app, engine  # noqa: E402
 from sqlmodel import SQLModel  # noqa: E402
-from tests.csrf_helpers import delete_with_csrf, post_json_with_csrf, post_with_csrf  # noqa: E402
 from tests.conftest import csrf_delete, csrf_post  # noqa: E402
 
 _EDAMAM_RE = re.compile(r"https://api\.edamam\.com/api/recipes/v2\?.*")
@@ -62,7 +61,6 @@ def test_week6_demo_register_search_detail_scale_plan_delete(client):
         status=200,
     )
 
-    assert post_with_csrf(
     assert csrf_post(
         client,
         "/register",
@@ -89,20 +87,16 @@ def test_week6_demo_register_search_detail_scale_plan_delete(client):
     assert nut["recipe_id"] == rid
     assert nut["servings"] == 3
 
-    scale = post_json_with_csrf(
-        client,
+    scale = client.post(
         "/recipes/scale",
-        {"recipe_id": rid, "target_servings": 6},
+        data=json.dumps({"recipe_id": rid, "target_servings": 6}),
+        headers={"Content-Type": "application/json"},
     )
     assert scale.status_code == 200
     body = scale.get_json()
     assert body["target_servings"] == 6
     assert isinstance(body.get("ingredients"), list)
 
-    plan = post_with_csrf(
-        client,
-        "/mealplan",
-        {"day_of_week": "1", "recipe_id": str(rid), "servings": "2"},
     plan = csrf_post(
         client,
         "/mealplan",
@@ -117,7 +111,6 @@ def test_week6_demo_register_search_detail_scale_plan_delete(client):
     assert board.status_code == 200
     assert str(rid).encode() in board.data
 
-    clear = delete_with_csrf(client, "/mealplan/1")
     clear = csrf_delete(client, "/mealplan/1")
     assert clear.status_code == 302
 
