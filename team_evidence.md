@@ -26,3 +26,9 @@
 | Justin | `justin-hardening` | https://github.com/TeamDelta506/Foodie/tree/justin-hardening |
 | Asia | `asia-hardening` | https://github.com/TeamDelta506/Foodie/tree/asia-hardening |
 | Samuel (Sam) | `samuel-hardening` | https://github.com/TeamDelta506/Foodie/tree/samuel-hardening |
+| Sowmya | `sowmya-hardening` | https://github.com/TeamDelta506/Foodie/tree/sowmya-hardening |
+
+## Live demo (Render)
+
+- **Public URL:** https://foodie-sj2t.onrender.com/
+- **Note:** Render runs `Dockerfile.prod` (gunicorn only). The full nginx → gunicorn stack is exercised via `docker-compose.prod.yml` in CI and local prod.

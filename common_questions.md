@@ -1,5 +1,8 @@
 # Common questions — Foodie production stack
 
+**Author:** Sowmya (TeamDelta506)
+
+---
 
 1. What does nginx do that your Flask app shouldn't or can't?
 
@@ -7,9 +10,9 @@ nginx is the front door. It sits between the internet and the Python app and han
 
 | Job | What nginx does | Why not only Flask? |
 |-----|-----------------|---------------------|
-| HTTPS (TLS) | Terminates SSL using certs in nginx/certs/ | Flask’s dev server is not a production TLS server; you want encryption handled by software designed for it. |
-| Serve static files | Serves /static/ directly from disk (nginx/nginx.conf) | Faster and lighter than running every CSS/JS/image request through Python. |
-| Rate limiting | Limits /login to about 5 requests per minute per IP | Protects against password-guessing floods without adding that logic to every route in Flask. |
+| HTTPS (TLS) | Terminates SSL using certs in `deploy/nginx/certs/` | Flask's dev server is not a production TLS server; you want encryption handled by software designed for it. |
+| Serve static files | Serves `/static/` directly from disk (`deploy/nginx/nginx.conf`) | Faster and lighter than running every CSS/JS/image request through Python. |
+| Rate limiting | Limits `/login` to about 5 requests per minute per IP | Protects against password-guessing floods without adding that logic to every route in Flask. |
 | Security headers | Adds HSTS, X-Frame-Options, CSP, etc. on every response | One place to enforce policy for all pages, including errors. |
 | Reverse proxy | Forwards other requests to gunicorn over a unix socket | Flask/gunicorn stay off the public internet; nginx is the only thing exposed on ports 80/443. |
 
@@ -19,30 +22,30 @@ Simple analogy: Flask is the kitchen. nginx is the host at the door (checks ID, 
 
 2. What does gunicorn do that flask run doesn't?
 
-flask run is meant for development: one process, auto-reload, not safe or fast enough for real traffic.
+`flask run` is meant for development: one process, auto-reload, not safe or fast enough for real traffic.
 
-gunicorn is a production WSGI server. It runs your Flask app (yourapp:create_app() in the Dockerfile) as a real service:
+gunicorn is a production WSGI server. It runs our Flask app (`app:app` via `gunicorn -c gunicorn.conf.py app:app` in `Dockerfile.prod`) as a real service:
 
-- Multiple workers (workers = 3 in gunicorn.conf.py) — several requests at once; flask run handles one at a time in practice.
-- Stable process model — if one worker hangs, others can still answer; gunicorn can restart workers (timeout = 30).
-- Listens on a unix socket (unix:/tmp/gunicorn.sock) — pairs with nginx instead of exposing Flask on port 5000.
+- Multiple workers (`workers = 3` in `gunicorn.conf.py`) — several requests at once; `flask run` handles one at a time in practice.
+- Stable process model — if one worker hangs, others can still answer; gunicorn can restart workers (`timeout = 30`).
+- Listens on a unix socket (`unix:/tmp/gunicorn.sock`) — pairs with nginx instead of exposing Flask on port 5000.
 - No debug mode — avoids leaking stack traces and unsafe dev behavior to users.
 
 ---
 
 3. "Hardening" means making something harder to misuse. What's one specific thing your stack is now harder to misuse than it was last week?
 
-**Example: rate limiting on /login.
+**Example: rate limiting on `/login`.**
 
-Before nginx, someone could script thousands of login attempts against your app. Now nginx/nginx.conf has:
+Before nginx, someone could script thousands of login attempts against Foodie. Now `deploy/nginx/nginx.conf` has:
 
 ```nginx
 limit_req zone=login burst=3 nodelay;
 ```
 
-on /login (5 requests per minute per IP, with a small burst). Extra attempts get rejected at nginx before they hit Flask or the database.
+on `/login` (5 requests per minute per IP, with a small burst). Extra attempts get rejected at nginx before they hit Flask or the database.
 
-That is concrete hardening: abuse of the login form is harder, not because you rewrote Flask, but because the edge blocks it.
+That is concrete hardening: abuse of the login form is harder, not because we rewrote Flask, but because the edge blocks it.
 
 ---
 
@@ -68,21 +71,22 @@ What a load balancer adds that nginx does not:
 
 5. What's a single point of failure in your current setup?
 
-More than one answer is fine. Pick one you understand well:
-
- The one db container - All users, recipes, and meal plans are unavailable — the app cannot read or write data. Currently we have three containers, but they often run on one computer. That computer (or the database volume on it) is a choke point.
+The single `db` container (Postgres). If it stops, Foodie cannot read or write users, recipes, or meal plans — the whole app is down even if nginx and gunicorn are fine. We run three containers, but on one machine the database (and its `postgres-data` volume) is still the choke point.
 
 ---
 
 6. If someone runs docker compose down on production, what happens to the data in your database?
-If somebody runs the doccer compose down command then it will:
+
+If somebody runs `docker compose down` (without `-v`), it:
 
 - Stops and removes the containers (nginx, app, db).
-- Does not remove named volumes by default.
-- pgdata stays on disk — your users, recipes, and meal plans should still be there when you run docker compose up again.
+- Does **not** remove named volumes by default.
+- The `postgres-data` volume stays on disk — users, recipes, and meal plans should still be there when you run `docker compose up` again.
+
+If they run `docker compose down -v`, the named volumes are deleted and the data is gone.
 
 ---
 
 7. What's one thing you learned about your stack from your LLM this week that surprised you, and why?
 
-I was surprised that gunicorn and nginx talk through a unix socket file (/tmp/gunicorn.sock) instead of HTTP on port 8000. I assumed everything used URLs and ports. I learned that a socket is just a file both containers share via the gunicorn-socket volume, It is faster and not exposed to the network. I stopped thinking of nginx as another web app and saw it as a local pipe into gunicorn, with only nginx facing the public internet on 443.
+I thought going live on Render meant our full nginx → gunicorn → Flask stack was deployed. It is not — Render runs `Dockerfile.prod` with gunicorn only. Justin's rate limits and edge filters apply in CI and local `docker-compose.prod.yml`, but not on `https://foodie-sj2t.onrender.com/`. That surprised me because I assumed "production" was one shape everywhere. It also explained why fixing GitHub OAuth for Asia was a GitHub callback URL + Render env-vars change, not an nginx config edit — and why green CI does not guarantee the live demo behaves exactly like `https://localhost/` in docker.
