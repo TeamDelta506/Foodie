@@ -232,6 +232,106 @@ def test_recipe_image_refreshes_expired_presigned_url(client, monkeypatch):
 
 
 @responses.activate
+def test_recipe_image_refreshes_on_upstream_500(client, monkeypatch):
+    """Non-403 upstream failures still trigger one Edamam refresh + retry."""
+    monkeypatch.setenv("DISABLE_EDAMAM_API", "0")
+    from sqlmodel import Session, select
+
+    from app import Recipe  # noqa: E402
+
+    api_id = "http://www.edamam.com/ontologies/edamam.owl#recipe_500_test"
+    with Session(engine) as db:
+        db.add(Recipe(
+            api_id=api_id,
+            name="Broken Soup",
+            image_url="https://www.example.com/broken.jpg",
+            default_servings=2,
+        ))
+        db.commit()
+        recipe = db.exec(select(Recipe).where(Recipe.api_id == api_id)).first()
+        assert recipe is not None
+        rid = recipe.id
+
+    responses.add(responses.GET, "https://www.example.com/broken.jpg", status=500)
+    responses.add(
+        responses.GET,
+        _EDAMAM_RECIPE_BY_ID,
+        json={
+            "recipe": {
+                "uri": api_id,
+                "label": "Broken Soup",
+                "images": {"REGULAR": {"url": "https://www.example.com/recovered.jpg"}},
+            }
+        },
+        status=200,
+    )
+    responses.add(
+        responses.GET,
+        "https://www.example.com/recovered.jpg",
+        body=b"\xff\xd8recovered",
+        headers={"Content-Type": "image/jpeg"},
+    )
+
+    response = client.get(f"/recipes/{rid}/image")
+    assert response.status_code == 200
+    assert response.data == b"\xff\xd8recovered"
+
+
+@responses.activate
+def test_recipe_image_refreshes_stale_presigned_url_before_fetch(client, monkeypatch):
+    """Expired X-Amz presigned URLs are renewed via Edamam before the first upstream fetch."""
+    monkeypatch.setenv("DISABLE_EDAMAM_API", "0")
+    from sqlmodel import Session, select
+
+    from app import Recipe  # noqa: E402
+
+    api_id = "http://www.edamam.com/ontologies/edamam.owl#recipe_stale_presign"
+    stale = (
+        "https://www.example.com/stale.jpg"
+        "?X-Amz-Algorithm=AWS4-HMAC-SHA256"
+        "&X-Amz-Date=20200101T000000Z"
+        "&X-Amz-Expires=3600"
+    )
+    with Session(engine) as db:
+        db.add(Recipe(
+            api_id=api_id,
+            name="Stale Presign Soup",
+            image_url=stale,
+            default_servings=2,
+        ))
+        db.commit()
+        recipe = db.exec(select(Recipe).where(Recipe.api_id == api_id)).first()
+        assert recipe is not None
+        rid = recipe.id
+
+    responses.add(
+        responses.GET,
+        _EDAMAM_RECIPE_BY_ID,
+        json={
+            "recipe": {
+                "uri": api_id,
+                "label": "Stale Presign Soup",
+                "images": {"REGULAR": {"url": "https://www.example.com/fresh-presign.jpg"}},
+            }
+        },
+        status=200,
+    )
+    responses.add(
+        responses.GET,
+        "https://www.example.com/fresh-presign.jpg",
+        body=b"\xff\xd8freshpresign",
+        headers={"Content-Type": "image/jpeg"},
+    )
+
+    response = client.get(f"/recipes/{rid}/image")
+    assert response.status_code == 200
+    assert response.data == b"\xff\xd8freshpresign"
+    assert len(responses.calls) == 2
+    assert "stale.jpg" not in responses.calls[0].request.url
+    assert "fresh-presign.jpg" in responses.calls[1].request.url
+
+
+@responses.activate
 def test_recipe_image_backfills_missing_url_from_edamam(client, monkeypatch):
     """Recipe rows with image_url=NULL can fetch a URL on first /recipes/<id>/image hit."""
     monkeypatch.setenv("DISABLE_EDAMAM_API", "0")

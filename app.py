@@ -24,7 +24,7 @@ import random
 import uuid
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
-from urllib.parse import quote, urlparse
+from urllib.parse import parse_qs, quote, urlparse
 
 import requests as http
 from authlib.integrations.flask_client import OAuth
@@ -577,6 +577,21 @@ def _image_content_type(header_value: str | None, url: str, data: bytes) -> str 
     return None
 
 
+def _s3_presigned_url_is_stale(url: str, *, skew_seconds: int = 60) -> bool:
+    """True when URL looks like AWS SigV4 presigned and is past expiry."""
+    try:
+        qs = parse_qs(urlparse(url).query)
+        date_raw = (qs.get("X-Amz-Date") or [None])[0]
+        expires_raw = (qs.get("X-Amz-Expires") or [None])[0]
+        if not date_raw or not expires_raw:
+            return False
+        issued = datetime.strptime(date_raw, "%Y%m%dT%H%M%SZ").replace(tzinfo=timezone.utc)
+        expires_sec = int(expires_raw)
+        return datetime.now(timezone.utc) >= issued + timedelta(seconds=expires_sec - skew_seconds)
+    except (ValueError, TypeError, OverflowError):
+        return False
+
+
 def _fetch_remote_image(url: str) -> tuple[Response | None, int | None]:
     """Fetch a remote image URL. Returns (response, None) or (None, http_status)."""
     upstream = http.get(
@@ -1116,8 +1131,9 @@ def recipe_detail(recipe_id: int):
 def recipe_image(recipe_id: int):
     """Same-origin proxy for cached Edamam image URLs (CSP img-src 'self').
 
-    When the stored presigned S3 URL expires (403/404), performs one Edamam
-    lookup by api_id to refresh image_url, then retries the fetch.
+    Refreshes stale presigned S3 URLs via Edamam before fetch when possible.
+    On upstream failure, performs one Edamam lookup by api_id to renew image_url,
+    then retries the fetch.
     """
     db = get_db_session()
     recipe = db.get(Recipe, recipe_id)
@@ -1133,23 +1149,28 @@ def recipe_image(recipe_id: int):
     if src.startswith("/"):
         return redirect(src)
 
+    if _s3_presigned_url_is_stale(src):
+        refreshed = _refresh_recipe_image_from_edamam(recipe, db)
+        if refreshed:
+            src = refreshed.strip()
+
     safe = _safe_remote_image_url(src)
     if not safe:
         abort(404)
 
     try:
-        body, err_status = _fetch_remote_image(safe)
+        body, _err_status = _fetch_remote_image(safe)
         if body is not None:
             return body
 
-        if err_status in (403, 404, 410):
-            new_url = _refresh_recipe_image_from_edamam(recipe, db)
-            if new_url:
-                safe_retry = _safe_remote_image_url(new_url)
-                if safe_retry:
-                    body, _ = _fetch_remote_image(safe_retry)
-                    if body is not None:
-                        return body
+        # Presigned S3 URLs expire; any upstream failure may mean a stale cache row.
+        new_url = _refresh_recipe_image_from_edamam(recipe, db)
+        if new_url:
+            safe_retry = _safe_remote_image_url(new_url.strip())
+            if safe_retry:
+                body, _ = _fetch_remote_image(safe_retry)
+                if body is not None:
+                    return body
     except http.RequestException:
         logger.exception("Image proxy failed for recipe_id=%s", recipe_id)
 
@@ -1343,7 +1364,11 @@ def mealplan_recipe_suggest():
     rows = db.exec(stmt.limit(20)).all()
 
     return jsonify(recipes=[
-        {"id": r.id, "name": r.name, "image_url": r.image_url or ""}
+        {
+            "id": r.id,
+            "name": r.name,
+            "image_url": _public_recipe_image_url(r.id, r.image_url) or "",
+        }
         for r in rows
     ])
 
